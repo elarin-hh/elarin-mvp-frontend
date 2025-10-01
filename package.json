@@ -1,0 +1,27 @@
+{
+  "name": "elarin",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=9"
+  },
+  "workspaces": [
+    "apps/web",
+    "packages/ui"
+  ],
+  "scripts": {
+    "dev:web": "pnpm --filter @elarin/web dev",
+    "build:web": "pnpm --filter @elarin/web build",
+    "lint": "pnpm --filter @elarin/web lint",
+    "format": "pnpm --filter @elarin/web format",
+    "typecheck": "pnpm --filter @elarin/web typecheck",
+    "test": "pnpm --filter @elarin/web test"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.21.5"
+    }
+  }
+}

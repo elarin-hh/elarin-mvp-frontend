@@ -1,0 +1,14 @@
+{
+  "appName": "Elarin",
+  "loading": "Carregando...",
+  "error": "Erro",
+  "retry": "Tentar novamente",
+  "cancel": "Cancelar",
+  "continue": "Continuar",
+  "back": "Voltar",
+  "next": "Próximo",
+  "finish": "Finalizar",
+  "save": "Salvar",
+  "close": "Fechar",
+  "confirm": "Confirmar"
+}

@@ -1,0 +1,20 @@
+{
+  "training": "Training",
+  "exercise": "Exercise",
+  "selectExercise": "Select an Exercise",
+  "squat": "Squat",
+  "lunge": "Lunge",
+  "plank": "Plank",
+  "introTitle": "Before We Start",
+  "introMessage": "This MVP version demonstrates the UI flow. Camera capture and real-time exercise detection will be enabled in the next phase.",
+  "privacyNote": "Your privacy is important. All processing will happen locally on your device.",
+  "videoUnavailable": "Video unavailable in this MVP",
+  "statusIdle": "Ready to start",
+  "statusReady": "Get ready",
+  "statusTraining": "Training in progress",
+  "statusPaused": "Paused",
+  "statusFinished": "Completed",
+  "reps": "Reps",
+  "sets": "Sets",
+  "duration": "Duration"
+}

@@ -1,0 +1,20 @@
+{
+  "training": "Treinamento",
+  "exercise": "Exercício",
+  "selectExercise": "Selecione um Exercício",
+  "squat": "Agachamento",
+  "lunge": "Afundo",
+  "plank": "Prancha",
+  "introTitle": "Antes de Começar",
+  "introMessage": "Esta versão MVP demonstra o fluxo da interface. A captura de câmera e detecção de exercícios em tempo real serão habilitadas na próxima fase.",
+  "privacyNote": "Sua privacidade é importante. Todo o processamento acontecerá localmente no seu dispositivo.",
+  "videoUnavailable": "Vídeo indisponível neste MVP",
+  "statusIdle": "Pronto para começar",
+  "statusReady": "Prepare-se",
+  "statusTraining": "Treino em andamento",
+  "statusPaused": "Pausado",
+  "statusFinished": "Concluído",
+  "reps": "Repetições",
+  "sets": "Séries",
+  "duration": "Duração"
+}
