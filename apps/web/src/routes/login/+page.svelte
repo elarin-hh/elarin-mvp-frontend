@@ -38,7 +38,7 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(10px);
     border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.20);
+    border: 0.8px solid rgba(255, 255, 255, 0.20);
   }
 </style>
 
@@ -53,7 +53,7 @@
 
   <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="w-full max-w-md space-y-4">
     {#if error}
-      <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 rounded-full text-sm text-center">
+      <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: 18px;">
         {error}
       </div>
     {/if}
@@ -63,8 +63,8 @@
       bind:value={email}
       required
       placeholder="E-mail"
-      class="w-full px-6 py-3 bg-transparent border-2 border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-      style="border-radius: 18px;"
+      class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+      style="border-radius: 18px; border-width: 0.8px;"
     />
 
     <input
@@ -72,8 +72,8 @@
       bind:value={password}
       required
       placeholder="Senha"
-      class="w-full px-6 py-3 bg-transparent border-2 border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-      style="border-radius: 18px;"
+      class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+      style="border-radius: 18px; border-width: 0.8px;"
     />
 
     <button
