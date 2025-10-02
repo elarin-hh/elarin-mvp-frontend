@@ -5,6 +5,7 @@
   import { trainActions } from '$lib/stores/train.store';
   import { telemetry } from '$lib/services/telemetry.service';
   import { onMount } from 'svelte';
+  import { asset } from '$lib/utils/assets';
 
   let isScrolled = $state(false);
 
@@ -143,7 +144,7 @@
       <div class="header-glass mx-auto py-2" class:scrolled={isScrolled}>
       <div class="flex items-center justify-between px-4">
         <div class="flex items-center">
-          <img src="/logo-elarin.png" alt="Elarin" class="h-12 sm:h-14" />
+          <img src={asset('/logo-elarin.png')} alt="Elarin" class="h-12 sm:h-14" />
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4">

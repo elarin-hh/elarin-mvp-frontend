@@ -3,6 +3,7 @@
   import { appActions } from '$lib/stores/app.store';
   import type { Locale } from '$lib/config/i18n';
   import { setStoredLocale } from '$lib/config/i18n';
+  import { asset } from '$lib/utils/assets';
 
   let currentLocale = $derived($locale as Locale);
 
