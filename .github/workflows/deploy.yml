@@ -40,6 +40,7 @@ jobs:
         run: |
           cd apps/web
           pnpm run build
+          touch build/.nojekyll
         env:
           BASE_PATH: '/${{ github.event.repository.name }}'
 

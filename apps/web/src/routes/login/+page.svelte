@@ -2,6 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { goto } from '$app/navigation';
   import { authService } from '$lib/services/supabase.client';
+  import { asset } from '$lib/utils/assets';
 
   let email = $state('');
   let password = $state('');
@@ -45,7 +46,7 @@
 <div class="min-h-screen bg-black flex flex-col items-center justify-center px-4">
   <div class="mb-16 text-center">
     <img 
-      src="/logo-elarin.png" 
+      src={asset('/logo-elarin.png')} 
       alt="Elarin" 
       class="h-20 mx-auto"
     />
