@@ -35,11 +35,13 @@
 
 <style>
   .glass-button {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 18px;
-    border: 0.2px solid rgba(255, 255, 255, 0.05);
+    /* border: 1px solid rgba(255, 255, 255, 0.1); */
+    position: relative;
+    overflow: hidden;
   }
 </style>
 

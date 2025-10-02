@@ -84,19 +84,23 @@
   }
 
   .glass-button {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 8px;
-    border: 0.2px solid rgba(255, 255, 255, 0.05);
+    /* border: 1px solid rgba(255, 255, 255, 0.1); */
+    position: relative;
+    overflow: hidden;
   }
 
   .glass-button-round {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 50%;
-    border: 0.2px solid rgba(255, 255, 255, 0.05);
+    /* border: 1px solid rgba(255, 255, 255, 0.1); */
+    position: relative;
+    overflow: hidden;
   }
 
   .header-container {
@@ -114,7 +118,7 @@
   }
 
   .header-glass.scrolled {
-    background: rgba(18, 18, 18, 0.75);
+    background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     /* border: 1px solid rgba(255, 255, 255, 0.05); */

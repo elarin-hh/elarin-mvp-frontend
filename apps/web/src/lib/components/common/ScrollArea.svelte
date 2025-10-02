@@ -160,7 +160,7 @@
     top: 2px;
     bottom: 2px;
     right: 2px;
-    width: 8px;
+    width: 4px;
   }
 
   :global(.sa-scrollbar-x) {
