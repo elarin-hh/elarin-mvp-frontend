@@ -34,12 +34,12 @@
     </div>
   </div>
 
-  {/* TODO: Add video element when camera capture is implemented
+  <!-- TODO: Add video element when camera capture is implemented
   <video class="w-full h-full object-cover" autoplay playsinline />
-  */}
+  -->
   
-  {/* TODO: Add canvas overlay for pose landmarks when vision processing is implemented
+  <!-- TODO: Add canvas overlay for pose landmarks when vision processing is implemented
   <canvas class="absolute inset-0 w-full h-full" />
-  */}
+  -->
 </div>
 
