@@ -46,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'apps/web/build'
+          path: 'apps/web/.svelte-kit/output/client'
 
   deploy:
     needs: build
