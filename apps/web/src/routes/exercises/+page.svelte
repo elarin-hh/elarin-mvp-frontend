@@ -75,7 +75,7 @@
 <style>
   .button-primary {
     background: #8EB428;
-    border-radius: 4px;
+    border-radius: 8px;
     transition: all 0.2s ease;
   }
 
