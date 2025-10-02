@@ -41,11 +41,11 @@
 
 <style>
   .glass-button {
-    background: rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(10px);
     border-radius: 18px;
-    border: 0.2px solid rgba(255, 255, 255, 0.10);
+    border: 0.2px solid rgba(255, 255, 255, 0.05);
   }
 </style>
 

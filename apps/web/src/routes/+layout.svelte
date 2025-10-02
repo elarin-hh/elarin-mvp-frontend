@@ -4,6 +4,7 @@
   import { initI18n } from '$lib/config/i18n';
   import { telemetry } from '$lib/services/telemetry.service';
   import { featureFlags } from '$lib/config/feature-flags';
+  import { ScrollArea } from '$lib/components/common';
 
   let isReady = $state(false);
 
@@ -19,7 +20,9 @@
 </script>
 
 {#if isReady}
-  <slot />
+  <ScrollArea className="min-h-screen" style="height:100vh;">
+    <slot />
+  </ScrollArea>
 {:else}
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center">
