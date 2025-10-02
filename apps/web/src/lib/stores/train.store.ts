@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 
 // Exercise types available in the app
-export type ExerciseType = 'squat' | 'lunge' | 'plank';
+export type ExerciseType = 'plank' | 'squat' | 'legPress' | 'abdominal' | 'crossOver' | 'biceps' | 'triceps' | 'glutes' | 'shoulderPress' | 'deadlift' | 'benchPress' | 'pullUp' | 'dip' | 'latPulldown' | 'cableRow' | 'lunges' | 'calfRaise' | 'hamstringCurl' | 'chestFly' | 'lateralRaise' | 'frontRaise' | 'shrugs' | 'arnoldPress';
 
 // Training session states
 export type TrainingStatus = 'idle' | 'ready' | 'training' | 'paused' | 'finished';

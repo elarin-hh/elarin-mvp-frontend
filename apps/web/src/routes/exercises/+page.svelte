@@ -1,0 +1,150 @@
+<script lang="ts">
+  import { _ } from 'svelte-i18n';
+  import { goto } from '$app/navigation';
+  import type { ExerciseType } from '$lib/stores/train.store';
+  import { trainActions } from '$lib/stores/train.store';
+  import { telemetry } from '$lib/services/telemetry.service';
+
+  const exercises: ExerciseType[] = [
+    'plank', 'squat', 'legPress', 'abdominal', 'crossOver', 'biceps', 'triceps', 'glutes',
+    'shoulderPress', 'deadlift', 'benchPress', 'pullUp', 'dip', 'latPulldown', 'cableRow',
+    'lunges', 'calfRaise', 'hamstringCurl', 'chestFly', 'lateralRaise', 'frontRaise', 'shrugs', 'arnoldPress'
+  ];
+
+  // Imagens gratuitas do Unsplash para cada exercício
+  const exerciseImages: Record<ExerciseType, string> = {
+    plank: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
+    squat: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&h=600&fit=crop',
+    legPress: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?w=800&h=600&fit=crop',
+    abdominal: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop',
+    crossOver: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=600&fit=crop',
+    biceps: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
+    triceps: 'https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&h=600&fit=crop',
+    glutes: 'https://images.unsplash.com/photo-1550345332-09e3ac987658?w=800&h=600&fit=crop',
+    shoulderPress: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&h=600&fit=crop',
+    deadlift: 'https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=800&h=600&fit=crop',
+    benchPress: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop',
+    pullUp: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=600&fit=crop',
+    dip: 'https://images.unsplash.com/photo-1623874514711-0f321325f318?w=800&h=600&fit=crop',
+    latPulldown: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
+    cableRow: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
+    lunges: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=600&fit=crop',
+    calfRaise: 'https://images.unsplash.com/photo-1558017487-06bf9f82613a?w=800&h=600&fit=crop',
+    hamstringCurl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&h=600&fit=crop',
+    chestFly: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&h=600&fit=crop',
+    lateralRaise: 'https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800&h=600&fit=crop',
+    frontRaise: 'https://images.unsplash.com/photo-1652363723833-0ac17f0b7a79?w=800&h=600&fit=crop',
+    shrugs: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=800&h=600&fit=crop',
+    arnoldPress: 'https://images.unsplash.com/photo-1593476087123-36d1de271f08?w=800&h=600&fit=crop'
+  };
+
+  function handleExerciseSelect(exercise: ExerciseType) {
+    trainActions.selectExercise(exercise);
+    telemetry.emit('exercise_selected', { exercise });
+    goto('/train/intro');
+  }
+</script>
+
+<style>
+  .glass-button {
+    background: rgba(255, 255, 255, 0.20);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px;
+    border: 0.2px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .glass-button-round {
+    background: rgba(255, 255, 255, 0.20);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 50%;
+    border: 0.2px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .glass-overlay {
+    background: rgba(100, 100, 100, 0.4);
+    backdrop-filter: blur(2px);
+  }
+
+  .exercise-name {
+    background: transparent;
+    transition: all 0.3s ease;
+  }
+
+  .group:hover .exercise-name {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+</style>
+
+<div class="min-h-screen bg-black">
+  <!-- Header com busca -->
+  <header class="bg-transparent fixed top-0 left-0 right-0 z-50">
+    <div class="w-full px-4 py-2">
+      <div class="flex items-center justify-between py-1">
+        <!-- Logo -->
+        <div class="flex items-center">
+          <img src="/logo-elarin.png" alt="Elarin" class="h-14" />
+        </div>
+
+        <!-- Menu e Avatar -->
+        <div class="flex items-center gap-4">
+          <button type="button" class="text-white hover:text-white/80 transition-colors" aria-label="Menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+          
+          <div class="glass-button px-5 py-2">
+            <span class="text-white text-xs font-semibold">PRO</span>
+          </div>
+          
+          <button type="button" class="glass-button-round w-12 h-12 flex items-center justify-center overflow-hidden p-0" aria-label="Perfil do usuário">
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Main Content -->
+  <main class="w-full px-4 pb-4 pt-24">
+    <div class="grid grid-cols-4 gap-4 w-full">
+      {#each exercises as exercise}
+        <div class="flex flex-col cursor-pointer group" onclick={() => handleExerciseSelect(exercise)} onkeypress={(e) => e.key === 'Enter' && handleExerciseSelect(exercise)} role="button" tabindex="0" aria-label="Selecionar {$_(`train.${exercise}`)}">
+          <div class="relative h-56 rounded-lg overflow-hidden w-full z-10">
+            <!-- Imagem de fundo -->
+            <img 
+              src={exerciseImages[exercise]} 
+              alt={$_(`train.${exercise}`)}
+              class="absolute inset-0 w-full h-full object-cover"
+            />
+            
+            <!-- Filtro com efeito glassmorphism -->
+            <div class="glass-overlay absolute inset-0"></div>
+            
+            <!-- Botão glassmorphism -->
+            <div class="absolute inset-0 flex items-center justify-center p-8">
+              <div class="glass-button px-8 py-4 transition-all group-hover:bg-white/30 flex items-center gap-3">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="text-white text-base font-medium">Iniciar</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Nome do exercício fora do box com background no hover -->
+          <span class="exercise-name text-white text-base font-medium px-3 py-2 pt-5 -mt-3 z-0 group-hover:rounded-b-lg">
+            {$_(`train.${exercise}`)}
+          </span>
+        </div>
+      {/each}
+    </div>
+  </main>
+</div>
+
