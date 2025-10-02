@@ -81,7 +81,7 @@
       disabled={isLoading}
       class="glass-button w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
     >
-      {isLoading ? 'Carregando...' : 'Logar agora'}
+      {isLoading ? 'Carregando...' : 'Logar'}
     </button>
   </form>
 
