@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { authService } from '$lib/services/supabase.client';
   import { asset } from '$lib/utils/assets';
 
@@ -26,7 +27,7 @@
       if (result.error) {
         error = $_('errors.genericError');
       } else {
-        goto('/');
+        goto(`${base}/`);
       }
     } catch (e) {
       error = $_('errors.genericError');
@@ -36,7 +37,7 @@
   }
 
   function goToLogin() {
-    goto('/login');
+    goto(`${base}/login`);
   }
 </script>
 

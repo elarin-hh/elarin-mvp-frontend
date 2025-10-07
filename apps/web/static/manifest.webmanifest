@@ -2,7 +2,7 @@
   "name": "Elarin - AI Fitness Trainer",
   "short_name": "Elarin",
   "description": "Personal AI-powered fitness trainer with real-time exercise detection",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0ea5e9",
