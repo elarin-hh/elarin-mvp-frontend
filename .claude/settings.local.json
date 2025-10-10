@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/notebook-guilherme/Documents/Elarin-V2-main/static/**)",
+      "Read(//c/Users/notebook-guilherme/tensorflow-mediapipe-mvp/**)",
+      "Bash(xcopy:*)",
+      "Bash(copy:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
