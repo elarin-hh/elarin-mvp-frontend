@@ -1,21 +1,23 @@
 # Elarin - AI Fitness Trainer MVP
 
-> **Current Phase:** Frontend Skeleton Only
+> **Current Phase:** Real-time Squat Detection with ML
 >
-> This MVP demonstrates the UI/UX flow and architecture without camera capture, MediaPipe, or real-time exercise detection.
+> This MVP demonstrates complete squat form analysis using MediaPipe pose detection and TensorFlow.js ML models for real-time feedback.
 
 ## 🎯 About This MVP
 
-Elarin is an AI-powered personal fitness trainer that will eventually provide real-time exercise form feedback using computer vision. This MVP builds the foundation:
+Elarin is an AI-powered personal fitness trainer that provides real-time exercise form feedback using computer vision and machine learning:
 
 - ✅ Complete UI/UX flow
 - ✅ PWA support with offline capabilities
 - ✅ Internationalization (pt-BR / en-US)
 - ✅ State management and routing
 - ✅ Testing infrastructure
-- ❌ Camera capture (next phase)
-- ❌ MediaPipe pose detection (next phase)
-- ❌ Real-time exercise feedback (next phase)
+- ✅ **Camera capture with MediaPipe pose detection**
+- ✅ **TensorFlow.js ML model for squat classification**
+- ✅ **Real-time form feedback and error detection**
+- ✅ **Persistent error history with timestamps**
+- ✅ **Modern phase indicator with glass morphism**
 
 ## 🚀 Getting Started
 
@@ -58,14 +60,14 @@ elarin/apps/web/
 │   │   │       ├── ExerciseSelect.svelte
 │   │   │       ├── HUD.svelte
 │   │   │       ├── PermissionIntro.svelte
-│   │   │       └── StagePane.svelte (placeholder)
+│   │   │       └── StagePane.svelte
 │   │   ├── stores/              # Svelte stores for state management
 │   │   │   ├── app.store.ts     # App-wide state (locale, theme)
 │   │   │   └── train.store.ts   # Training session state
-│   │   ├── services/            # Service layer (stubs)
+│   │   ├── services/            # Service layer
 │   │   │   ├── supabase.client.ts
 │   │   │   └── telemetry.service.ts
-│   │   ├── api/                 # API client (stub)
+│   │   ├── api/                 # API client
 │   │   │   ├── dtos.ts          # Zod schemas
 │   │   │   └── rest.client.ts
 │   │   ├── config/
@@ -76,14 +78,23 @@ elarin/apps/web/
 │   │       └── pt-BR/
 │   ├── routes/
 │   │   ├── +layout.svelte       # Root layout
-│   │   ├── +page.svelte         # Dashboard
-│   │   ├── login/
-│   │   ├── register/
-│   │   └── train/
-│   │       ├── select/          # Exercise selection
-│   │       ├── intro/           # Onboarding/permission intro
-│   │       └── [exercise]/      # Training page + summary
+│   │   ├── +page.svelte         # Redirects to login
+│   │   ├── login/               # Login page
+│   │   ├── register/            # Registration page
+│   │   ├── exercises/           # Exercise selection
+│   │   └── train/               # Real-time training with ML
 │   └── app.html                 # PWA-enabled HTML template
+├── static/
+│   ├── js/                      # ML Detection Scripts
+│   │   ├── PoseDetector.js      # MediaPipe pose detection base
+│   │   ├── ExerciseDetector.js  # Exercise detection logic
+│   │   ├── MLDetector.js        # TensorFlow.js ML detector base
+│   │   └── SquatDetectorML.js   # Squat-specific ML detector
+│   └── models_tfjs/             # TensorFlow.js Models
+│       └── squat/
+│           ├── model/           # Trained squat model
+│           ├── scaler.json      # Feature scaler
+│           └── squat_info.json  # Model metadata
 └── tests/
     ├── unit/                    # Vitest unit tests
     └── e2e/                     # Playwright E2E tests
@@ -92,27 +103,30 @@ elarin/apps/web/
 ## 🔄 User Flow
 
 1. **Login/Register** (`/login`, `/register`)
-   - Mock authentication (stubs only)
+   - Simple authentication flow (MVP mode)
 
-2. **Dashboard** (`/`)
-   - View stats (mock data)
-   - Start training button
+2. **Exercise Selection** (`/exercises`)
+   - Choose from 23+ exercises (currently: Squat fully functional)
 
-3. **Exercise Selection** (`/train/select`)
-   - Choose: Squat, Lunge, or Plank
+3. **Training Session** (`/train`)
+   - **Real camera capture** with MediaPipe pose detection
+   - **ML-powered squat classification** (up/down/middle stages)
+   - **Real-time form feedback** with error detection:
+     - Foot placement validation
+     - Knee alignment checking
+     - Depth control (prevents excessive depth)
+     - Movement speed monitoring
+     - Torso alignment validation
+   - **Modern phase indicator** with glass morphism design
+   - **Persistent error history** with timestamps
+   - **Camera controls** (Start/Stop) with reactive UI
+   - **Automatic rep counting** based on ML predictions
 
-4. **Intro/Permissions** (`/train/intro`)
-   - Explains privacy and future features
-   - No actual camera permission requested
-
-5. **Training Session** (`/train/[exercise]`)
-   - Placeholder video area (no camera)
-   - Mock HUD showing reps/sets/duration
-   - Manual "Simulate Rep" button for testing
-
-6. **Summary** (`/train/[exercise]/summary`)
-   - Shows session results
-   - Return to dashboard
+4. **Error Tracking**
+   - Real-time error visualization on canvas
+   - Detailed error history panel
+   - Error categorization (feet, knees, depth, speed, alignment)
+   - Timestamp tracking for each error
 
 ## 🧪 Testing
 
@@ -142,12 +156,22 @@ Translation files: `src/lib/i18n/{locale}/{namespace}.json`
 
 ## 🔧 Technology Stack
 
-- **Framework:** SvelteKit 2.x + Svelte 5
+### Frontend
+- **Framework:** SvelteKit 2.x + Svelte 5 (with $state runes)
 - **Language:** TypeScript (strict mode)
-- **Styling:** Tailwind CSS
+- **Styling:** Tailwind CSS + Glass Morphism
 - **PWA:** @vite-pwa/sveltekit
 - **i18n:** svelte-i18n
 - **State:** Svelte stores
+
+### Computer Vision & ML
+- **Pose Detection:** MediaPipe Pose
+- **ML Framework:** TensorFlow.js
+- **Model Type:** Sequential Neural Network (squat classification)
+- **Feature Engineering:** StandardScaler normalization
+- **Real-time Processing:** Canvas-based rendering with throttling
+
+### Quality & DevOps
 - **Validation:** Zod
 - **Testing:** Vitest + Playwright
 - **Linting:** ESLint + Prettier
@@ -175,31 +199,44 @@ pnpm --filter @elarin/web test:e2e    # E2E tests
 
 ## 🗺️ Roadmap
 
-### ✅ Phase 1: Frontend Skeleton (Current)
-- Complete UI/UX flow
-- PWA setup
-- i18n support
-- Testing infrastructure
+### ✅ Phase 1: Frontend Skeleton
+- [x] Complete UI/UX flow
+- [x] PWA setup
+- [x] i18n support
+- [x] Testing infrastructure
 
-### 🔜 Phase 2: Camera & Vision (Next)
-- [ ] Camera permission handling
-- [ ] Device selection (front/back camera)
-- [ ] MediaPipe pose detection
-- [ ] OffscreenCanvas rendering
-- [ ] Web Worker for vision processing
+### ✅ Phase 2: Camera & Vision (Completed)
+- [x] Camera permission handling
+- [x] MediaPipe pose detection
+- [x] Canvas-based rendering
+- [x] Real-time pose tracking
+- [x] Dynamic script loading with feedback
 
-### 🔮 Phase 3: Exercise Logic
-- [ ] Exercise-specific rules (squat, lunge, plank)
-- [ ] Automatic rep counting
-- [ ] Form feedback
-- [ ] Real-time guidance
+### ✅ Phase 3: Squat Detection with ML (Current)
+- [x] TensorFlow.js integration
+- [x] ML-based squat stage classification (up/down/middle)
+- [x] Automatic rep counting
+- [x] Form validation rules:
+  - [x] Foot placement (width validation)
+  - [x] Knee alignment (tracking ratio)
+  - [x] Depth control (hip/knee position)
+  - [x] Movement speed monitoring
+  - [x] Torso alignment checking
+- [x] Real-time feedback system
+- [x] Error history with persistence
 
-### 🚀 Phase 4: Backend & Data
+### 🔜 Phase 4: Additional Exercises
+- [ ] Lunge detection
+- [ ] Plank detection
+- [ ] Leg Press detection
+- [ ] Other exercises (20+ planned)
+
+### 🚀 Phase 5: Backend & Data
 - [ ] Supabase integration
-- [ ] User authentication
-- [ ] Session history
-- [ ] Progress tracking
-- [ ] Analytics
+- [ ] Real user authentication
+- [ ] Session history storage
+- [ ] Progress tracking charts
+- [ ] Analytics dashboard
 
 ## ⚙️ Configuration
 
@@ -219,28 +256,104 @@ Located in `src/lib/config/feature-flags.ts`:
 
 ```typescript
 export const featureFlags = {
-  enableCameraCapture: false,       // Will enable in Phase 2
-  enableVisionProcessing: false,    // Will enable in Phase 2
-  enableExerciseDetection: false,   // Will enable in Phase 3
-  enableTelemetry: false
+  enableCameraCapture: true,        // ✅ Enabled - Real camera capture
+  enableVisionProcessing: true,     // ✅ Enabled - MediaPipe pose detection
+  enableExerciseDetection: true,    // ✅ Enabled - Squat ML detection
+  enableTelemetry: false            // ❌ Future feature
 };
 ```
 
+## 🎥 ML-Powered Squat Detection
+
+### Detection Pipeline
+
+1. **Pose Extraction** (MediaPipe)
+   - 33 body landmarks tracked in real-time
+   - Focus on 9 critical points (nose, shoulders, hips, knees, ankles)
+   - Visibility threshold: 60%
+
+2. **Feature Engineering**
+   - Extract (x, y, z, visibility) for each landmark
+   - Normalize with StandardScaler
+   - Feed to TensorFlow.js model
+
+3. **ML Classification**
+   - Model predicts: `up`, `down`, or `middle` stage
+   - Confidence threshold: 70%
+   - Real-time stage transitions
+
+4. **Form Validation** (Hybrid ML + Rules)
+   - **Foot Position:** Validates width ratio (shoulder-based)
+   - **Knee Tracking:** Ensures proper alignment with feet
+   - **Depth Control:** Prevents hip from dropping below knees
+   - **Speed Check:** Enforces minimum movement duration (500ms)
+   - **Torso Alignment:** Detects lateral tilt
+
+5. **Feedback & Counting**
+   - Errors logged with timestamps
+   - Reps counted only on correct form
+   - Persistent history across sessions
+
+### Model Architecture
+
+```
+Input: 36 features (9 landmarks × 4 values)
+  ↓
+Dense Layer (64 units, ReLU)
+  ↓
+Dropout (0.3)
+  ↓
+Dense Layer (32 units, ReLU)
+  ↓
+Output: 3 classes (up, down, middle) - Softmax
+```
+
+### Performance Optimizations
+
+- **Throttling:** 30 FPS target with frame skipping
+- **Async ML:** Non-blocking predictions
+- **Canvas Rendering:** Hardware-accelerated drawing
+- **Global Exposure:** Classes available as `window.SquatDetectorML`
+
 ## 🤝 Contributing
 
-This is an MVP. Key areas for contribution:
+Key areas for contribution:
 
-1. **UI/UX improvements** - Enhance existing components
-2. **Accessibility** - ARIA labels, keyboard navigation
-3. **Performance** - Code splitting, lazy loading
-4. **Documentation** - Improve this README
+1. **Additional Exercises** - Implement detectors for other exercises
+2. **ML Model Training** - Improve squat model accuracy
+3. **UI/UX improvements** - Enhance visual feedback
+4. **Accessibility** - ARIA labels, keyboard navigation
+5. **Performance** - Optimize rendering and ML inference
+6. **Documentation** - Add exercise-specific guides
 
-## 📝 Notes
+## 📝 Technical Notes
 
-- All backend calls are **stubbed** (console.debug only)
-- Camera/MediaPipe code is **intentionally absent**
-- `// TODO:` comments mark extension points
-- Tests verify navigation, not functionality
+### ML Detection Classes
+
+All detector classes are exposed globally for browser access:
+
+```javascript
+window.PoseDetector        // Base MediaPipe pose detector
+window.ExerciseDetector    // Exercise detection logic
+window.MLDetector          // TensorFlow.js ML base
+window.SquatDetectorML     // Squat-specific ML detector
+```
+
+### Error Detection Logic
+
+Errors are detected in real-time and logged persistently:
+
+- **Deduplication:** Same error within 2s ignored
+- **History Limit:** Last 100 errors kept
+- **Timestamp Format:** Unix timestamp (milliseconds)
+- **Persistence:** Survives camera stop/start
+
+### Canvas Rendering
+
+- **Phase Indicator:** Modern glass morphism design in top-left corner
+- **Glow Effect:** Dynamic color based on stage (green/red/gold)
+- **Icons:** Directional arrows (↑ up, ↓ down, • middle)
+- **No FPS Counter:** Removed for cleaner UI
 
 ## 📄 License
 
