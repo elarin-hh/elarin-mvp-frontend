@@ -31,7 +31,7 @@ class PoseDetector {
                 minTrackingConfidence: 0.3,  // Reduzido para melhor FPS
                 width: 640,   // Reduzido para melhor FPS
                 height: 480,  // Reduzido para melhor FPS
-                lineWidth: 2,
+                lineWidth: 3,
                 radius: 3
             },
             balanced: {
@@ -40,7 +40,7 @@ class PoseDetector {
                 minTrackingConfidence: 0.4,  // Reduzido para melhor FPS
                 width: 854,   // Reduzido para melhor FPS
                 height: 480,  // Reduzido para melhor FPS
-                lineWidth: 2,
+                lineWidth: 3,
                 radius: 4
             },
             quality: {

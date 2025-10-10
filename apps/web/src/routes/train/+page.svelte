@@ -7,6 +7,7 @@
   // DOM References
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
+  let videoContainerElement: HTMLDivElement;
 
   // Reactive State
   let detector: any = $state(null);
@@ -17,6 +18,7 @@
   let scriptsLoaded = $state(false);
   let loadingStage = $state('Inicializando...');
   let isCameraRunning = $state(false); // Controle do estado da câmera
+  let isFullscreen = $state(false); // Controle de tela cheia
 
   // Error history tracking (persistente entre sessões)
   let errorList: Array<{type: string, message: string, timestamp: number}> = $state([]);
@@ -163,8 +165,10 @@
 
       console.log('🎥 Inicializando detector...');
 
-      // Criar detector
-      detector = new SquatDetectorML('quality');
+      // Criar detector com modo adequado para o dispositivo
+      const isMobile = window.innerWidth < 768;
+      const performanceMode = isMobile ? 'performance' : 'quality';
+      detector = new SquatDetectorML(performanceMode);
 
       // Sobrescrever onResults para atualizar histórico de erros
       const originalOnResults = detector.onResults.bind(detector);
@@ -211,6 +215,58 @@
   function toggleDebug() {
     debugMode = !debugMode;
     (window as any).debugMode = debugMode;
+  }
+
+  /**
+   * Alterna modo tela cheia (com suporte para iOS/Safari)
+   */
+  async function toggleFullscreen() {
+    if (!videoContainerElement) return;
+
+    try {
+      const doc = document as any;
+      const elem = videoContainerElement as any;
+
+      // Verifica se já está em fullscreen (compatível com webkit)
+      const isCurrentlyFullscreen =
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement;
+
+      if (!isCurrentlyFullscreen) {
+        // Entrar em tela cheia (tenta diferentes APIs)
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          await elem.webkitRequestFullscreen(); // iOS Safari
+        } else if (elem.webkitEnterFullscreen) {
+          await elem.webkitEnterFullscreen(); // iOS Safari (video)
+        } else if (elem.mozRequestFullScreen) {
+          await elem.mozRequestFullScreen(); // Firefox
+        } else if (elem.msRequestFullscreen) {
+          await elem.msRequestFullscreen(); // IE/Edge
+        } else {
+          console.warn('Fullscreen API não suportada neste navegador');
+          return;
+        }
+        isFullscreen = true;
+      } else {
+        // Sair de tela cheia (tenta diferentes APIs)
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen(); // iOS Safari
+        } else if (doc.mozCancelFullScreen) {
+          await doc.mozCancelFullScreen(); // Firefox
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen(); // IE/Edge
+        }
+        isFullscreen = false;
+      }
+    } catch (error) {
+      console.error('Erro ao alternar tela cheia:', error);
+    }
   }
 
   /**
@@ -267,11 +323,30 @@
    * Lifecycle: onMount
    */
   onMount(async () => {
-    // Configurar canvas
+    // Configurar canvas com dimensões responsivas
     if (canvasElement) {
-      canvasElement.width = 854;
-      canvasElement.height = 480;
+      const updateCanvasSize = () => {
+        const isMobile = window.innerWidth < 768; // Breakpoint md
+        if (isMobile) {
+          // Mobile: 9:16 aspect ratio (portrait)
+          canvasElement.width = 360;
+          canvasElement.height = 640;
+        } else {
+          // Desktop: 16:9 aspect ratio (landscape)
+          canvasElement.width = 854;
+          canvasElement.height = 480;
+        }
+      };
+
+      updateCanvasSize();
+      window.addEventListener('resize', updateCanvasSize);
     }
+
+    // Listener para mudanças de fullscreen
+    const handleFullscreenChange = () => {
+      isFullscreen = !!document.fullscreenElement;
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     // Disponibilizar debugMode globalmente
     (window as any).debugMode = debugMode;
@@ -363,6 +438,8 @@
     -webkit-backdrop-filter: blur(10px);
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .stats-card {
@@ -408,6 +485,22 @@
     background: rgba(142, 180, 40, 0.1);
     border: 1px solid rgba(142, 180, 40, 0.3);
     border-radius: 8px;
+  }
+
+  /* Fullscreen styles */
+  :global(.video-container:fullscreen) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    padding: 0 !important;
+  }
+
+  :global(.video-container:fullscreen > div) {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    border-radius: 0;
   }
 </style>
 
@@ -465,8 +558,8 @@
         {/if}
 
         <!-- Video Container -->
-        <div class="video-container p-4">
-          <div class="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+        <div class="video-container p-2 sm:p-4">
+          <div bind:this={videoContainerElement} class="relative aspect-[9/16] md:aspect-video bg-gray-900 rounded-lg overflow-hidden mx-auto max-w-full">
             <video
               bind:this={videoElement}
               class="hidden"
@@ -475,7 +568,7 @@
             ></video>
             <canvas
               bind:this={canvasElement}
-              class="w-full h-full"
+              class="w-full h-full object-cover"
             ></canvas>
 
             {#if isLoading}
@@ -502,6 +595,28 @@
                   {/if}
                 </div>
               </div>
+            {/if}
+
+            <!-- Fullscreen Button -->
+            {#if isCameraRunning}
+              <button
+                onclick={toggleFullscreen}
+                class="absolute top-3 right-3 w-12 h-12 flex items-center justify-center z-50 transition-all shadow-lg"
+                style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3);"
+                aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+              >
+                {#if isFullscreen}
+                  <!-- Exit Fullscreen Icon -->
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                {:else}
+                  <!-- Enter Fullscreen Icon -->
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                {/if}
+              </button>
             {/if}
           </div>
         </div>
