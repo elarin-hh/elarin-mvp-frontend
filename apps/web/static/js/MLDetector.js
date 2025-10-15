@@ -287,31 +287,38 @@ class MLDetector extends ExerciseDetector {
     // Sobrepõe overlay de debug para incluir status do ML
     drawStatsOverlay() {
         super.drawStatsOverlay();
-        
+
         if (window.debugMode) {
             const ctx = this.canvasCtx;
             const canvas = this.canvasElement;
-            
-            // Mostra status do ML
+
+            // Salva o estado e desfaz o espelhamento
+            ctx.save();
+            ctx.scale(-1, 1);
+
+            // Mostra status do ML (ajustado para canvas espelhado)
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(10, 60, 200, 60);
-            
+            ctx.fillRect(-210, 60, 200, 60);
+
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '12px Arial';
-            
+            ctx.textAlign = 'left';
+
             if (this.mlLoaded) {
                 ctx.fillStyle = '#00FF00';
-                ctx.fillText('🧠 ML: ACTIVE', 20, 80);
+                ctx.fillText('🧠 ML: ACTIVE', -200, 80);
             } else if (this.mlLoading) {
                 ctx.fillStyle = '#FFFF00';
-                ctx.fillText('🧠 ML: LOADING...', 20, 80);
+                ctx.fillText('🧠 ML: LOADING...', -200, 80);
             } else {
                 ctx.fillStyle = '#FF0000';
-                ctx.fillText('🧠 ML: DISABLED', 20, 80);
+                ctx.fillText('🧠 ML: DISABLED', -200, 80);
             }
-            
+
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(`Mode: ${this.useML ? 'ML+Rules' : 'Rules Only'}`, 20, 100);
+            ctx.fillText(`Mode: ${this.useML ? 'ML+Rules' : 'Rules Only'}`, -200, 100);
+
+            ctx.restore();
         }
     }
 

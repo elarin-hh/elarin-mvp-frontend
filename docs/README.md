@@ -355,9 +355,6 @@ Errors are detected in real-time and logged persistently:
 - **Icons:** Directional arrows (↑ up, ↓ down, • middle)
 - **No FPS Counter:** Removed for cleaner UI
 
-## 📄 License
-
-[Add your license here]
 
 ## 👥 Authors
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { trainStore, trainActions } from '$lib/stores/train.store';
+  import { integratedTrainStore, integratedTrainActions } from '$lib/stores/integrated-train.store';
   import { _ } from 'svelte-i18n';
   import { asset } from '$lib/utils/assets';
 
@@ -165,17 +166,30 @@
 
       console.log('🎥 Inicializando detector...');
 
+      // 1. Criar sessão no backend
+      await integratedTrainActions.selectExercise('squat');
+      console.log('✅ Sessão criada no backend:', $integratedTrainStore.backendSessionId);
+
       // Criar detector com modo adequado para o dispositivo
       const isMobile = window.innerWidth < 768;
       const performanceMode = isMobile ? 'performance' : 'quality';
       detector = new SquatDetectorML(performanceMode);
 
-      // Sobrescrever onResults para atualizar histórico de erros
+      // Sobrescrever onResults para atualizar histórico de erros e incrementar reps
       const originalOnResults = detector.onResults.bind(detector);
       detector.onResults = function(results: any) {
         originalOnResults(results);
         updateErrorHistory();
         updateTrainStore();
+
+        // Sincronizar contador com backend
+        if (detector.counter !== $integratedTrainStore.reps) {
+          // Incrementar reps no store integrado quando detector detecta nova rep
+          const repsToAdd = detector.counter - $integratedTrainStore.reps;
+          for (let i = 0; i < repsToAdd; i++) {
+            integratedTrainActions.incrementReps();
+          }
+        }
       };
 
       console.log('📹 Inicializando câmera...');
@@ -184,8 +198,11 @@
       console.log('▶️ Iniciando stream de câmera...');
       await detector.startCamera();
 
+      // Iniciar treino nos dois stores (compatibilidade)
       trainActions.start();
-      isCameraRunning = true; // Marca câmera como ativa
+      integratedTrainActions.start();
+
+      isCameraRunning = true;
       isLoading = false;
 
       console.log('✅ Câmera iniciada com sucesso!');
@@ -198,14 +215,48 @@
   }
 
   /**
-   * Para a câmera mantendo o histórico de erros
+   * Para a câmera e finaliza treino no backend
    */
-  function stopCamera() {
+  async function stopCamera() {
     if (detector) {
       detector.stopCamera();
       trainActions.pause();
-      isCameraRunning = false; // Marca câmera como parada
-      // NÃO limpa o detector para preservar o histórico de erros
+      integratedTrainActions.pause();
+      isCameraRunning = false;
+    }
+  }
+
+  /**
+   * Finaliza treino e envia ao backend
+   */
+  async function finishTraining() {
+    if (!detector) return;
+
+    try {
+      isLoading = true;
+
+      // Finalizar no backend
+      await integratedTrainActions.finish();
+
+      console.log('✅ Treino finalizado e enviado ao backend!');
+
+      // Parar câmera
+      detector.stopCamera();
+      isCameraRunning = false;
+
+      // Resetar para novo treino
+      setTimeout(() => {
+        detector = null;
+        integratedTrainActions.reset();
+        trainActions.reset();
+        clearErrors();
+      }, 2000);
+
+      isLoading = false;
+    } catch (error: any) {
+      errorMessage = `Erro ao finalizar treino: ${error.message}`;
+      console.error('❌ Erro:', error);
+      isLoading = false;
     }
   }
 
@@ -541,7 +592,7 @@
     <div class="w-full max-w-7xl">
       <!-- Page Title -->
       <div class="mb-6 text-center">
-        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">🏋️ {$_('train.squat')}</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">Agachamento</h1>
         <p class="text-white/60 text-sm sm:text-base">Detecção de movimento em tempo real</p>
       </div>
 
@@ -569,6 +620,7 @@
             <canvas
               bind:this={canvasElement}
               class="w-full h-full object-cover"
+              style="transform: scaleX(-1);"
             ></canvas>
 
             {#if isLoading}
@@ -627,16 +679,19 @@
             <button
               onclick={startCamera}
               class="button-primary text-white px-6 py-3 font-semibold flex items-center gap-2"
-              disabled={isLoading || !scriptsLoaded}
+              disabled={isLoading || !scriptsLoaded || $integratedTrainStore.isLoading}
             >
-              {#if !scriptsLoaded}
+              {#if $integratedTrainStore.isLoading}
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Criando sessão...
+              {:else if !scriptsLoaded}
                 <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 Carregando...
               {:else}
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                Iniciar Câmera
+                Iniciar Treino
               {/if}
             </button>
           {:else}
@@ -648,7 +703,23 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
               </svg>
-              Parar Câmera
+              Pausar
+            </button>
+
+            <button
+              onclick={finishTraining}
+              class="button-primary text-white px-6 py-3 font-semibold flex items-center gap-2"
+              disabled={$integratedTrainStore.isLoading}
+            >
+              {#if $integratedTrainStore.isLoading}
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Finalizando...
+              {:else}
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Finalizar Treino
+              {/if}
             </button>
           {/if}
 
@@ -668,23 +739,49 @@
           </div>
         {/if}
 
+        {#if $integratedTrainStore.error}
+          <div class="error-card p-4 text-red-200 text-sm text-center">
+            ❌ Backend: {$integratedTrainStore.error}
+            <button
+              onclick={() => integratedTrainActions.clearError()}
+              class="ml-2 underline text-xs"
+            >
+              Limpar
+            </button>
+          </div>
+        {/if}
+
+        <!-- Backend Status -->
+        {#if $integratedTrainStore.backendSessionId}
+          <div class="stats-card p-4 text-center">
+            <div class="text-xs text-white/60 mb-1">📡 Sessão Backend</div>
+            <div class="text-sm font-mono text-[#8EB428]">
+              {$integratedTrainStore.backendSessionId.substring(0, 8)}...
+            </div>
+            <div class="text-xs text-white/40 mt-1">
+              Status: {$integratedTrainStore.status}
+            </div>
+          </div>
+        {/if}
+
         <!-- Stats -->
         {#if detector}
           <div class="stats-card p-6">
             <div class="grid grid-cols-3 gap-4">
               <div class="text-center">
                 <div class="text-xs text-white/60 mb-1">{$_('train.reps')}</div>
-                <div class="text-3xl font-bold text-[#8EB428]">{detector.counter || 0}</div>
+                <div class="text-3xl font-bold text-[#8EB428]">{$integratedTrainStore.reps}</div>
+                <div class="text-xs text-white/40 mt-1">Detectadas: {detector.counter || 0}</div>
               </div>
 
               <div class="text-center">
                 <div class="text-xs text-white/60 mb-1">{$_('train.sets')}</div>
-                <div class="text-3xl font-bold text-[#8EB428]">{$trainStore.sets}</div>
+                <div class="text-3xl font-bold text-[#8EB428]">{$integratedTrainStore.sets}</div>
               </div>
 
               <div class="text-center">
                 <div class="text-xs text-white/60 mb-1">{$_('train.duration')}</div>
-                <div class="text-3xl font-bold text-white">{formatDuration($trainStore.duration)}</div>
+                <div class="text-3xl font-bold text-white">{formatDuration($integratedTrainStore.duration)}</div>
               </div>
             </div>
           </div>

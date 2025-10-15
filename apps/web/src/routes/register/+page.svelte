@@ -15,7 +15,12 @@
     error = '';
 
     if (password !== confirmPassword) {
-      error = $_('errors.passwordMismatch');
+      error = 'As senhas não coincidem';
+      return;
+    }
+
+    if (password.length < 8) {
+      error = 'A senha deve ter no mínimo 8 caracteres';
       return;
     }
 
@@ -23,14 +28,14 @@
 
     try {
       const result = await authService.signUp(email, password);
-      
+
       if (result.error) {
-        error = $_('errors.genericError');
+        error = result.error.message || 'Erro ao criar conta';
       } else {
-        goto(`${base}/`);
+        goto(`${base}/exercises`);
       }
-    } catch (e) {
-      error = $_('errors.genericError');
+    } catch (e: any) {
+      error = e.message || 'Erro ao criar conta';
     } finally {
       isLoading = false;
     }

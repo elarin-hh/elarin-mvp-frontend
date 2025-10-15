@@ -110,43 +110,53 @@ class ExerciseDetector extends PoseDetector {
         const ctx = this.canvasCtx;
         const canvas = this.canvasElement;
 
-        // Top bar
+        // Salva o estado e desfaz o espelhamento
+        ctx.save();
+        ctx.scale(-1, 1);
+
+        // Top bar (ajustado para canvas espelhado)
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, 50);
+        ctx.fillRect(-canvas.width, 0, canvas.width, 50);
 
         // FPS Counter
         ctx.fillStyle = '#74C611';
         ctx.font = 'bold 18px Arial';
-        ctx.fillText(`${this.fps} FPS`, 20, 30);
+        ctx.textAlign = 'left';
+        ctx.fillText(`${this.fps} FPS`, -canvas.width + 20, 30);
 
-        // Exercise type
+        // Exercise type (centralizado)
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 18px Arial';
-        ctx.fillText(`${this.exerciseType.toUpperCase()}`, canvas.width / 2 - 50, 30);
+        ctx.textAlign = 'center';
+        ctx.fillText(`${this.exerciseType.toUpperCase()}`, -canvas.width / 2, 30);
 
         // Counter (if applicable)
         if (this.counter !== undefined && this.counter > 0) {
             ctx.fillStyle = '#74C611';
             ctx.font = 'bold 18px Arial';
-            ctx.fillText(`Count: ${this.counter}`, canvas.width - 120, 30);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Count: ${this.counter}`, -20, 30);
         }
 
         // Error indicator
         if (this.hasError) {
             ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
-            
+            ctx.fillRect(-canvas.width, canvas.height - 60, canvas.width, 60);
+
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 16px Arial';
-            ctx.fillText('⚠️ INCORRECT FORM', 20, canvas.height - 30);
-            
+            ctx.textAlign = 'left';
+            ctx.fillText('⚠️ INCORRECT FORM', -canvas.width + 20, canvas.height - 30);
+
             // Display latest error message
             if (this.errors.length > 0) {
                 const latestError = this.errors[this.errors.length - 1];
                 ctx.font = '14px Arial';
-                ctx.fillText(latestError.message, 20, canvas.height - 10);
+                ctx.fillText(latestError.message, -canvas.width + 20, canvas.height - 10);
             }
         }
+
+        ctx.restore();
     }
 
     // Abstract method to be implemented by subclasses

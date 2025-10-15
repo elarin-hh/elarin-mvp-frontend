@@ -380,44 +380,59 @@ class SquatDetectorML extends MLDetector {
 
         const ctx = this.canvasCtx;
         const canvas = this.canvasElement;
-        const centerX = canvas.width / 2;
+
+        // Salva o estado e desfaz o espelhamento
+        ctx.save();
+        ctx.scale(-1, 1);
+
+        const centerX = -canvas.width / 2;
         const centerY = canvas.height / 2;
 
         // Mensagens em destaque (vermelho)
         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
         ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
-        
+
         this.errors.forEach((error, index) => {
             const y = centerY - 20 + (index * 25);
             ctx.fillText(error.message, centerX, y);
         });
+
+        ctx.restore();
     }
 
     // Overlay principal de estatísticas/estado
     drawStatsOverlay() {
         // Draw main phase indicator (always visible)
         this.drawPhaseIndicator();
-        
+
         // Draw calibration issues
         this.drawCalibrationIssues();
-        
+
         if (!window.debugMode) return;
 
         const ctx = this.canvasCtx;
-        
-        // Basic debug info
+
+        // Salva o estado e desfaz o espelhamento para o debug
+        ctx.save();
+        ctx.scale(-1, 1);
+
+        // Basic debug info (ajustado para canvas espelhado)
+        const debugX = -20; // Posição X invertida
         ctx.fillStyle = '#00ff00';
         ctx.font = 'bold 14px Arial';
-        ctx.fillText(`Squat Detector - Debug Mode`, 20, 20);
-        
+        ctx.textAlign = 'right'; // Inverte o alinhamento
+        ctx.fillText(`Squat Detector - Debug Mode`, debugX, 20);
+
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px Arial';
-        ctx.fillText(`Counter: ${this.counter}`, 20, 40);
-        ctx.fillText(`Stage: ${this.stage || 'unknown'}`, 20, 55);
-        ctx.fillText(`Has Error: ${this.hasError}`, 20, 70);
-        ctx.fillText(`Errors: ${this.errors.length}`, 20, 85);
-        
+        ctx.fillText(`Counter: ${this.counter}`, debugX, 40);
+        ctx.fillText(`Stage: ${this.stage || 'unknown'}`, debugX, 55);
+        ctx.fillText(`Has Error: ${this.hasError}`, debugX, 70);
+        ctx.fillText(`Errors: ${this.errors.length}`, debugX, 85);
+
+        ctx.restore();
+
         // Mensagens de feedback enquanto em debug
         this.drawFeedbackMessages();
     }
@@ -426,7 +441,15 @@ class SquatDetectorML extends MLDetector {
     drawPhaseIndicator() {
         const ctx = this.canvasCtx;
         const canvas = this.canvasElement;
-        const x = 80; // Posição X no canto esquerdo
+
+        // Salva o estado atual do contexto
+        ctx.save();
+
+        // Desfaz o espelhamento do canvas para desenhar corretamente
+        ctx.scale(-1, 1);
+
+        // Posição X ajustada para canvas espelhado (agora no canto esquerdo real)
+        const x = -canvas.width + 80; // Negativo porque o canvas está espelhado
         const y = 80; // Posição Y no topo
 
         // Determine current phase
@@ -497,10 +520,8 @@ class SquatDetectorML extends MLDetector {
             ctx.fillText('•', x, y + 22);
         }
 
-        // Reset
-        ctx.shadowBlur = 0;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
+        // Restaura o estado do contexto (remove o scale)
+        ctx.restore();
     }
 
     /**
@@ -508,29 +529,35 @@ class SquatDetectorML extends MLDetector {
      */
     drawCalibrationIssues() {
         if (!this.calibrationIssues || this.calibrationIssues.length === 0) return;
-        
+
         const ctx = this.canvasCtx;
         const canvas = this.canvasElement;
 
-        // Posição no canto superior direito
-        const x = canvas.width - 300;
+        // Salva o estado e desfaz o espelhamento
+        ctx.save();
+        ctx.scale(-1, 1);
+
+        // Posição no canto superior direito (ajustada para canvas espelhado)
+        const x = -300;
         const y = 20;
-        
+
         // Fundo semi-transparente
         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
         ctx.fillRect(x - 10, y - 15, 290, this.calibrationIssues.length * 25 + 20);
-        
+
         // Título
-            ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'left';
         ctx.fillText('⚠️ Problemas de Calibração:', x, y);
-        
+
         // Lista de problemas
-            ctx.font = '12px Arial';
+        ctx.font = '12px Arial';
         this.calibrationIssues.forEach((issue, index) => {
             ctx.fillText(`• ${issue}`, x, y + 20 + (index * 20));
         });
+
+        ctx.restore();
     }
 
     // Reset detector (NÃO limpa histórico de erros!)
