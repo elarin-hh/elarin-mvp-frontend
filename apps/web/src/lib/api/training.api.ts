@@ -1,4 +1,5 @@
-// Training API - Elarin Backend Integration
+// Training API - Elarin NestJS Backend Integration
+// Uses NestJS endpoints: /training/sessions, /training/history
 import { restClient, type ApiResponse } from './rest.client';
 
 export interface Exercise {
@@ -42,45 +43,51 @@ export interface CompleteSessionRequest {
 export const trainingApi = {
   /**
    * Get all available exercises
+   * @deprecated Use exercisesApi.getAll() instead
    */
   async getExercises(): Promise<ApiResponse<Exercise[]>> {
-    return restClient.get<Exercise[]>('/api/v1/exercises');
+    return restClient.get<Exercise[]>('/exercises');
   },
 
   /**
    * Get a specific exercise by type
+   * @deprecated Use exercisesApi.getByType() instead
    */
   async getExerciseByType(type: string): Promise<ApiResponse<Exercise>> {
-    return restClient.get<Exercise>(`/api/v1/exercises/${type}`);
+    return restClient.get<Exercise>(`/exercises/${type}`);
   },
 
   /**
    * Create a new training session
+   * POST /training/sessions
    */
   async createSession(data: CreateSessionRequest): Promise<ApiResponse<TrainingSession>> {
-    return restClient.post<TrainingSession>('/api/v1/train/session', data);
+    return restClient.post<TrainingSession>('/training/sessions', data);
   },
 
   /**
    * Complete a training session
+   * POST /training/sessions/complete
    */
   async completeSession(data: CompleteSessionRequest): Promise<ApiResponse<{ session_id: string }>> {
-    return restClient.post<{ session_id: string }>('/api/v1/train/complete', data);
+    return restClient.post<{ session_id: string }>('/training/sessions/complete', data);
   },
 
   /**
    * Get training history
+   * GET /training/history?limit=20&offset=0
    */
   async getHistory(limit = 20, offset = 0): Promise<ApiResponse<TrainingSession[]>> {
     return restClient.get<TrainingSession[]>(
-      `/api/v1/train/history?limit=${limit}&offset=${offset}`
+      `/training/history?limit=${limit}&offset=${offset}`
     );
   },
 
   /**
    * Get details of a specific session
+   * GET /training/sessions/:id
    */
   async getSessionDetails(sessionId: string): Promise<ApiResponse<TrainingSession>> {
-    return restClient.get<TrainingSession>(`/api/v1/train/session/${sessionId}`);
+    return restClient.get<TrainingSession>(`/training/sessions/${sessionId}`);
   }
 };

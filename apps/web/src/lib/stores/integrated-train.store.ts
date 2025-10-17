@@ -1,4 +1,5 @@
-// Integrated Training Store - With Backend API
+// Integrated Training Store - With NestJS Backend API
+// Connects to NestJS backend running on port 3001
 import { writable, derived, get } from 'svelte/store';
 import { trainingApi } from '$lib/api/training.api';
 import type { TrainingSession } from '$lib/api/training.api';

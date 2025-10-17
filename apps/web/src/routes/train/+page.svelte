@@ -4,6 +4,8 @@
   import { integratedTrainStore, integratedTrainActions } from '$lib/stores/integrated-train.store';
   import { _ } from 'svelte-i18n';
   import { asset } from '$lib/utils/assets';
+  import { authActions } from '$lib/stores/auth.store';
+  import { goto } from '$app/navigation';
 
   // DOM References
   let videoElement: HTMLVideoElement;
@@ -20,6 +22,7 @@
   let loadingStage = $state('Inicializando...');
   let isCameraRunning = $state(false); // Controle do estado da câmera
   let isFullscreen = $state(false); // Controle de tela cheia
+  let showAvatarMenu = $state(false);
 
   // Error history tracking (persistente entre sessões)
   let errorList: Array<{type: string, message: string, timestamp: number}> = $state([]);
@@ -432,7 +435,35 @@
       detector.stopCamera();
     }
   });
+
+  /**
+   * Toggle avatar menu
+   */
+  function toggleAvatarMenu() {
+    showAvatarMenu = !showAvatarMenu;
+  }
+
+  /**
+   * Handle logout
+   */
+  async function handleLogout() {
+    showAvatarMenu = false;
+    await authActions.logout();
+    goto('/login');
+  }
+
+  /**
+   * Close menu on click outside
+   */
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.avatar-menu-container')) {
+      showAvatarMenu = false;
+    }
+  }
 </script>
+
+<svelte:window onclick={handleClickOutside} />
 
 <svelte:head>
   <title>{$_('train.training')} - Elarin</title>
@@ -553,6 +584,57 @@
     max-width: none;
     border-radius: 0;
   }
+
+  /* Avatar menu */
+  .avatar-menu-container {
+    position: relative;
+  }
+
+  .glass-button-round:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #ef4444;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .menu-item:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
 </style>
 
 <div class="min-h-screen bg-black text-white">
@@ -576,11 +658,22 @@
               <span class="text-white text-xs font-semibold whitespace-nowrap">PRO</span>
             </div>
 
-            <button type="button" class="glass-button-round w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0" aria-label="Perfil do usuário">
-              <svg class="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-            </button>
+            <div class="avatar-menu-container">
+              <button type="button" class="glass-button-round w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0" aria-label="Perfil do usuário" onclick={toggleAvatarMenu}>
+                <svg class="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </button>
+
+              <div class="dropdown-menu" class:show={showAvatarMenu}>
+                <button type="button" class="menu-item w-full text-left" onclick={handleLogout}>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sair
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

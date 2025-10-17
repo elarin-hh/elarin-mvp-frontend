@@ -5,6 +5,7 @@
   import { authService } from '$lib/services/supabase.client';
   import { asset } from '$lib/utils/assets';
 
+  let fullName = $state('');
   let email = $state('');
   let password = $state('');
   let confirmPassword = $state('');
@@ -14,20 +15,25 @@
   async function handleRegister() {
     error = '';
 
+    if (!fullName || fullName.trim().length < 2) {
+      error = 'O nome completo deve ter no mínimo 2 caracteres';
+      return;
+    }
+
     if (password !== confirmPassword) {
       error = 'As senhas não coincidem';
       return;
     }
 
-    if (password.length < 8) {
-      error = 'A senha deve ter no mínimo 8 caracteres';
+    if (password.length < 6) {
+      error = 'A senha deve ter no mínimo 6 caracteres';
       return;
     }
 
     isLoading = true;
 
     try {
-      const result = await authService.signUp(email, password);
+      const result = await authService.signUp(email, password, fullName.trim());
 
       if (result.error) {
         error = result.error.message || 'Erro ao criar conta';
@@ -73,6 +79,15 @@
         {error}
       </div>
     {/if}
+
+    <input
+      type="text"
+      bind:value={fullName}
+      required
+      placeholder="Nome Completo"
+      class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+      style="border-radius: 18px; border-width: 0.8px;"
+    />
 
     <input
       type="email"

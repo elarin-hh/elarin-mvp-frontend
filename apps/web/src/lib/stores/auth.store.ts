@@ -44,7 +44,7 @@ export const authActions = {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
     const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/api/v1/auth/register',
+      '/auth/register',
       { email, password, full_name: fullName }
     );
 
@@ -82,7 +82,7 @@ export const authActions = {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
     const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/api/v1/auth/login',
+      '/auth/login',
       { email, password }
     );
 
@@ -119,7 +119,7 @@ export const authActions = {
   async logout() {
     authStore.update((state) => ({ ...state, loading: true }));
 
-    await restClient.post('/api/v1/auth/logout');
+    await restClient.post('/auth/logout');
 
     // Clear token and state
     restClient.setToken(null);

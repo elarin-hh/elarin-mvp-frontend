@@ -1,4 +1,5 @@
-// REST API client - Connected to Elarin Backend
+// REST API client - Connected to Elarin NestJS Backend
+// Backend runs on port 3001 (NestJS + Fastify)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export interface ApiResponse<T> {
@@ -70,16 +71,21 @@ class RestClient {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle NestJS error format
         return {
           success: false,
           error: {
-            message: data.error?.message || `HTTP error ${response.status}`,
-            code: data.error?.code || response.status.toString()
+            message: data.message || data.error || `HTTP error ${response.status}`,
+            code: data.statusCode?.toString() || response.status.toString()
           }
         };
       }
 
-      return data;
+      // Wrap successful response in standard format
+      return {
+        success: true,
+        data
+      };
     } catch (error) {
       console.error('[API] Error:', error);
       return {

@@ -5,7 +5,8 @@
       "Read(//c/Users/notebook-guilherme/tensorflow-mediapipe-mvp/**)",
       "Bash(xcopy:*)",
       "Bash(copy:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Read(//c/Users/notebook-guilherme/Documents/elarin-backend-api-main/**)"
     ],
     "deny": [],
     "ask": []
