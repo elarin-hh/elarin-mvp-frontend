@@ -1,0 +1,19 @@
+# Node
+node_modules/
+.pnpm-store/
+
+# Logs
+*.log
+
+# Builds
+dist/
+.build/
+.svelte-kit/
+coverage/
+playwright-report/
+
+# Env
+.env
+.env.*
+
+nul

@@ -1,0 +1,10 @@
+{
+  "notFound": "Page Not Found",
+  "serverError": "Server Error",
+  "networkError": "Network Error",
+  "invalidCredentials": "Invalid email or password",
+  "emailRequired": "Email is required",
+  "passwordRequired": "Password is required",
+  "passwordMismatch": "Passwords do not match",
+  "genericError": "An error occurred. Please try again."
+}
