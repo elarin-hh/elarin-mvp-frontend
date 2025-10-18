@@ -16,14 +16,14 @@
 
     try {
       const result = await authService.signIn(email, password);
-      
+
       if (result.error) {
-        error = $_('errors.invalidCredentials');
+        error = result.error.message || 'Credenciais inválidas';
       } else {
-        goto(`${base}/`);
+        goto(`${base}/exercises`);
       }
-    } catch (e) {
-      error = $_('errors.genericError');
+    } catch (e: any) {
+      error = e.message || 'Erro ao fazer login';
     } finally {
       isLoading = false;
     }
@@ -95,7 +95,7 @@
       onclick={goToRegister}
       class="text-white/70 hover:text-white text-sm transition-colors"
     >
-      Tem uma conta? Clique aqui
+      Não tem uma conta? Clique aqui
     </button>
   </div>
 

@@ -1,0 +1,14 @@
+{
+  "model_name": "squat",
+  "original_model_type": "RandomForestClassifier",
+  "approximation_type": "Neural Network",
+  "classes": [
+    "down",
+    "up"
+  ],
+  "n_features": 36,
+  "n_landmarks": 9,
+  "has_scaler": false,
+  "training_accuracy": 0.8884999752044678,
+  "training_samples": 10000
+}

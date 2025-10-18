@@ -4,7 +4,6 @@
   import { onMount } from 'svelte';
 
   onMount(() => {
-    goto(`${base}/exercises`, { replaceState: true });
+    goto(`${base}/login`, { replaceState: true });
   });
 </script>
-

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { asset } from '$lib/utils/assets';
 
   let isScrolled = $state(false);
@@ -148,7 +149,7 @@
         </div>
       </div>
 
-      <div class="glass-card mb-6 p-6 rounded-lg border border-green-500/20">
+      <div class="glass-card mb-8 p-6 rounded-lg border border-green-500/20">
         <div class="flex items-start gap-3">
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
             <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -164,30 +165,12 @@
         </div>
       </div>
 
-      <div class="glass-card mb-8 p-6 rounded-lg">
-        <h2 class="text-white font-semibold mb-4">Próximos Passos (Futuro)</h2>
-        <ul class="space-y-3">
-          <li class="flex items-center gap-3 text-white/70 text-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-            Solicitação de permissão da câmera
-          </li>
-          <li class="flex items-center gap-3 text-white/70 text-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-            Detecção de pose em tempo real
-          </li>
-          <li class="flex items-center gap-3 text-white/70 text-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-            Feedback da forma do exercício
-          </li>
-          <li class="flex items-center gap-3 text-white/70 text-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-            Contagem automática de repetições
-          </li>
-        </ul>
-      </div>
-
       <div class="flex justify-center">
-        <button type="button" class="button-primary px-8 py-3 text-white font-semibold text-lg">
+        <button
+          type="button"
+          class="button-primary px-8 py-3 text-white font-semibold text-lg"
+          onclick={() => goto('/train')}
+        >
           Começar
         </button>
       </div>

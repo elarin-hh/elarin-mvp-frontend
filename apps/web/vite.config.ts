@@ -37,6 +37,17 @@ export default defineConfig({
         enabled: false
       }
     })
-  ]
+  ],
+  server: {
+    host: true,
+    allowedHosts: [
+      'sharron-pokable-kaylee.ngrok-free.dev',
+      '.ngrok-free.dev'
+    ],
+    fs: {
+      // Allow serving files from static folder
+      allow: ['..']
+    }
+  }
 });
 
