@@ -1,0 +1,225 @@
+{
+  "exercises": [
+    {
+      "id": "squat",
+      "name": "Agachamento",
+      "name_en": "Squat",
+      "icon": "🏋️",
+      "description": "Análise completa de agachamento com detecção automática de erros de postura e execução.",
+      "description_en": "Complete squat analysis with automatic detection of posture and execution errors.",
+      "category": "lower",
+      "difficulty": "beginner",
+      "available": true,
+      "modelsPath": "exercises/squat",
+      "modelFile": "squat_autoencoder.onnx",
+      "metadataFile": "squat_metadata.json",
+      "classifierFile": "squat_oneclass_classifier.js",
+      "page": "squat_oneclass.html",
+      "pageHybrid": "squat_hybrid.html",
+      "config": {
+        "maxFrames": 60,
+        "minFrames": 30,
+        "predictionInterval": 10,
+        "threshold": 0.01746704988181591
+      },
+      "instructions": {
+        "pt": [
+          "Posicione-se de lado para a câmera",
+          "Mantenha os pés afastados na largura dos ombros",
+          "Desça mantendo as costas retas",
+          "Volte à posição inicial de forma controlada"
+        ],
+        "en": [
+          "Position yourself sideways to the camera",
+          "Keep feet shoulder-width apart",
+          "Lower down keeping back straight",
+          "Return to starting position in a controlled manner"
+        ]
+      },
+      "commonErrors": {
+        "pt": [
+          "Joelhos ultrapassando os pés",
+          "Costas curvadas",
+          "Calcanhar levantando do chão",
+          "Profundidade insuficiente"
+        ],
+        "en": [
+          "Knees going past toes",
+          "Curved back",
+          "Heels lifting off the ground",
+          "Insufficient depth"
+        ]
+      }
+    },
+    {
+      "id": "pushup",
+      "name": "Flexão",
+      "name_en": "Push-up",
+      "icon": "💪",
+      "description": "Monitoramento de flexões com análise de amplitude, alinhamento corporal e repetições.",
+      "description_en": "Push-up monitoring with range of motion, body alignment and repetition analysis.",
+      "category": "upper",
+      "difficulty": "beginner",
+      "available": false,
+      "modelFile": "pushup_autoencoder.onnx",
+      "metadataFile": "pushup_metadata.json",
+      "classifierFile": "generic_classifier.js",
+      "page": "exercise.html?type=pushup",
+      "config": {
+        "maxFrames": 60,
+        "minFrames": 30,
+        "predictionInterval": 10,
+        "threshold": 0.015
+      },
+      "instructions": {
+        "pt": [
+          "Posicione-se de lado para a câmera",
+          "Mãos na largura dos ombros",
+          "Corpo alinhado da cabeça aos pés",
+          "Desça até o peito quase tocar o chão"
+        ],
+        "en": [
+          "Position yourself sideways to the camera",
+          "Hands shoulder-width apart",
+          "Body aligned from head to feet",
+          "Lower until chest nearly touches the ground"
+        ]
+      }
+    },
+    {
+      "id": "plank",
+      "name": "Prancha",
+      "name_en": "Plank",
+      "icon": "🧘",
+      "description": "Avaliação de prancha isométrica com detecção de compensações e alinhamento.",
+      "description_en": "Isometric plank assessment with compensation and alignment detection.",
+      "category": "core",
+      "difficulty": "beginner",
+      "available": false,
+      "modelFile": "plank_autoencoder.onnx",
+      "metadataFile": "plank_metadata.json",
+      "classifierFile": "generic_classifier.js",
+      "page": "exercise.html?type=plank",
+      "config": {
+        "maxFrames": 120,
+        "minFrames": 60,
+        "predictionInterval": 20,
+        "threshold": 0.012
+      }
+    },
+    {
+      "id": "lunge",
+      "name": "Afundo",
+      "name_en": "Lunge",
+      "icon": "🦵",
+      "description": "Análise de afundos com foco em estabilidade, profundidade e alinhamento do joelho.",
+      "description_en": "Lunge analysis focusing on stability, depth and knee alignment.",
+      "category": "lower",
+      "difficulty": "intermediate",
+      "available": true,
+      "modelsPath": "exercises/lunge",
+      "modelFile": "lunge_autoencoder.onnx",
+      "metadataFile": "lunge_metadata.json",
+      "classifierFile": "lunge_oneclass_classifier.js",
+      "page": "lunge_oneclass.html",
+      "config": {
+        "maxFrames": 60,
+        "minFrames": 30,
+        "predictionInterval": 10,
+        "threshold": 0.018
+      },
+      "instructions": {
+        "pt": [
+          "Posicione-se de lado para a câmera",
+          "Mantenha o tronco ereto",
+          "Dê um passo à frente e flexione ambos os joelhos",
+          "O joelho da frente não deve ultrapassar a ponta do pé",
+          "Volte à posição inicial com controle"
+        ],
+        "en": [
+          "Position yourself sideways to the camera",
+          "Keep your torso upright",
+          "Step forward and bend both knees",
+          "Front knee should not go past toes",
+          "Return to starting position with control"
+        ]
+      },
+      "commonErrors": {
+        "pt": [
+          "Joelho da frente ultrapassando o pé",
+          "Tronco inclinado para frente",
+          "Joelho de trás tocando o chão bruscamente",
+          "Falta de estabilidade lateral"
+        ],
+        "en": [
+          "Front knee going past toes",
+          "Torso leaning forward",
+          "Back knee hitting ground abruptly",
+          "Lack of lateral stability"
+        ]
+      }
+    },
+    {
+      "id": "deadlift",
+      "name": "Levantamento Terra",
+      "name_en": "Deadlift",
+      "icon": "🏋️‍♂️",
+      "description": "Monitoramento de levantamento terra com análise de curvatura da coluna e técnica.",
+      "description_en": "Deadlift monitoring with spine curvature and technique analysis.",
+      "category": "lower",
+      "difficulty": "advanced",
+      "available": false,
+      "modelFile": "deadlift_autoencoder.onnx",
+      "metadataFile": "deadlift_metadata.json",
+      "classifierFile": "generic_classifier.js",
+      "page": "exercise.html?type=deadlift",
+      "config": {
+        "maxFrames": 60,
+        "minFrames": 30,
+        "predictionInterval": 10,
+        "threshold": 0.020
+      }
+    },
+    {
+      "id": "shoulder-press",
+      "name": "Desenvolvimento",
+      "name_en": "Shoulder Press",
+      "icon": "💪",
+      "description": "Análise de desenvolvimento de ombros com detecção de compensações e amplitude.",
+      "description_en": "Shoulder press analysis with compensation detection and range of motion.",
+      "category": "upper",
+      "difficulty": "intermediate",
+      "available": false,
+      "modelFile": "shoulder_press_autoencoder.onnx",
+      "metadataFile": "shoulder_press_metadata.json",
+      "classifierFile": "generic_classifier.js",
+      "page": "exercise.html?type=shoulder-press",
+      "config": {
+        "maxFrames": 60,
+        "minFrames": 30,
+        "predictionInterval": 10,
+        "threshold": 0.016
+      }
+    }
+  ],
+  "categories": {
+
+  },
+  "difficulty": {
+    "beginner": {
+      "name": "Iniciante",
+      "name_en": "Beginner",
+      "color": "#00ff88"
+    },
+    "intermediate": {
+      "name": "Intermediário",
+      "name_en": "Intermediate",
+      "color": "#ffa500"
+    },
+    "advanced": {
+      "name": "Avançado",
+      "name_en": "Advanced",
+      "color": "#ff4444"
+    }
+  }
+}

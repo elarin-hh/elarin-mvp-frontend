@@ -1,6 +1,6 @@
 // REST API client - Connected to Elarin NestJS Backend
 // Backend runs on port 3001 (NestJS + Fastify)
-const API_BASE_URL = 'http://192.168.10.131:3001';
+const API_BASE_URL = 'http://localhost:3001';
 
 export interface ApiResponse<T> {
   success: boolean;

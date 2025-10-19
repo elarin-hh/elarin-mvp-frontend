@@ -1,23 +1,22 @@
 {
-  "name": "elarin",
+  "name": "elarin-mvp",
   "private": true,
   "version": "0.1.0",
+  "description": "Elarin MVP - AI-Powered Personal Training Platform",
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=24",
+    "node": ">=20",
     "pnpm": ">=9"
   },
-  "workspaces": [
-    "apps/web",
-    "packages/ui"
-  ],
   "scripts": {
-    "dev:web": "pnpm --filter @elarin/web dev",
-    "build:web": "pnpm --filter @elarin/web build",
+    "dev": "pnpm --filter @elarin/web dev",
+    "build": "pnpm --filter @elarin/web build",
+    "preview": "pnpm --filter @elarin/web preview",
     "lint": "pnpm --filter @elarin/web lint",
     "format": "pnpm --filter @elarin/web format",
     "typecheck": "pnpm --filter @elarin/web typecheck",
-    "test": "pnpm --filter @elarin/web test"
+    "test": "pnpm --filter @elarin/web test",
+    "clean": "pnpm --filter @elarin/web clean && rm -rf node_modules"
   },
   "pnpm": {
     "overrides": {
