@@ -1,0 +1,59 @@
+{
+  "exerciseName": "squat",
+  "displayName": "Agachamento",
+  "displayNameEn": "Squat",
+  "exercisePath": "./exercises/squat",
+  "validatorPath": "./exercises/squat/validator.js",
+  "modelFile": "squat_autoencoder.onnx",
+  "metadataFile": "squat_metadata.json",
+  "modelPath": "./exercises/squat/squat_autoencoder.onnx",
+  "mlConfig": {
+    "maxFrames": 60,
+    "minFrames": 3,
+    "predictionInterval": 1
+  },
+  "heuristicConfig": {
+    "minConfidence": 0.7,
+    "minDepthAngle": 85,
+    "maxDepthAngle": 120,
+    "maxKneeOverToe": 0.05,
+    "minBackAngle": 45,
+    "maxBackAngle": 90,
+    "maxHeelLift": 0.03,
+    "minKneeAlignmentRatio": 0.85,
+    "maxTrunkInclination": 20,
+    "maxLateralInclination": 8,
+    "kneeDownAngle": 120,
+    "kneeUpAngle": 160,
+    "maxAngleDifference": 10,
+    "minFramesInState": 3,
+    "footDistanceTolerance": 0.10,
+    "minFootDistance": 0.10,
+    "maxFootDistance": 0.20
+  },
+  "feedbackConfig": {
+    "feedbackMode": "hybrid",
+    "mlWeight": 0.5,
+    "heuristicWeight": 0.5,
+    "minConfidenceThreshold": 0.6,
+    "maxFeedbackItems": 3,
+    "prioritizeCritical": true
+  },
+  "analysisInterval": 16,
+  "instructions": {
+    "pt": [
+      "Posicione-se de lado para a câmera",
+      "Mantenha os pés afastados na largura dos ombros",
+      "Desça mantendo as costas retas",
+      "Joelhos alinhados com os pés",
+      "Volte à posição inicial de forma controlada"
+    ],
+    "en": [
+      "Position yourself sideways to the camera",
+      "Keep feet shoulder-width apart",
+      "Lower down keeping back straight",
+      "Keep knees aligned with feet",
+      "Return to starting position in a controlled manner"
+    ]
+  }
+}

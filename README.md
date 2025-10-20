@@ -14,16 +14,47 @@ Elarin é uma plataforma MVP que utiliza Computer Vision e Machine Learning para
 - ✅ Processamento 100% no navegador (privacidade)
 - ✅ PWA instalável (funciona offline)
 - ✅ Multiplataforma (desktop + mobile)
+- ✅ **100% TypeScript** (sistema de visão completo)
 
-## 🏗️ Estrutura do Monorepo
+## 🏗️ Estrutura do Projeto
 
 ```
 elarin-mvp-frontend/
-├── apps/
-│   └── web/                  # 🎯 Aplicação web principal (SvelteKit)
-├── .github/                  # CI/CD workflows
-├── package.json              # Root package config
-├── pnpm-workspace.yaml       # PNPM workspace
+├── src/                      # Código-fonte TypeScript
+│   ├── lib/
+│   │   ├── components/       # Componentes Svelte reutilizáveis
+│   │   ├── stores/           # State management (Svelte Stores)
+│   │   ├── vision/           # ✨ Computer Vision System (TypeScript)
+│   │   │   ├── types/        # Type definitions
+│   │   │   ├── constants/    # MediaPipe landmarks
+│   │   │   ├── utils/        # Funções utilitárias (ângulos, distâncias)
+│   │   │   ├── validators/   # Validadores heurísticos (Squat, Lunge)
+│   │   │   ├── core/         # FeedbackSystem, ExerciseAnalyzer
+│   │   │   ├── ml/           # GenericClassifier (ONNX)
+│   │   │   ├── config/       # Carregador de configurações
+│   │   │   └── index.ts      # Export principal
+│   │   ├── api/              # Clientes REST
+│   │   └── types/            # Types globais
+│   └── routes/               # SvelteKit routes (file-based)
+│       ├── (auth)/           # Páginas autenticadas
+│       ├── login/            # Login
+│       ├── register/         # Registro
+│       ├── exercises/        # Lista de exercícios
+│       ├── train/            # Treino com pose detection
+│       └── framer/           # Análise de vídeo frame-by-frame
+├── static/                   # Assets estáticos
+│   ├── assets/               # Imagens, CSS
+│   ├── icons/                # Ícones e favicons
+│   ├── models/               # Modelos ML (ONNX)
+│   │   ├── squat/            # Modelo squat + metadata
+│   │   └── lunge/            # Modelo lunge + metadata
+│   └── exercises.json        # Catálogo de exercícios
+├── .husky/                   # Git hooks (pre-commit)
+├── package.json              # Dependências e scripts
+├── vite.config.ts            # Configuração Vite
+├── svelte.config.js          # Configuração SvelteKit
+├── tsconfig.json             # Configuração TypeScript
+├── tailwind.config.cjs       # Configuração Tailwind CSS
 └── README.md                 # Este arquivo
 ```
 
@@ -31,8 +62,8 @@ elarin-mvp-frontend/
 
 ### Pré-requisitos
 
-- Node.js >= 20
-- pnpm >= 9
+- **Node.js** >= 20
+- **pnpm** >= 9
 
 ### Instalação
 
@@ -44,8 +75,8 @@ cd elarin-mvp-frontend
 # 2. Instale as dependências
 pnpm install
 
-# 3. Configure variáveis de ambiente
-# Crie .env em apps/web/ com:
+# 3. Configure variáveis de ambiente (opcional)
+# Crie .env com:
 # PUBLIC_SUPABASE_URL=...
 # PUBLIC_SUPABASE_ANON_KEY=...
 
@@ -59,13 +90,13 @@ pnpm dev
 ## 📦 Scripts Disponíveis
 
 ```bash
-pnpm dev          # Inicia servidor de desenvolvimento
-pnpm build        # Build de produção
-pnpm preview      # Preview do build
-pnpm lint         # Roda linter
-pnpm format       # Formata código
+pnpm dev          # Inicia servidor de desenvolvimento (http://localhost:5173)
+pnpm build        # Build de produção (output em build/)
+pnpm preview      # Preview do build de produção
+pnpm lint         # Roda ESLint
+pnpm format       # Formata código com Prettier
 pnpm typecheck    # Verifica tipos TypeScript
-pnpm test         # Roda todos os testes
+pnpm test         # Roda testes com Vitest
 pnpm clean        # Limpa node_modules e build artifacts
 ```
 
@@ -73,7 +104,7 @@ pnpm clean        # Limpa node_modules e build artifacts
 
 ### Frontend
 - **Framework**: SvelteKit 2.8 + Svelte 5
-- **Language**: TypeScript 5.6
+- **Language**: TypeScript 5.6 (strict mode)
 - **Styling**: Tailwind CSS 3.4
 - **Build**: Vite 6.3
 - **State**: Svelte Stores
@@ -81,13 +112,14 @@ pnpm clean        # Limpa node_modules e build artifacts
 
 ### Computer Vision & ML
 - **Pose Detection**: MediaPipe Pose (33 landmarks)
-- **ML Runtime**: ONNX Runtime Web
+- **ML Runtime**: ONNX Runtime Web 1.23
 - **Model**: Autoencoder (One-Class Learning)
-- **Processing**: 100% client-side
+- **Processing**: 100% client-side (privacidade garantida)
+- **Validators**: Heurísticas biomecânicas customizadas
 
 ### Backend & Infra
 - **BaaS**: Supabase (PostgreSQL + Auth + Storage)
-- **Hosting**: TBD (Vercel/Netlify/Cloudflare Pages)
+- **Hosting**: Static build (Vercel/Netlify/Cloudflare Pages)
 - **PWA**: Vite PWA Plugin
 
 ### Quality & Testing
@@ -96,15 +128,82 @@ pnpm clean        # Limpa node_modules e build artifacts
 - **Unit Tests**: Vitest 2.1
 - **E2E Tests**: Playwright 1.48
 - **Type Safety**: TypeScript strict mode
+- **Git Hooks**: Husky + lint-staged
 
-## 📚 Documentação
+## 💻 Sistema de Visão Computacional
 
-A documentação completa está disponível em `apps/web/docs/`:
+### Arquitetura
 
-- **[Arquitetura](./apps/web/docs/architecture/ARCHITECTURE.md)** - Detalhes técnicos do sistema
-- **[Guia Rápido](./apps/web/docs/guides/QUICK_START.md)** - Como começar
-- **[API Endpoints](./apps/web/docs/api/ENDPOINTS_CORRETOS.md)** - Documentação da API
-- **[Deploy](./apps/web/docs/deployment/DEPLOY.md)** - Como fazer deploy
+O sistema de visão é **100% TypeScript** com arquitetura modular:
+
+```typescript
+import {
+  ExerciseAnalyzer,
+  FeedbackSystem,
+  SquatValidator,
+  LungeValidator,
+  GenericExerciseClassifier,
+  loadExerciseConfig,
+  MEDIAPIPE_LANDMARKS,
+  calculateAngle,
+  type PoseLandmarks,
+  type FeedbackRecord
+} from '$lib/vision';
+
+// 1. Carregar configuração do exercício
+const config = await loadExerciseConfig('squat');
+
+// 2. Criar analisador
+const analyzer = new ExerciseAnalyzer(config);
+
+// 3. Inicializar (carrega modelo ONNX + validator)
+await analyzer.initialize();
+
+// 4. Configurar callbacks
+analyzer.setCallbacks({
+  onFeedback: (feedback: FeedbackRecord) => {
+    console.log('Verdict:', feedback.combined.verdict);
+    console.log('Confidence:', feedback.combined.confidence);
+    console.log('Messages:', feedback.messages);
+  },
+  onMetricsUpdate: (metrics) => {
+    console.log('Reps:', metrics.validReps);
+    console.log('Accuracy:', metrics.accuracy);
+  }
+});
+
+// 5. Analisar frames (chamado a cada detecção de pose)
+async function onPoseDetected(landmarks: PoseLandmarks) {
+  const feedback = await analyzer.analyzeFrame(landmarks);
+  // Processar feedback...
+}
+
+// 6. Configurar modo de feedback
+analyzer.setFeedbackMode('hybrid'); // 'ml_only' | 'heuristic_only' | 'hybrid'
+```
+
+### Modos de Feedback
+
+1. **Hybrid Mode** (Recomendado)
+   - Combina ML (autoencoder) + Heurísticas biomecânicas
+   - Maior acurácia (~95%)
+   - Feedback específico (ex: "joelho passando do pé")
+
+2. **ML Only**
+   - Apenas detecção de anomalias com autoencoder
+   - Feedback genérico
+   - Útil para movimentos novos
+
+3. **Heuristic Only**
+   - Apenas regras biomecânicas
+   - Feedback muito específico
+   - Não requer modelo treinado
+
+### Validators Disponíveis
+
+- **SquatValidator**: Valida agachamento (profundidade, simetria, postura)
+- **LungeValidator**: Valida afundo (joelho, tronco, estabilidade)
+- **BaseValidator**: Classe base para criar novos validators
 
 ## 🎯 Funcionalidades
 
@@ -115,17 +214,54 @@ A documentação completa está disponível em `apps/web/docs/`:
 - [x] Análise híbrida ML + Heurísticas
 - [x] Exercícios: Squat, Lunge
 - [x] Feedback visual (esqueleto colorido)
-- [x] Contador de repetições
+- [x] Contador de repetições automático
 - [x] Modo híbrido/ML/Heurístico selecionável
 - [x] PWA instalável
+- [x] Sistema 100% TypeScript
 
 ### 🚧 Em Desenvolvimento
 
-- [ ] Push-up e Plank
+- [ ] Push-up e Plank validators
 - [ ] Histórico de treinos
 - [ ] Estatísticas e progressão
 - [ ] Planos de treino personalizados
 - [ ] Modo multi-usuário
+- [ ] Export de treinos (PDF/JSON)
+
+## 📊 Métricas de Performance
+
+- **FPS**: 25-30 (detecção de pose)
+- **Latência ML**: 15-30ms (inferência ONNX)
+- **Latência Heurística**: <5ms
+- **Latência Total**: ~35ms (end-to-end)
+- **Acurácia**: ~95% (modo híbrido)
+- **Bundle Size**: ~2.5MB (gzipped: ~800KB)
+
+## 🔒 Privacidade e Segurança
+
+- ✅ Processamento 100% client-side (navegador)
+- ✅ Vídeo **NUNCA** enviado ao servidor
+- ✅ Apenas landmarks (coordenadas x,y,z) processados
+- ✅ Autenticação segura (Supabase)
+- ✅ HTTPS obrigatório em produção
+- ✅ Dados pessoais criptografados
+
+## 📱 Compatibilidade
+
+### Navegadores Suportados
+
+- ✅ Chrome/Edge 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+
+- ✅ Mobile (Chrome/Safari iOS 14+)
+
+### Requisitos Mínimos
+
+- Webcam/câmera frontal
+- Conexão de internet (para carregar modelos ONNX)
+- 4GB RAM
+- Processador dual-core
+- Resolução mínima: 720p
 
 ## 🤝 Contribuindo
 
@@ -141,41 +277,67 @@ A documentação completa está disponível em `apps/web/docs/`:
 ### Convenções
 
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, etc)
-- **Code Style**: Prettier + ESLint (configurado)
+- **Code Style**: Prettier + ESLint (auto-formatação no save)
 - **Branches**: `feature/nome`, `fix/nome`, `refactor/nome`
-- **TypeScript**: Strict mode habilitado
+- **TypeScript**: Strict mode habilitado (sem `any`)
+- **Components**: PascalCase para arquivos `.svelte`
+- **Utilities**: camelCase para `.ts`
 
-## 📊 Métricas de Performance
+### Criar Novo Validator
 
-- **FPS**: 25-30 (detecção de pose)
-- **Latência ML**: 15-30ms (inferência)
-- **Latência Heurística**: <5ms
-- **Latência Total**: ~35ms (end-to-end)
-- **Acurácia**: ~95% (modo híbrido)
+```typescript
+import { BaseValidator } from '$lib/vision/validators/BaseValidator';
+import type { PoseLandmarks, ValidationResult } from '$lib/vision/types';
+import { MEDIAPIPE_LANDMARKS } from '$lib/vision/constants/mediapipe.constants';
+import { calculateAngle } from '$lib/vision/utils/angles.utils';
 
-## 🔒 Privacidade e Segurança
+export class PushupValidator extends BaseValidator {
+  validate(landmarks: PoseLandmarks, frameCount: number): ValidationResult {
+    this.currentIssues = [];
 
-- ✅ Processamento 100% client-side
-- ✅ Vídeo NUNCA enviado ao servidor
-- ✅ Apenas landmarks (coordenadas) enviados ao backend
-- ✅ Autenticação segura (Supabase)
-- ✅ HTTPS obrigatório em produção
+    // Sua lógica aqui
+    const leftElbow = landmarks[MEDIAPIPE_LANDMARKS.LEFT_ELBOW];
+    const leftShoulder = landmarks[MEDIAPIPE_LANDMARKS.LEFT_SHOULDER];
+    const leftWrist = landmarks[MEDIAPIPE_LANDMARKS.LEFT_WRIST];
 
-## 📱 Compatibilidade
+    if (this.isVisible(leftElbow) && this.isVisible(leftShoulder) && this.isVisible(leftWrist)) {
+      const elbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
 
-### Navegadores Suportados
+      if (elbowAngle < 90) {
+        this.currentIssues.push({
+          message: 'Cotovelo muito flexionado',
+          severity: 'high'
+        });
+      }
+    }
 
-- ✅ Chrome/Edge 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ✅ Mobile (Chrome/Safari)
+    return {
+      isValid: this.currentIssues.length === 0,
+      issues: this.currentIssues
+    };
+  }
+}
+```
 
-### Requisitos Mínimos
+## 🐛 Troubleshooting
 
-- Webcam/câmera frontal
-- Conexão de internet (para carregar modelos)
-- 4GB RAM
-- Processador dual-core
+### Erro: "Model not found"
+- Verifique se os arquivos `.onnx` estão em `static/models/`
+- Rode `pnpm build` para copiar assets
+
+### Erro: "Camera permission denied"
+- Habilite permissão de câmera nas configurações do navegador
+- Use HTTPS (http://localhost é permitido)
+
+### Pose não detectada
+- Garanta boa iluminação
+- Fique de corpo inteiro na câmera
+- Fundo limpo ajuda na detecção
+
+### Build falhou
+- Limpe cache: `pnpm clean && pnpm install`
+- Verifique tipos: `pnpm typecheck`
+- Verifique Node.js versão >= 20
 
 ## 📄 Licença
 
@@ -183,19 +345,20 @@ MIT License - veja [LICENSE](./LICENSE) para detalhes.
 
 ## 👥 Equipe
 
-- **Eduardo** - Lead Developer
+- **Eduardo** - Lead Developer & Computer Vision Engineer
 
 ## 🔗 Links Úteis
 
-- [Documentação Completa](./apps/web/docs/)
-- [Roadmap](./apps/web/docs/ROADMAP.md)
-- [Changelog](./CHANGELOG.md)
+- [MediaPipe Pose](https://google.github.io/mediapipe/solutions/pose)
+- [ONNX Runtime](https://onnxruntime.ai/)
+- [SvelteKit Docs](https://kit.svelte.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
 
 ---
 
 **Versão**: 0.1.0
-**Status**: MVP
-**Última Atualização**: 18/10/2025
+**Status**: MVP em produção
+**Última Atualização**: 19/10/2025
 
 ---
 

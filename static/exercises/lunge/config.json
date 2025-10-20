@@ -1,0 +1,51 @@
+{
+  "exerciseName": "lunge",
+  "displayName": "Afundo",
+  "displayNameEn": "Lunge",
+  "exercisePath": "/exercises/lunge",
+  "modelFile": "lunge_autoencoder.onnx",
+  "metadataFile": "lunge_metadata.json",
+  "modelPath": "/exercises/lunge/lunge_autoencoder.onnx",
+  "mlConfig": {
+    "maxFrames": 60,
+    "minFrames": 15,
+    "predictionInterval": 1,
+    "threshold": 0.018
+  },
+  "heuristicConfig": {
+    "minConfidence": 0.7,
+    "minKneeAngle": 80,
+    "maxKneeAngle": 110,
+    "maxKneeOverToe": 0.05,
+    "minTorsoAngle": 75,
+    "maxTorsoAngle": 95,
+    "maxLateralDeviation": 0.08,
+    "minBackKneeAngle": 70,
+    "maxBackKneeAngle": 110
+  },
+  "feedbackConfig": {
+    "feedbackMode": "hybrid",
+    "mlWeight": 0.5,
+    "heuristicWeight": 0.5,
+    "minConfidenceThreshold": 0.6,
+    "maxFeedbackItems": 3,
+    "prioritizeCritical": true
+  },
+  "analysisInterval": 50,
+  "instructions": {
+    "pt": [
+      "Posicione-se de lado para a câmera",
+      "Mantenha o tronco ereto",
+      "Dê um passo à frente e flexione ambos os joelhos",
+      "O joelho da frente não deve ultrapassar a ponta do pé",
+      "Volte à posição inicial com controle"
+    ],
+    "en": [
+      "Position yourself sideways to the camera",
+      "Keep your torso upright",
+      "Step forward and bend both knees",
+      "Front knee should not go past toes",
+      "Return to starting position with control"
+    ]
+  }
+}
