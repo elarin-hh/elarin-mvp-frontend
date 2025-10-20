@@ -1,21 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { trainStore, trainActions } from '$lib/stores/train.store';
+  import { trainActions } from '$lib/stores/train.store';
   import { integratedTrainStore, integratedTrainActions } from '$lib/stores/integrated-train.store';
-  import { _ } from 'svelte-i18n';
   import { asset } from '$lib/utils/assets';
   import { authActions } from '$lib/stores/auth.store';
   import { goto } from '$app/navigation';
 
   // ✅ Imports TypeScript do sistema de visão
-  import {
-    ExerciseAnalyzer,
-    loadExerciseConfig,
-    MEDIAPIPE_LANDMARKS,
-    logger,
-    type FeedbackRecord,
-    type ExtendedMetrics
-  } from '$lib/vision';
+  import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
 
   // DOM References
   let videoElement: HTMLVideoElement;
@@ -23,9 +15,26 @@
   let videoContainerElement: HTMLDivElement;
 
   // Reactive State
-  let analyzer: any = $state(null);
-  let pose: any = $state(null);
-  let camera: any = $state(null);
+  let analyzer: ExerciseAnalyzer | null = $state(null);
+  let pose: MediaPipePose | null = $state(null);
+  let camera: MediaPipeCamera | null = $state(null);
+
+  // Type definitions for MediaPipe
+  type MediaPipePose = {
+    setOptions: (options: Record<string, unknown>) => void;
+    onResults: (callback: (results: PoseResults) => void) => void;
+    send: (inputs: { image: HTMLVideoElement }) => Promise<void>;
+  };
+
+  type MediaPipeCamera = {
+    start: () => Promise<void>;
+    stop: () => void;
+  };
+
+  type PoseResults = {
+    poseLandmarks?: Array<{ x: number; y: number; z: number; visibility?: number }>;
+    image: HTMLVideoElement | HTMLCanvasElement;
+  };
   let isLoading = $state(false);
   let errorMessage = $state('');
   let debugMode = $state(false);
@@ -37,12 +46,12 @@
   let showAvatarMenu = $state(false);
 
   // Feedback state
-  let currentFeedback: any = $state(null);
+  let currentFeedback: FeedbackRecord | null = $state(null);
   let skeletonColor = $state('#00ff88');
-  let feedbackMessages: any[] = $state([]);
+  let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> =
+    $state([]);
 
   // Metrics
-  let validReps = $state(0);
   let accuracy = $state(0);
   let confidence = $state(0);
 
@@ -67,12 +76,10 @@
       script.crossOrigin = 'anonymous';
 
       script.onload = () => {
-        console.log(`✅ ${name} carregado`);
         resolve();
       };
 
       script.onerror = () => {
-        console.error(`❌ Erro ao carregar ${name}`);
         reject(new Error(`Falha ao carregar ${name}: ${src}`));
       };
 
@@ -83,17 +90,17 @@
   /**
    * Aguarda até que uma variável global esteja disponível
    */
-  async function waitForGlobal(globalName: string, timeout = 10000): Promise<any> {
+  async function waitForGlobal(globalName: string, timeout = 10000): Promise<unknown> {
     const startTime = Date.now();
 
-    while (!(window as any)[globalName]) {
+    while (!(window as Record<string, unknown>)[globalName]) {
       if (Date.now() - startTime > timeout) {
         throw new Error(`Timeout aguardando ${globalName}`);
       }
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    return (window as any)[globalName];
+    return (window as Record<string, unknown>)[globalName];
   }
 
   /**
@@ -102,8 +109,6 @@
    */
   async function loadAllDependencies() {
     try {
-      console.log('🚀 Iniciando carregamento de dependências...');
-
       // 1. MediaPipe Dependencies (apenas o necessário do CDN)
       loadingStage = 'Carregando MediaPipe Camera Utils...';
       await loadScript(
@@ -121,10 +126,7 @@
       await waitForGlobal('drawLandmarks');
 
       loadingStage = 'Carregando MediaPipe Pose...';
-      await loadScript(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js',
-        'MediaPipe Pose'
-      );
+      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js', 'MediaPipe Pose');
       await waitForGlobal('Pose');
       await waitForGlobal('POSE_CONNECTIONS');
 
@@ -132,15 +134,11 @@
       // ✅ ExerciseAnalyzer, FeedbackSystem, Validators já estão importados via TypeScript
       // ✅ MEDIAPIPE_LANDMARKS já está importado via TypeScript
 
-      loadingStage = 'Tudo pronto!';
+      loadingStage = 'Preparando tudo...';
       scriptsLoaded = true;
-      console.log('✅ Todas as dependências carregadas com sucesso!');
-      console.log('✅ Sistema de visão TypeScript carregado via imports estáticos');
-
-    } catch (error: any) {
-      console.error('❌ Erro ao carregar dependências:', error);
+    } catch (error: unknown) {
       loadingStage = 'Erro ao carregar';
-      errorMessage = `Falha ao carregar dependências: ${error.message}. Por favor, recarregue a página.`;
+      errorMessage = `Falha ao carregar dependências: ${(error as Error).message}. Por favor, recarregue a página.`;
       scriptsLoaded = false;
     }
   }
@@ -156,35 +154,22 @@
       if (!scriptsLoaded) {
         throw new Error('Dependências ainda não foram carregadas completamente. Aguarde...');
       }
-
-      console.log('🎥 Inicializando sistema de análise...');
-
       // 1. Obter exercício selecionado do store
       const selectedExercise = $integratedTrainStore.exerciseType;
 
       if (!selectedExercise) {
         throw new Error('Nenhum exercício selecionado. Por favor, volte e selecione um exercício.');
       }
-
-      console.log('💪 Exercício selecionado:', selectedExercise);
-
       // 2. Verificar se sessão do backend existe
       if (!$integratedTrainStore.backendSessionId) {
-        console.log('⚠️ Sessão não encontrada, criando nova sessão...');
         await integratedTrainActions.selectExercise(selectedExercise);
       }
-
-      console.log('✅ Sessão do backend:', $integratedTrainStore.backendSessionId);
-
       // 3. Carregar configuração do exercício (usando import TypeScript)
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
 
       if (!exerciseConfig) {
         throw new Error('Falha ao carregar configuração do exercício');
       }
-
-      console.log('📋 Configuração carregada:', exerciseConfig);
-
       // 3. Criar ExerciseAnalyzer (usando import TypeScript)
       analyzer = new ExerciseAnalyzer(exerciseConfig);
 
@@ -194,20 +179,16 @@
         onMetricsUpdate: handleMetricsUpdate,
         onError: handleError
       });
-
       // 5. Inicializar analyzer
-      console.log('🔧 Inicializando analyzer...');
       const success = await analyzer.initialize();
 
       if (!success) {
         throw new Error('Falha ao inicializar analyzer');
       }
-
-      console.log('✅ Analyzer inicializado com sucesso!');
-
       // 6. Inicializar MediaPipe Pose
-      console.log('📹 Inicializando MediaPipe Pose...');
-      const Pose = (window as any).Pose;
+      const Pose = (window as Record<string, unknown>).Pose as new (config: {
+        locateFile: (file: string) => string;
+      }) => MediaPipePose;
       pose = new Pose({
         locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
@@ -224,10 +205,11 @@
       });
 
       pose.onResults(onPoseResults);
-
       // 7. Inicializar câmera
-      console.log('📷 Iniciando câmera...');
-      const Camera = (window as any).Camera;
+      const Camera = (window as Record<string, unknown>).Camera as new (
+        video: HTMLVideoElement,
+        config: { onFrame: () => Promise<void>; width: number; height: number }
+      ) => MediaPipeCamera;
       camera = new Camera(videoElement, {
         onFrame: async () => {
           if (pose && videoElement) {
@@ -246,12 +228,8 @@
 
       isCameraRunning = true;
       isLoading = false;
-
-      console.log('✅ Sistema iniciado com sucesso!');
-
-    } catch (error: any) {
-      errorMessage = `Erro ao iniciar: ${error.message}`;
-      console.error('❌ Erro completo:', error);
+    } catch (error: unknown) {
+      errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
       isLoading = false;
     }
   }
@@ -259,7 +237,7 @@
   /**
    * Callback do MediaPipe Pose
    */
-  async function onPoseResults(results: any) {
+  async function onPoseResults(results: PoseResults) {
     if (!canvasElement || !results.poseLandmarks) return;
 
     const ctx = canvasElement.getContext('2d');
@@ -278,9 +256,18 @@
     }
 
     // Desenha esqueleto
-    const drawConnectors = (window as any).drawConnectors;
-    const drawLandmarks = (window as any).drawLandmarks;
-    const POSE_CONNECTIONS = (window as any).POSE_CONNECTIONS;
+    const drawConnectors = (window as Record<string, unknown>).drawConnectors as (
+      ctx: CanvasRenderingContext2D,
+      landmarks: unknown,
+      connections: unknown,
+      options: { color: string; lineWidth: number }
+    ) => void;
+    const drawLandmarks = (window as Record<string, unknown>).drawLandmarks as (
+      ctx: CanvasRenderingContext2D,
+      landmarks: unknown,
+      options: { color: string; lineWidth: number; radius: number }
+    ) => void;
+    const POSE_CONNECTIONS = (window as Record<string, unknown>).POSE_CONNECTIONS;
 
     if (results.poseLandmarks) {
       drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
@@ -300,7 +287,7 @@
   /**
    * Handler de feedback do analyzer
    */
-  function handleFeedback(feedback: any) {
+  function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
     // Atualizar cor do esqueleto
@@ -314,9 +301,11 @@
     // Incrementar reps se válida
     if (feedback.heuristic && feedback.heuristic.details) {
       const validationDetails = feedback.heuristic.details;
-      const repResult = validationDetails.find((d: any) => d.type === 'valid_repetition');
+      const repResult = validationDetails.find(
+        (d: unknown) => (d as { type?: string }).type === 'valid_repetition'
+      );
 
-      if (repResult && repResult.isValid) {
+      if (repResult && (repResult as { isValid?: boolean }).isValid) {
         integratedTrainActions.incrementReps();
       }
     }
@@ -325,17 +314,19 @@
   /**
    * Handler de métricas
    */
-  function handleMetricsUpdate(metrics: any) {
-    validReps = metrics.validReps || 0;
-    accuracy = parseFloat(metrics.accuracy) || 0;
-    confidence = (metrics.avgConfidence * 100) || 0;
+  function handleMetricsUpdate(metrics: {
+    validReps?: number;
+    accuracy?: string;
+    avgConfidence?: number;
+  }) {
+    accuracy = parseFloat(metrics.accuracy || '0') || 0;
+    confidence = (metrics.avgConfidence ? metrics.avgConfidence * 100 : 0) || 0;
   }
 
   /**
    * Handler de erro
    */
-  function handleError(error: any) {
-    console.error('Erro no analyzer:', error);
+  function handleError(error: Error) {
     errorMessage = error.message || 'Erro desconhecido';
   }
 
@@ -365,9 +356,6 @@
 
       // Finalizar no backend
       await integratedTrainActions.finish();
-
-      console.log('✅ Treino finalizado e enviado ao backend!');
-
       // Parar câmera
       if (camera) {
         camera.stop();
@@ -386,18 +374,10 @@
       }, 2000);
 
       isLoading = false;
-    } catch (error: any) {
-      errorMessage = `Erro ao finalizar treino: ${error.message}`;
-      console.error('❌ Erro:', error);
+    } catch (error: unknown) {
+      errorMessage = `Erro ao finalizar treino: ${(error as Error).message}`;
       isLoading = false;
     }
-  }
-
-  /**
-   * Alterna modo debug
-   */
-  function toggleDebug() {
-    debugMode = !debugMode;
   }
 
   /**
@@ -418,24 +398,32 @@
     // Se analyzer já existe, atualizar modo
     if (analyzer && analyzer.feedbackSystem) {
       analyzer.feedbackSystem.setMode(mode);
-      console.log(`✅ Modo alterado para: ${mode}`);
     }
   }
 
   /**
    * Alterna tela cheia
    */
-  function downloadLogs() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    logger.downloadLogs(`ml-debug-${timestamp}.log`);
-  }
-
   async function toggleFullscreen() {
     if (!videoContainerElement) return;
 
     try {
-      const doc = document as any;
-      const elem = videoContainerElement as any;
+      const doc = document as Document & {
+        fullscreenElement?: Element;
+        webkitFullscreenElement?: Element;
+        mozFullScreenElement?: Element;
+        msFullscreenElement?: Element;
+        exitFullscreen?: () => Promise<void>;
+        webkitExitFullscreen?: () => Promise<void>;
+        mozCancelFullScreen?: () => Promise<void>;
+        msExitFullscreen?: () => Promise<void>;
+      };
+      const elem = videoContainerElement as HTMLDivElement & {
+        requestFullscreen?: () => Promise<void>;
+        webkitRequestFullscreen?: () => Promise<void>;
+        mozRequestFullScreen?: () => Promise<void>;
+        msRequestFullscreen?: () => Promise<void>;
+      };
 
       const isCurrentlyFullscreen =
         doc.fullscreenElement ||
@@ -466,37 +454,81 @@
         }
         isFullscreen = false;
       }
-    } catch (error) {
-      console.error('Erro ao alternar fullscreen:', error);
+    } catch {
+      // Fullscreen API not supported or user denied permission
     }
+  }
+
+  /**
+   * Toggle avatar menu
+   */
+  function toggleAvatarMenu() {
+    showAvatarMenu = !showAvatarMenu;
   }
 
   /**
    * Logout
    */
-  function handleLogout() {
-    authActions.logout();
+  async function handleLogout() {
+    showAvatarMenu = false;
+    await authActions.logout();
     goto('/login');
   }
 
+  /**
+   * Close menu when clicking outside
+   */
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.avatar-menu-container')) {
+      showAvatarMenu = false;
+    }
+  }
+
+  // Auto-iniciar treino quando dependências carregarem e exercício estiver selecionado
+  $effect(() => {
+    if (
+      scriptsLoaded &&
+      $integratedTrainStore.exerciseType &&
+      !isCameraRunning &&
+      !isLoading &&
+      !analyzer
+    ) {
+      setTimeout(() => {
+        startCamera();
+      }, 500);
+    }
+  });
+
   // Lifecycle
   onMount(async () => {
-    console.log('🎬 Componente montado');
     await loadAllDependencies();
 
-    // Detectar scroll
-    const handleScroll = () => {
-      isScrolled = window.scrollY > 10;
+    // Detectar scroll - IGUAL AO /exercises
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      isScrolled = target.scrollTop > 50;
     };
-    window.addEventListener('scroll', handleScroll);
 
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    const viewport = document.querySelector('.sa-viewport');
+
+    if (viewport) {
+      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        viewport.removeEventListener('scroll', handleScroll);
+      };
+    } else {
+      const handleWindowScroll = () => {
+        isScrolled = window.scrollY > 50;
+      };
+      window.addEventListener('scroll', handleWindowScroll, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', handleWindowScroll);
+      };
+    }
   });
 
   onDestroy(() => {
-    console.log('🛑 Limpando componente');
     if (camera) {
       camera.stop();
     }
@@ -510,27 +542,73 @@
   <title>Treinar - Elarin</title>
 </svelte:head>
 
+<svelte:window onclick={handleClickOutside} />
+
 <main class="train-page">
   <!-- Header -->
-  <header class="header" class:scrolled={isScrolled}>
-    <div class="container">
-      <div class="header-content">
-        <div class="logo">
-          <img src={asset('/elarin-logo.svg')} alt="Elarin" />
-        </div>
+  <header class="fixed top-0 left-0 right-0 z-50">
+    <div class="header-container px-3 sm:px-4" class:scrolled={isScrolled}>
+      <div class="header-glass mx-auto py-2" class:scrolled={isScrolled}>
+        <div class="flex items-center justify-between px-4">
+          <div class="flex items-center">
+            <img src={asset('/logo-elarin.png')} alt="Elarin" class="h-12 sm:h-14" />
+          </div>
 
-        <div class="header-actions">
-          <button class="avatar-btn" on:click={() => showAvatarMenu = !showAvatarMenu}>
-            <div class="avatar-circle">
-              {$integratedTrainStore.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
-          </button>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <button
+              type="button"
+              class="text-white hover:text-white/80 transition-colors p-1"
+              aria-label="Menu"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                />
+              </svg>
+            </button>
 
-          {#if showAvatarMenu}
-            <div class="avatar-menu">
-              <button on:click={handleLogout}>Sair</button>
+            <div
+              class="glass-button w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center rounded-full"
+            >
+              <span class="text-white text-xs font-semibold whitespace-nowrap">PRO</span>
             </div>
-          {/if}
+
+            <div class="avatar-menu-container">
+              <button
+                type="button"
+                class="glass-button-round w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0"
+                aria-label="Perfil do usuário"
+                onclick={toggleAvatarMenu}
+              >
+                <svg
+                  class="w-4 h-4 sm:w-6 sm:h-6 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                  />
+                </svg>
+              </button>
+
+              <div class="dropdown-menu" class:show={showAvatarMenu}>
+                <button type="button" class="menu-item w-full text-left" onclick={handleLogout}>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                  Sair
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -539,24 +617,12 @@
   <!-- Main Content -->
   <div class="content">
     <!-- Video Container -->
-    <div
-      class="video-container"
-      class:fullscreen={isFullscreen}
-      bind:this={videoContainerElement}
-    >
-      <video
-        bind:this={videoElement}
-        class="video-input"
-        playsinline
-        style="display: none;"
-      ></video>
+    <div class="video-container" class:fullscreen={isFullscreen} bind:this={videoContainerElement}>
+      <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
+        <track kind="captions" src="" label="No captions" />
+      </video>
 
-      <canvas
-        bind:this={canvasElement}
-        class="video-canvas"
-        width="1280"
-        height="720"
-      ></canvas>
+      <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
       <!-- Indicador de Modo -->
       {#if isCameraRunning}
@@ -569,7 +635,10 @@
       {#if isCameraRunning && feedbackMessages.length > 0}
         <div class="feedback-overlay">
           {#each feedbackMessages.slice(0, 3) as message}
-            <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
+            <div
+              class="feedback-message {message.type}"
+              class:critical={message.severity === 'critical'}
+            >
               <span>{message.text}</span>
             </div>
           {/each}
@@ -594,37 +663,28 @@
         </div>
       {/if}
 
-      <!-- Controles -->
-      <div class="video-controls">
-        {#if !isCameraRunning}
-          <button
-            class="btn btn-primary btn-large"
-            on:click={startCamera}
-            disabled={isLoading || !scriptsLoaded}
-          >
-            {#if isLoading}
-              Iniciando...
-            {:else if !scriptsLoaded}
-              {loadingStage}
-            {:else}
-              Iniciar Treino
-            {/if}
-          </button>
-        {:else}
-          <button class="btn btn-secondary" on:click={stopCamera}>
-            Pausar
-          </button>
-          <button class="btn btn-primary" on:click={finishTraining}>
-            Finalizar
-          </button>
-          <button class="btn btn-icon" on:click={toggleFullscreen}>
+      <!-- Loading Overlay -->
+      {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
+        <div class="loading-overlay">
+          <div class="text-center">
+            <div
+              class="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8EB428] mx-auto mb-4"
+            ></div>
+            <p class="text-white/70">{loadingStage}</p>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Controles (apenas quando câmera está rodando) -->
+      {#if isCameraRunning}
+        <div class="video-controls">
+          <button class="btn btn-glass" onclick={stopCamera}> Pausar </button>
+          <button class="btn btn-primary" onclick={finishTraining}> Finalizar </button>
+          <button class="btn btn-glass-icon" onclick={toggleFullscreen}>
             {isFullscreen ? '⛶' : '⛶'}
           </button>
-          <button class="btn btn-icon" on:click={downloadLogs} title="Baixar logs de debug">
-            📥
-          </button>
-        {/if}
-      </div>
+        </div>
+      {/if}
     </div>
 
     <!-- Error Message -->
@@ -642,7 +702,7 @@
           <button
             class="mode-btn"
             class:active={feedbackMode === 'hybrid'}
-            on:click={() => changeFeedbackMode('hybrid')}
+            onclick={() => changeFeedbackMode('hybrid')}
           >
             🔬 Híbrido
             <span class="mode-desc">ML + Heurística</span>
@@ -651,7 +711,7 @@
           <button
             class="mode-btn"
             class:active={feedbackMode === 'ml_only'}
-            on:click={() => changeFeedbackMode('ml_only')}
+            onclick={() => changeFeedbackMode('ml_only')}
           >
             🤖 ML Only
             <span class="mode-desc">Autoencoder</span>
@@ -660,7 +720,7 @@
           <button
             class="mode-btn"
             class:active={feedbackMode === 'heuristic_only'}
-            on:click={() => changeFeedbackMode('heuristic_only')}
+            onclick={() => changeFeedbackMode('heuristic_only')}
           >
             📐 Heurística Only
             <span class="mode-desc">Biomecânica</span>
@@ -669,11 +729,20 @@
 
         <div class="mode-info">
           {#if feedbackMode === 'hybrid'}
-            <p><strong>Híbrido:</strong> Combina ML (detecção de anomalias) + Heurísticas (regras biomecânicas). Mais preciso e com feedback específico.</p>
+            <p>
+              <strong>Híbrido:</strong> Combina ML (detecção de anomalias) + Heurísticas (regras biomecânicas).
+              Mais preciso e com feedback específico.
+            </p>
           {:else if feedbackMode === 'ml_only'}
-            <p><strong>ML Only:</strong> Apenas o modelo de Machine Learning (autoencoder). Detecta padrões anômalos mas feedback é genérico.</p>
+            <p>
+              <strong>ML Only:</strong> Apenas o modelo de Machine Learning (autoencoder). Detecta padrões
+              anômalos mas feedback é genérico.
+            </p>
           {:else}
-            <p><strong>Heurística Only:</strong> Apenas regras biomecânicas. Feedback muito específico mas pode perder anomalias desconhecidas.</p>
+            <p>
+              <strong>Heurística Only:</strong> Apenas regras biomecânicas. Feedback muito específico
+              mas pode perder anomalias desconhecidas.
+            </p>
           {/if}
         </div>
       </div>
@@ -692,88 +761,110 @@
 <style>
   .train-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: #000000;
     color: white;
   }
 
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(26, 26, 46, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* Header Styles - Copiado de /exercises */
+  .glass-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-button-round {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-container {
     transition: all 0.3s ease;
+    padding: 0;
   }
 
-  .header.scrolled {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  .header-container.scrolled {
+    padding: 8px;
   }
 
-  .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 2rem;
+  .header-glass {
+    transition: all 0.3s ease;
+    width: 100%;
   }
 
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
+  .header-glass.scrolled {
+    background: rgba(18, 18, 18, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
   }
 
-  .logo img {
-    height: 40px;
-  }
-
-  .avatar-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
+  .avatar-menu-container {
     position: relative;
   }
 
-  .avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  .glass-button-round:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .menu-item {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-  }
-
-  .avatar-menu {
-    position: absolute;
-    top: 50px;
-    right: 0;
-    background: #2d2d44;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #ef4444;
     border-radius: 8px;
-    padding: 0.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  .avatar-menu button {
-    background: none;
-    border: none;
-    color: white;
+    transition: all 0.2s ease;
     cursor: pointer;
-    padding: 0.5rem 1rem;
-    width: 100%;
-    text-align: left;
-    border-radius: 4px;
-    transition: background 0.2s;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
-  .avatar-menu button:hover {
-    background: rgba(255, 255, 255, 0.1);
+  .menu-item:hover {
+    background: rgba(239, 68, 68, 0.1);
   }
 
   .content {
-    padding: 2rem;
+    padding: 1rem;
+    padding-top: 5rem;
+    width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .content {
+      padding-top: 6rem;
+    }
   }
 
   .video-container {
@@ -792,26 +883,62 @@
     display: block;
   }
 
+  /* Mobile - Modo Retrato */
+  @media (max-width: 768px) {
+    .video-container {
+      aspect-ratio: 9 / 16;
+      max-height: 70vh;
+    }
+
+    .video-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
   .feedback-overlay {
     position: absolute;
     top: 20px;
     left: 20px;
-    right: 20px;
+    right: 280px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     pointer-events: none;
+    z-index: 5;
+  }
+
+  @media (max-width: 768px) {
+    .feedback-overlay {
+      right: 20px;
+      top: 80px;
+    }
   }
 
   .feedback-message {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 500;
     border-left: 4px solid transparent;
     animation: slideIn 0.3s ease;
+    color: white;
   }
 
   .feedback-message.success {
@@ -847,7 +974,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -858,34 +986,41 @@
   .metrics-overlay {
     position: absolute;
     bottom: 80px;
-    right: 20px;
+    left: 20px;
     display: flex;
+    flex-direction: column;
     gap: 15px;
     pointer-events: none;
   }
 
   .metric {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
-    padding: 12px 20px;
-    border-radius: 8px;
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
+    width: 110px;
+    height: 110px;
   }
 
   .metric-label {
-    font-size: 12px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.7);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    text-align: center;
   }
 
   .metric-value {
     font-size: 24px;
     font-weight: bold;
-    color: #00ff88;
+    color: #8eb428;
   }
 
   .video-controls {
@@ -900,7 +1035,7 @@
   .btn {
     padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -909,13 +1044,14 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #8eb428;
     color: white;
   }
 
   .btn-primary:hover:not(:disabled) {
+    background: #7a9922;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(142, 180, 40, 0.4);
   }
 
   .btn-primary:disabled {
@@ -923,25 +1059,37 @@
     cursor: not-allowed;
   }
 
-  .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
+  .btn-glass {
+    background: rgba(18, 18, 18, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+  .btn-glass:hover {
+    background: rgba(18, 18, 18, 0.75);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-glass-icon {
+    padding: 12px;
+    background: rgba(18, 18, 18, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    width: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-glass-icon:hover {
+    background: rgba(18, 18, 18, 0.75);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .btn-large {
     padding: 16px 32px;
     font-size: 18px;
-  }
-
-  .btn-icon {
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    width: 48px;
   }
 
   .error-banner {
@@ -950,7 +1098,7 @@
     padding: 16px;
     background: rgba(255, 68, 68, 0.1);
     border: 1px solid #ff4444;
-    border-radius: 8px;
+    border-radius: 10px;
     color: #ff4444;
   }
 
@@ -959,13 +1107,13 @@
     margin: 20px auto;
     padding: 20px;
     background: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
+    border-radius: 10px;
   }
 
   .debug-panel pre {
     overflow-x: auto;
     font-size: 12px;
-    color: #00ff88;
+    color: #8eb428;
   }
 
   /* Mode Indicator (top-right overlay) */
@@ -973,19 +1121,20 @@
     position: absolute;
     top: 20px;
     right: 20px;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 12px 20px;
-    border-radius: 25px;
-    border: 2px solid rgba(102, 126, 234, 0.5);
+    border-radius: 10px;
     pointer-events: none;
-    z-index: 10;
+    z-index: 15;
   }
 
   .mode-text {
     font-size: 14px;
     font-weight: 600;
-    color: #00ff88;
+    color: white;
   }
 
   /* Mode Selector Panel */
@@ -994,12 +1143,12 @@
     margin: 20px auto;
     padding: 25px;
     background: rgba(0, 0, 0, 0.7);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .mode-selector-panel h3 {
-    color: #00ff88;
+    color: #8eb428;
     margin-bottom: 20px;
     font-size: 1.3rem;
   }
@@ -1019,7 +1168,7 @@
     padding: 20px;
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
     font-size: 16px;
     font-weight: 600;
@@ -1031,14 +1180,14 @@
 
   .mode-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(102, 126, 234, 0.5);
+    border-color: rgba(142, 180, 40, 0.5);
     transform: translateY(-2px);
   }
 
   .mode-btn.active {
-    background: rgba(102, 126, 234, 0.2);
-    border-color: #667eea;
-    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+    background: rgba(142, 180, 40, 0.2);
+    border-color: #8eb428;
+    box-shadow: 0 0 20px rgba(142, 180, 40, 0.3);
   }
 
   .mode-desc {
@@ -1051,7 +1200,7 @@
     background: rgba(0, 180, 255, 0.1);
     border-left: 4px solid #00b4ff;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 10px;
   }
 
   .mode-info p {
@@ -1062,20 +1211,24 @@
   }
 
   .mode-info strong {
-    color: #00ff88;
+    color: #8eb428;
   }
 
   @media (max-width: 768px) {
     .metrics-overlay {
       bottom: 100px;
-      right: 10px;
       left: 10px;
-      justify-content: space-between;
+      gap: 10px;
     }
 
     .metric {
-      flex: 1;
-      padding: 8px 12px;
+      width: 85px;
+      height: 85px;
+      padding: 10px;
+    }
+
+    .metric-label {
+      font-size: 9px;
     }
 
     .metric-value {

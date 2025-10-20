@@ -15,7 +15,6 @@ export * from './constants/mediapipe.constants';
 export * from './utils/angles.utils';
 export * from './utils/distances.utils';
 export * from './utils/landmarks.utils';
-export { logger } from './utils/Logger';
 
 // Validators
 export { BaseValidator } from './validators/BaseValidator';
@@ -31,7 +30,12 @@ export { ExerciseAnalyzer } from './core/ExerciseAnalyzer';
 export { GenericExerciseClassifier } from './ml/GenericClassifier';
 
 // Config
-export { loadExerciseConfig, getExerciseConfig, getAvailableExercises, isExerciseAvailable } from './config/exerciseConfigs';
+export {
+  loadExerciseConfig,
+  getExerciseConfig,
+  getAvailableExercises,
+  isExerciseAvailable
+} from './config/exerciseConfigs';
 
 // Re-export types for convenience
 export type { MLResult, FeedbackRecord, FeedbackSystemConfig } from './core/FeedbackSystem';
