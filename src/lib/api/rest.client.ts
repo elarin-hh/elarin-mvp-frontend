@@ -71,6 +71,17 @@ class RestClient {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle unauthorized errors (401)
+        if (response.status === 401) {
+          // Clear invalid token
+          this.setToken(null);
+
+          // Redirect to login if in browser context
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        }
+
         // Handle NestJS error format
         return {
           success: false,

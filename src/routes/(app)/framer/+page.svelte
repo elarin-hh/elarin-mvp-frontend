@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { asset } from '$lib/utils/assets';
+  import AppHeader from '$lib/components/common/AppHeader.svelte';
 
   let isScrolled = $state(false);
 
@@ -12,7 +12,7 @@
     };
 
     const viewport = document.querySelector('.sa-viewport');
-    
+
     if (viewport) {
       viewport.addEventListener('scroll', handleScroll, { passive: true });
       return () => {
@@ -31,24 +31,6 @@
 </script>
 
 <style>
-  .glass-button {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 8px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .glass-button-round {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-  }
-
   .glass-card {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px);
@@ -64,59 +46,10 @@
   .button-primary:hover {
     background: #7a9922;
   }
-
-  .header-container {
-    transition: all 0.3s ease;
-    padding: 0;
-  }
-
-  .header-container.scrolled {
-    padding: 8px;
-  }
-
-  .header-glass {
-    transition: all 0.3s ease;
-    width: 100%;
-  }
-
-  .header-glass.scrolled {
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 16px;
-  }
 </style>
 
 <div class="min-h-screen bg-black">
-  <header class="fixed top-0 left-0 right-0 z-50">
-    <div class="header-container px-3 sm:px-4" class:scrolled={isScrolled}>
-      <div class="header-glass mx-auto py-2" class:scrolled={isScrolled}>
-      <div class="flex items-center justify-between px-4">
-        <div class="flex items-center">
-          <img src={asset('/logo-elarin.png')} alt="Elarin" class="h-12 sm:h-14" />
-        </div>
-
-        <div class="flex items-center gap-2 sm:gap-4">
-          <button type="button" class="text-white hover:text-white/80 transition-colors p-1" aria-label="Menu">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
-          
-          <div class="glass-button w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center rounded-full">
-            <span class="text-white text-xs font-semibold whitespace-nowrap">PRO</span>
-          </div>
-          
-          <button type="button" class="glass-button-round w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0" aria-label="Perfil do usuário">
-            <svg class="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      </div>
-    </div>
-  </header>
+  <AppHeader bind:isScrolled hasDropdownMenu={false} />
   
   <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
     <div class="max-w-2xl mx-auto">

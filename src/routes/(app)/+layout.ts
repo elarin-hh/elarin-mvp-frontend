@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
-import type { PageLoad } from './$types';
+import type { LayoutLoad } from './$types';
 
-export const load: PageLoad = async () => {
+export const load: LayoutLoad = async () => {
   // Check if user is authenticated
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');

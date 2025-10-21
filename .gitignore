@@ -1,39 +1,46 @@
-# Node
+# Dependencies
 node_modules/
 .pnpm-store/
 
-# Logs
-*.log
-
-# Builds
+# Build Output
 dist/
+build/
 .build/
 .svelte-kit/
-coverage/
-playwright-report/
-
-# Env
-.env
-.env.*
-
-nul
-.DS_Store
-node_modules
-/build
-/.svelte-kit
 /package
+
+# Environment Variables
 .env
 .env.*
 !.env.example
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
 
-# Testing
-coverage
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea
+*.swp
+*.swo
+*~
 
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Testing (caso adicione no futuro)
+coverage/
+playwright-report/
+test-results/
+
+# Temporary files
+*.tmp
+nul
