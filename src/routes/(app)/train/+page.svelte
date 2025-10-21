@@ -628,7 +628,7 @@
 
       <!-- Overlay de feedback -->
       {#if isCameraRunning && feedbackMessages.length > 0}
-        <div class="feedback-overlay">
+        <div class="feedback-overlay" class:with-mode-indicator={isDevMode}>
           {#each feedbackMessages.slice(0, 3) as message}
             <div
               class="feedback-message {message.type}"
@@ -830,7 +830,7 @@
     position: absolute;
     top: 20px;
     right: 20px;
-    left: 280px;
+    max-width: calc(50% - 30px);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -838,10 +838,25 @@
     z-index: 5;
   }
 
+  .feedback-overlay.with-mode-indicator {
+    top: 20px;
+    right: 20px;
+    left: auto;
+  }
+
   @media (max-width: 768px) {
     .feedback-overlay {
+      top: 10px;
       left: 20px;
-      top: 80px;
+      right: 20px;
+      max-width: calc(100% - 40px);
+    }
+
+    .feedback-overlay.with-mode-indicator {
+      top: 60px;
+      right: 10px;
+      left: auto;
+      max-width: 80%;
     }
   }
 
@@ -1055,7 +1070,9 @@
   .mode-indicator {
     position: absolute;
     top: 20px;
-    left: 20px;
+    right: 10px;
+    left: auto;
+    max-width: calc(50% - 30px);
     background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -1069,6 +1086,9 @@
     gap: 8px;
     font-size: 16px;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .mode-text {
@@ -1177,10 +1197,12 @@
       font-size: 18px;
     }
 
-    .feedback-overlay {
+    .mode-indicator {
       top: 10px;
       left: 10px;
-      right: 10px;
+      max-width: 60%;
+      padding: 10px 16px;
+      font-size: 14px;
     }
 
     .feedback-message {
@@ -1191,13 +1213,6 @@
     .mode-buttons {
       grid-template-columns: 1fr;
       gap: 10px;
-    }
-
-    .mode-indicator {
-      top: 10px;
-      left: 10px;
-      padding: 8px 12px;
-      font-size: 12px;
     }
 
     .mode-selector-panel {
