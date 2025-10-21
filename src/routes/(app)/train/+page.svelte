@@ -5,6 +5,8 @@
   import { authActions } from '$lib/stores/auth.store';
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
+  import { isDeveloper } from '$lib/config/env.config';
+  import { FlaskConical, Bot, Ruler, Microscope, Settings } from 'lucide-svelte';
 
   // ✅ Imports TypeScript do sistema de visão
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
@@ -44,6 +46,7 @@
   let isCameraRunning = $state(false);
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
+  let isDevMode = $state(false);
 
   // Feedback state
   let currentFeedback: FeedbackRecord | null = $state(null);
@@ -54,10 +57,12 @@
   // Metrics
   let accuracy = $state(0);
   let confidence = $state(0);
+  let elapsedTime = $state(0); // em segundos
+  let timerInterval: number | null = null;
 
   // Feedback Mode
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
-  let modeIndicator = $state('🔬 Híbrido (ML + Heurística)');
+  let modeIndicator = $state('Híbrido (ML + Heurística)');
 
   /**
    * Carrega um script externo de forma assíncrona
@@ -222,9 +227,10 @@
 
       await camera.start();
 
-      // 8. Iniciar treino
+      // 8. Iniciar treino e cronômetro
       trainActions.start();
       integratedTrainActions.start();
+      startTimer();
 
       isCameraRunning = true;
       isLoading = false;
@@ -335,6 +341,38 @@
   }
 
   /**
+   * Inicia o cronômetro
+   */
+  function startTimer() {
+    elapsedTime = 0;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+    timerInterval = window.setInterval(() => {
+      elapsedTime += 1;
+    }, 1000);
+  }
+
+  /**
+   * Pausa o cronômetro
+   */
+  function pauseTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  /**
+   * Formata o tempo em MM:SS
+   */
+  function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  /**
    * Para a câmera
    */
   async function stopCamera() {
@@ -346,6 +384,7 @@
     }
     trainActions.pause();
     integratedTrainActions.pause();
+    pauseTimer();
     isCameraRunning = false;
   }
 
@@ -360,10 +399,11 @@
 
       // Finalizar no backend
       await integratedTrainActions.finish();
-      // Parar câmera
+      // Parar câmera e cronômetro
       if (camera) {
         camera.stop();
       }
+      pauseTimer();
       isCameraRunning = false;
 
       // Resetar
@@ -375,6 +415,7 @@
         trainActions.reset();
         feedbackMessages = [];
         currentFeedback = null;
+        elapsedTime = 0;
       }, 2000);
 
       isLoading = false;
@@ -392,11 +433,11 @@
 
     // Atualizar indicador
     if (mode === 'ml_only') {
-      modeIndicator = '🤖 ML Only (Autoencoder)';
+      modeIndicator = 'ML Only (Autoencoder)';
     } else if (mode === 'heuristic_only') {
-      modeIndicator = '📐 Heurística Only (Biomecânica)';
+      modeIndicator = 'Heurística Only (Biomecânica)';
     } else {
-      modeIndicator = '🔬 Híbrido (ML + Heurística)';
+      modeIndicator = 'Híbrido (ML + Heurística)';
     }
 
     // Se analyzer já existe, atualizar modo
@@ -506,6 +547,7 @@
 
   // Lifecycle
   onMount(async () => {
+    isDevMode = isDeveloper();
     await loadAllDependencies();
 
     // Detectar scroll - IGUAL AO /exercises
@@ -539,6 +581,9 @@
     if (analyzer) {
       analyzer.destroy();
     }
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
   });
 </script>
 
@@ -567,9 +612,16 @@
 
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
-      <!-- Indicador de Modo -->
-      {#if isCameraRunning}
+      <!-- Indicador de Modo (apenas para devs) -->
+      {#if isCameraRunning && isDevMode}
         <div class="mode-indicator">
+          {#if feedbackMode === 'hybrid'}
+            <Microscope size={18} />
+          {:else if feedbackMode === 'ml_only'}
+            <Bot size={18} />
+          {:else}
+            <Ruler size={18} />
+          {/if}
           <span class="mode-text">{modeIndicator}</span>
         </div>
       {/if}
@@ -596,13 +648,19 @@
             <span class="metric-value">{$integratedTrainStore.reps}</span>
           </div>
           <div class="metric">
-            <span class="metric-label">Precisão</span>
-            <span class="metric-value">{accuracy.toFixed(0)}%</span>
+            <span class="metric-label">Tempo</span>
+            <span class="metric-value">{formatTime(elapsedTime)}</span>
           </div>
-          <div class="metric">
-            <span class="metric-label">Confiança</span>
-            <span class="metric-value">{confidence.toFixed(0)}%</span>
-          </div>
+          {#if isDevMode}
+            <div class="metric">
+              <span class="metric-label">Precisão</span>
+              <span class="metric-value">{accuracy.toFixed(0)}%</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Confiança</span>
+              <span class="metric-value">{confidence.toFixed(0)}%</span>
+            </div>
+          {/if}
         </div>
       {/if}
 
@@ -637,17 +695,21 @@
       </div>
     {/if}
 
-    <!-- Mode Selector -->
-    {#if isCameraRunning}
+    <!-- Mode Selector (apenas para devs) -->
+    {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
-        <h3>Modo de Análise</h3>
+        <h3>
+          <Settings size={20} class="inline-block" />
+          Modo de Análise (Dev Only)
+        </h3>
         <div class="mode-buttons">
           <button
             class="mode-btn"
             class:active={feedbackMode === 'hybrid'}
             onclick={() => changeFeedbackMode('hybrid')}
           >
-            🔬 Híbrido
+            <Microscope size={20} />
+            Híbrido
             <span class="mode-desc">ML + Heurística</span>
           </button>
 
@@ -656,7 +718,8 @@
             class:active={feedbackMode === 'ml_only'}
             onclick={() => changeFeedbackMode('ml_only')}
           >
-            🤖 ML Only
+            <Bot size={20} />
+            ML Only
             <span class="mode-desc">Autoencoder</span>
           </button>
 
@@ -665,7 +728,8 @@
             class:active={feedbackMode === 'heuristic_only'}
             onclick={() => changeFeedbackMode('heuristic_only')}
           >
-            📐 Heurística Only
+            <Ruler size={20} />
+            Heurística Only
             <span class="mode-desc">Biomecânica</span>
           </button>
         </div>
@@ -765,8 +829,8 @@
   .feedback-overlay {
     position: absolute;
     top: 20px;
-    left: 20px;
-    right: 280px;
+    right: 20px;
+    left: 280px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -776,7 +840,7 @@
 
   @media (max-width: 768px) {
     .feedback-overlay {
-      right: 20px;
+      left: 20px;
       top: 80px;
     }
   }
@@ -987,11 +1051,11 @@
     color: #8eb428;
   }
 
-  /* Mode Indicator (top-right overlay) */
+  /* Mode Indicator (top-left overlay) */
   .mode-indicator {
     position: absolute;
     top: 20px;
-    right: 20px;
+    left: 20px;
     background: rgba(18, 18, 18, 0.55);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -1000,11 +1064,16 @@
     border-radius: 10px;
     pointer-events: none;
     z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 500;
   }
 
   .mode-text {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 500;
     color: white;
   }
 
@@ -1022,6 +1091,9 @@
     color: #8eb428;
     margin-bottom: 20px;
     font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .mode-buttons {
@@ -1123,7 +1195,7 @@
 
     .mode-indicator {
       top: 10px;
-      right: 10px;
+      left: 10px;
       padding: 8px 12px;
       font-size: 12px;
     }

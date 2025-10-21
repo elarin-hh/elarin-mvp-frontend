@@ -85,11 +85,8 @@
 
       if (response.success && response.data) {
         exercises = response.data;
-        console.log('✅ Exercícios carregados do backend:', exercises.length);
-        console.log('📋 Exercícios:', exercises);
       } else {
         error = response.error?.message || 'Falha ao carregar exercícios';
-        console.error('❌ Erro ao carregar exercícios:', error);
       }
     } catch (e: unknown) {
       error = (e as Error).message || 'Falha ao carregar exercícios';

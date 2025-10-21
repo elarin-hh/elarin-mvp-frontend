@@ -1,5 +1,6 @@
 <script lang="ts">
   import { asset } from '$lib/utils/assets';
+  import { isDeveloper } from '$lib/config/env.config';
 
   interface Props {
     isScrolled?: boolean;
@@ -18,6 +19,12 @@
     onLogout = () => {},
     onClickOutside = () => {}
   }: Props = $props();
+
+  let isDevMode = $state(false);
+
+  $effect(() => {
+    isDevMode = isDeveloper();
+  });
 </script>
 
 <svelte:window onclick={onClickOutside} />
@@ -31,20 +38,19 @@
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4">
-          <button
-            type="button"
-            class="text-white hover:text-white/80 transition-colors p-1"
-            aria-label="Menu"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-              />
-            </svg>
-          </button>
+          {#if isDevMode}
+            <div class="dev-badge">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                />
+              </svg>
+              <span>DEV</span>
+            </div>
+          {/if}
 
           <div
             class="glass-button w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center rounded-full"
@@ -180,5 +186,38 @@
 
   .menu-item:hover {
     background: rgba(239, 68, 68, 0.1);
+  }
+
+  .dev-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    border-radius: 20px;
+    color: #ff9800;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    animation: pulse-dev 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dev {
+    0%,
+    100% {
+      box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(255, 152, 0, 0.5);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .dev-badge {
+      padding: 3px 8px;
+      font-size: 0.65rem;
+      gap: 4px;
+    }
   }
 </style>

@@ -430,14 +430,14 @@ export class FeedbackSystem {
         messages.push({
           type: 'success',
           priority: 1,
-          text: '✅ Movimento correto (padrão reconhecido)',
+          text: 'Movimento correto (padrão reconhecido)',
           severity: 'low'
         });
       } else if (feedback.combined.verdict === 'incorrect') {
         messages.push({
           type: 'error',
           priority: 1,
-          text: '❌ Anomalia detectada (padrão desconhecido)',
+          text: 'Anomalia detectada (padrão desconhecido)',
           severity: 'high'
         });
         // Informação técnica genérica do ML
@@ -465,14 +465,14 @@ export class FeedbackSystem {
       messages.push({
         type: 'success',
         priority: 1,
-        text: '✅ Execução correta!',
+        text: 'Execução correta!',
         severity: 'low'
       });
     } else if (feedback.combined.verdict === 'incorrect') {
       messages.push({
         type: 'error',
         priority: 1,
-        text: '⚠️ Movimento incorreto',
+        text: 'Movimento incorreto',
         severity: 'high'
       });
     }
@@ -506,7 +506,7 @@ export class FeedbackSystem {
         messages.push({
           type: 'info',
           priority: 10,
-          text: 'ℹ️ Padrão atípico detectado pelo ML',
+          text: 'Padrão atípico detectado pelo ML',
           severity: 'low'
         });
       }

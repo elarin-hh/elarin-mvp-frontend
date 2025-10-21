@@ -6,7 +6,10 @@
       "Bash(xcopy:*)",
       "Bash(copy:*)",
       "Bash(python:*)",
-      "Read(//c/Users/notebook-guilherme/Documents/elarin-backend-api-main/**)"
+      "Read(//c/Users/notebook-guilherme/Documents/elarin-backend-api-main/**)",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm add:*)"
     ],
     "deny": [],
     "ask": []

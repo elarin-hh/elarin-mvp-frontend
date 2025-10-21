@@ -14,6 +14,9 @@ importers:
       '@sveltejs/kit':
         specifier: ^2.8.0
         version: 2.43.6(@sveltejs/vite-plugin-svelte@6.2.1(svelte@5.39.7)(vite@6.3.6(@types/node@22.18.8)(jiti@1.21.7)(terser@5.44.0)(yaml@2.8.1)))(svelte@5.39.7)(vite@6.3.6(@types/node@22.18.8)(jiti@1.21.7)(terser@5.44.0)(yaml@2.8.1))
+      lucide-svelte:
+        specifier: ^0.546.0
+        version: 0.546.0(svelte@5.39.7)
       onnxruntime-web:
         specifier: ^1.23.0
         version: 1.23.0
@@ -2761,6 +2764,11 @@ packages:
 
   lru-queue@0.1.0:
     resolution: {integrity: sha512-BpdYkt9EvGl8OfWHDQPISVpcl5xZthb+XPsbELj5AQXxIC8IriDZIQYjBJPEm5rS420sjZ0TLEzRcq5KdBhYrQ==}
+
+  lucide-svelte@0.546.0:
+    resolution: {integrity: sha512-vCvBUlFapD59ivX1b/i7wdUadSgC/3gQGvrGEZjSecOlThT+UR+X5UxdVEakHuhniTrSX0nJ2WrY5r25SVDtyQ==}
+    peerDependencies:
+      svelte: ^3 || ^4 || ^5.0.0-next.42
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -6703,6 +6711,10 @@ snapshots:
   lru-queue@0.1.0:
     dependencies:
       es5-ext: 0.10.64
+
+  lucide-svelte@0.546.0(svelte@5.39.7):
+    dependencies:
+      svelte: 5.39.7
 
   lz-string@1.5.0: {}
 

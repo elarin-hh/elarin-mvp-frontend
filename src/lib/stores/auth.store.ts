@@ -5,6 +5,7 @@ export interface User {
   id: string;
   email: string;
   full_name?: string;
+  is_dev?: boolean;
 }
 
 export interface AuthSession {
@@ -56,6 +57,15 @@ export const authActions = {
         restClient.setToken(session.access_token);
       }
 
+      // Save is_dev flag in localStorage
+      if (typeof window !== 'undefined') {
+        if (user.is_dev) {
+          localStorage.setItem('is_dev', 'true');
+        } else {
+          localStorage.removeItem('is_dev');
+        }
+      }
+
       authStore.update(() => ({
         user,
         session,
@@ -94,6 +104,15 @@ export const authActions = {
         restClient.setToken(session.access_token);
       }
 
+      // Save is_dev flag in localStorage
+      if (typeof window !== 'undefined') {
+        if (user.is_dev) {
+          localStorage.setItem('is_dev', 'true');
+        } else {
+          localStorage.removeItem('is_dev');
+        }
+      }
+
       authStore.update(() => ({
         user,
         session,
@@ -121,8 +140,11 @@ export const authActions = {
 
     await restClient.post('/auth/logout');
 
-    // Clear token and state
+    // Clear token, is_dev flag and state
     restClient.setToken(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('is_dev');
+    }
     authStore.set(initialState);
 
     return { success: true };

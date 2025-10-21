@@ -308,8 +308,8 @@ export class GenericExerciseClassifier {
         threshold: this.threshold,
         status: isCorrect ? 'correct' : 'incorrect',
         message: isCorrect
-          ? '✅ Execução correta! Continue assim!'
-          : '⚠️ Atenção! Movimento incorreto detectado.',
+          ? 'Execução correta! Continue assim!'
+          : 'Atenção! Movimento incorreto detectado.',
         details: {
           error: reconstructionError.toFixed(6),
           threshold: this.threshold.toFixed(6),
