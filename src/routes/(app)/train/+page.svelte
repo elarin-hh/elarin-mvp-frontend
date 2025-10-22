@@ -778,7 +778,7 @@
 
   .video-container.portrait {
     aspect-ratio: 9 / 16;
-    max-height: 70vh;
+    max-height: 95vh;
   }
 
   .video-container.portrait .video-canvas {
