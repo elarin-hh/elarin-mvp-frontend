@@ -100,7 +100,7 @@
 
 <style>
   .glass-button {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 8px;
@@ -109,7 +109,7 @@
   }
 
   .glass-button-round {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 50%;
@@ -118,7 +118,7 @@
   }
 
   .glass-button-round:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--color-border-light);
   }
 
   .header-container {
@@ -136,9 +136,9 @@
   }
 
   .header-glass.scrolled {
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
     border-radius: 16px;
   }
 
@@ -151,10 +151,10 @@
     top: calc(100% + 8px);
     right: 0;
     min-width: 180px;
-    background: rgba(18, 18, 18, 0.95);
+    background: var(--color-glass-dark-strong);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--color-border-light);
     border-radius: 12px;
     padding: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
@@ -162,7 +162,7 @@
     opacity: 0;
     transform: translateY(-10px);
     pointer-events: none;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .dropdown-menu.show {
@@ -176,16 +176,16 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    color: #ef4444;
+    color: var(--color-error);
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 500;
   }
 
   .menu-item:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(255, 68, 68, 0.1);
   }
 
   .dev-badge {
@@ -196,7 +196,7 @@
     background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
     border: 1px solid rgba(255, 152, 0, 0.4);
     border-radius: 20px;
-    color: #ff9800;
+    color: var(--color-warning);
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.5px;

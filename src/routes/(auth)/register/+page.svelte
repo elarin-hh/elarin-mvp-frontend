@@ -54,11 +54,11 @@
 
 <style>
   .glass-button {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 18px;
-    /* border: 1px solid rgba(255, 255, 255, 0.1); */
+    /* border: 1px solid var(--color-border-light); */
     position: relative;
     overflow: hidden;
   }

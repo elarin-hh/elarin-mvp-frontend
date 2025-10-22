@@ -2,8 +2,27 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
+  import { authActions } from '$lib/stores/auth.store';
 
   let isScrolled = $state(false);
+  let showAvatarMenu = $state(false);
+
+  function toggleAvatarMenu() {
+    showAvatarMenu = !showAvatarMenu;
+  }
+
+  async function handleLogout() {
+    showAvatarMenu = false;
+    await authActions.logout();
+    goto('/login');
+  }
+
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.avatar-menu-container')) {
+      showAvatarMenu = false;
+    }
+  }
 
   onMount(() => {
     const handleScroll = (e: Event) => {
@@ -32,31 +51,44 @@
 
 <style>
   .glass-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-glass-light);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .card-secondary {
+    background: var(--color-bg-dark-secondary);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
 
   .button-primary {
-    background: #8EB428;
+    background: var(--color-primary-500);
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .button-primary:hover {
-    background: #7a9922;
+    background: var(--color-primary-600);
   }
 </style>
 
 <div class="min-h-screen bg-black">
-  <AppHeader bind:isScrolled hasDropdownMenu={false} />
+  <AppHeader
+    bind:isScrolled
+    bind:showAvatarMenu
+    hasDropdownMenu={true}
+    onToggleAvatarMenu={toggleAvatarMenu}
+    onLogout={handleLogout}
+    onClickOutside={handleClickOutside}
+  />
   
   <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
     <div class="max-w-2xl mx-auto">
       <!-- Icon -->
       <div class="flex justify-center mb-8">
-        <div class="w-20 h-20 rounded-full bg-[#8EB428]/10 flex items-center justify-center">
-          <svg class="w-10 h-10 text-[#8EB428]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-20 h-20 rounded-full bg-primary-500/10 flex items-center justify-center">
+          <svg class="w-10 h-10 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         </div>
@@ -66,7 +98,7 @@
         Antes de Começar
       </h1>
 
-      <div class="glass-card mb-4 p-6 rounded-lg border border-blue-500/20">
+      <div class="card-secondary mb-4 p-6 rounded-lg border border-blue-500/20">
         <div class="flex items-start gap-3">
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
             <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -74,15 +106,15 @@
             </svg>
           </div>
           <div>
-            <h2 class="text-white font-semibold mb-2">Aviso MVP</h2>
+            <h2 class="text-white font-semibold mb-2">Aviso</h2>
             <p class="text-white/70 text-sm">
-              Esta versão MVP demonstra o fluxo da interface. A captura de câmera e detecção de exercícios em tempo real serão habilitadas na próxima fase.
+              Nosso app demonstra o fluxo da interface. A captura de câmera e detecção de exercícios em tempo real serão habilitadas na próxima fase.
             </p>
           </div>
         </div>
       </div>
 
-      <div class="glass-card mb-8 p-6 rounded-lg border border-green-500/20">
+      <div class="card-secondary mb-8 p-6 rounded-lg border border-green-500/20">
         <div class="flex items-start gap-3">
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
             <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">

@@ -156,7 +156,7 @@
       <div class="flex items-center justify-center py-20">
         <div class="text-center">
           <div
-            class="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8EB428] mx-auto mb-4"
+            class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
           ></div>
           <p class="text-white/70">Carregando exercícios...</p>
         </div>
@@ -257,13 +257,13 @@
 
 <style>
   .button-primary {
-    background: #8eb428;
+    background: var(--color-primary-500);
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
   }
 
   .button-primary:hover {
-    background: #7a9922;
+    background: var(--color-primary-600);
   }
 
   .glass-overlay {
@@ -277,9 +277,9 @@
   }
 
   .group:hover .exercise-name {
-    background: #8eb428;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--color-primary-500);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
   }
 
   /* Estilos para exercícios inativos */
@@ -308,9 +308,9 @@
   /* Badge de indisponível */
   .badge-inactive {
     background: rgba(220, 53, 69, 0.9);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    color: var(--color-text-primary);
     padding: 4px 12px;
     border-radius: 6px;
     font-size: 0.75rem;

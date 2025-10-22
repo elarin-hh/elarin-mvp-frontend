@@ -6,7 +6,7 @@
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { FlaskConical, Bot, Ruler, Microscope, Settings } from 'lucide-svelte';
+  import { FlaskConical, Bot, Ruler, Microscope, Settings, Smartphone, Monitor } from 'lucide-svelte';
 
   // ✅ Imports TypeScript do sistema de visão
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
@@ -15,11 +15,6 @@
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
   let videoContainerElement: HTMLDivElement;
-
-  // Reactive State
-  let analyzer: ExerciseAnalyzer | null = $state(null);
-  let pose: MediaPipePose | null = $state(null);
-  let camera: MediaPipeCamera | null = $state(null);
 
   // Type definitions for MediaPipe
   type MediaPipePose = {
@@ -37,6 +32,11 @@
     poseLandmarks?: Array<{ x: number; y: number; z: number; visibility?: number }>;
     image: HTMLVideoElement | HTMLCanvasElement;
   };
+
+  // Reactive State
+  let analyzer: ExerciseAnalyzer | null = $state(null);
+  let pose: MediaPipePose | null = $state(null);
+  let camera: MediaPipeCamera | null = $state(null);
   let isLoading = $state(false);
   let errorMessage = $state('');
   let debugMode = $state(false);
@@ -47,17 +47,18 @@
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
+  let orientation = $state<'portrait' | 'landscape'>('landscape');
+  let isOrientationManual = $state(false);
 
   // Feedback state
   let currentFeedback: FeedbackRecord | null = $state(null);
-  let skeletonColor = $state('#00ff88');
-  let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> =
-    $state([]);
+  let skeletonColor = $state('var(--color-success)');
+  let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> = $state([]);
 
   // Metrics
   let accuracy = $state(0);
   let confidence = $state(0);
-  let elapsedTime = $state(0); // em segundos
+  let elapsedTime = $state(0);
   let timerInterval: number | null = null;
 
   // Feedback Mode
@@ -109,12 +110,10 @@
   }
 
   /**
-   * Carrega todas as dependências necessárias na ordem correta
-   * ✅ Agora usa imports TypeScript estáticos + apenas MediaPipe CDN
+   * Carrega todas as dependências necessárias
    */
   async function loadAllDependencies() {
     try {
-      // 1. MediaPipe Dependencies (apenas o necessário do CDN)
       loadingStage = 'Carregando MediaPipe Camera Utils...';
       await loadScript(
         'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
@@ -134,10 +133,6 @@
       await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js', 'MediaPipe Pose');
       await waitForGlobal('Pose');
       await waitForGlobal('POSE_CONNECTIONS');
-
-      // ✅ ONNX Runtime Web já está importado via npm (onnxruntime-web)
-      // ✅ ExerciseAnalyzer, FeedbackSystem, Validators já estão importados via TypeScript
-      // ✅ MEDIAPIPE_LANDMARKS já está importado via TypeScript
 
       loadingStage = 'Preparando tudo...';
       scriptsLoaded = true;
@@ -159,38 +154,37 @@
       if (!scriptsLoaded) {
         throw new Error('Dependências ainda não foram carregadas completamente. Aguarde...');
       }
-      // 1. Obter exercício selecionado do store
+
       const selectedExercise = $integratedTrainStore.exerciseType;
 
       if (!selectedExercise) {
         throw new Error('Nenhum exercício selecionado. Por favor, volte e selecione um exercício.');
       }
-      // 2. Verificar se sessão do backend existe
+
       if (!$integratedTrainStore.backendSessionId) {
         await integratedTrainActions.selectExercise(selectedExercise);
       }
-      // 3. Carregar configuração do exercício (usando import TypeScript)
+
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
 
       if (!exerciseConfig) {
         throw new Error('Falha ao carregar configuração do exercício');
       }
-      // 3. Criar ExerciseAnalyzer (usando import TypeScript)
+
       analyzer = new ExerciseAnalyzer(exerciseConfig);
 
-      // 4. Configurar callbacks
       analyzer.setCallbacks({
         onFeedback: handleFeedback,
         onMetricsUpdate: handleMetricsUpdate,
         onError: handleError
       });
-      // 5. Inicializar analyzer
+
       const success = await analyzer.initialize();
 
       if (!success) {
         throw new Error('Falha ao inicializar analyzer');
       }
-      // 6. Inicializar MediaPipe Pose
+
       const Pose = (window as Record<string, unknown>).Pose as new (config: {
         locateFile: (file: string) => string;
       }) => MediaPipePose;
@@ -210,7 +204,7 @@
       });
 
       pose.onResults(onPoseResults);
-      // 7. Inicializar câmera
+
       const Camera = (window as Record<string, unknown>).Camera as new (
         video: HTMLVideoElement,
         config: { onFrame: () => Promise<void>; width: number; height: number }
@@ -227,7 +221,6 @@
 
       await camera.start();
 
-      // 8. Iniciar treino e cronômetro
       trainActions.start();
       integratedTrainActions.start();
       startTimer();
@@ -249,23 +242,16 @@
     const ctx = canvasElement.getContext('2d');
     if (!ctx) return;
 
-    // Limpa canvas
     ctx.save();
     ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-    // Espelha horizontalmente (inverte o vídeo)
     ctx.translate(canvasElement.width, 0);
     ctx.scale(-1, 1);
-
-    // Desenha vídeo espelhado
     ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-    // Analisa com ExerciseAnalyzer
     if (analyzer && results.poseLandmarks) {
       await analyzer.analyzeFrame(results.poseLandmarks);
     }
 
-    // Desenha esqueleto
     const drawConnectors = (window as Record<string, unknown>).drawConnectors as (
       ctx: CanvasRenderingContext2D,
       landmarks: unknown,
@@ -294,21 +280,15 @@
     ctx.restore();
   }
 
-  /**
-   * Handler de feedback do analyzer
-   */
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
-    // Atualizar cor do esqueleto
     if (feedback.visualization) {
       skeletonColor = feedback.visualization.color;
     }
 
-    // Atualizar mensagens
     feedbackMessages = feedback.messages || [];
 
-    // Incrementar reps se válida
     if (feedback.heuristic && feedback.heuristic.details) {
       const validationDetails = feedback.heuristic.details;
       const repResult = validationDetails.find(
@@ -321,9 +301,6 @@
     }
   }
 
-  /**
-   * Handler de métricas
-   */
   function handleMetricsUpdate(metrics: {
     validReps?: number;
     accuracy?: string;
@@ -333,16 +310,10 @@
     confidence = (metrics.avgConfidence ? metrics.avgConfidence * 100 : 0) || 0;
   }
 
-  /**
-   * Handler de erro
-   */
   function handleError(error: Error) {
     errorMessage = error.message || 'Erro desconhecido';
   }
 
-  /**
-   * Inicia o cronômetro
-   */
   function startTimer() {
     elapsedTime = 0;
     if (timerInterval) {
@@ -353,9 +324,6 @@
     }, 1000);
   }
 
-  /**
-   * Pausa o cronômetro
-   */
   function pauseTimer() {
     if (timerInterval) {
       clearInterval(timerInterval);
@@ -363,18 +331,12 @@
     }
   }
 
-  /**
-   * Formata o tempo em MM:SS
-   */
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  /**
-   * Para a câmera
-   */
   async function stopCamera() {
     if (camera) {
       camera.stop();
@@ -388,25 +350,20 @@
     isCameraRunning = false;
   }
 
-  /**
-   * Finaliza treino
-   */
   async function finishTraining() {
     if (!analyzer) return;
 
     try {
       isLoading = true;
 
-      // Finalizar no backend
       await integratedTrainActions.finish();
-      // Parar câmera e cronômetro
+
       if (camera) {
         camera.stop();
       }
       pauseTimer();
       isCameraRunning = false;
 
-      // Resetar
       setTimeout(() => {
         analyzer = null;
         pose = null;
@@ -425,13 +382,9 @@
     }
   }
 
-  /**
-   * Muda o modo de feedback (ML, Heurístico ou Híbrido)
-   */
   function changeFeedbackMode(mode: 'hybrid' | 'ml_only' | 'heuristic_only') {
     feedbackMode = mode;
 
-    // Atualizar indicador
     if (mode === 'ml_only') {
       modeIndicator = 'ML Only (Autoencoder)';
     } else if (mode === 'heuristic_only') {
@@ -440,15 +393,11 @@
       modeIndicator = 'Híbrido (ML + Heurística)';
     }
 
-    // Se analyzer já existe, atualizar modo
     if (analyzer && analyzer.feedbackSystem) {
       analyzer.feedbackSystem.setMode(mode);
     }
   }
 
-  /**
-   * Alterna tela cheia
-   */
   async function toggleFullscreen() {
     if (!videoContainerElement) return;
 
@@ -504,25 +453,16 @@
     }
   }
 
-  /**
-   * Toggle avatar menu
-   */
   function toggleAvatarMenu() {
     showAvatarMenu = !showAvatarMenu;
   }
 
-  /**
-   * Logout
-   */
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
     goto('/login');
   }
 
-  /**
-   * Close menu when clicking outside
-   */
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('.avatar-menu-container')) {
@@ -530,7 +470,21 @@
     }
   }
 
-  // Auto-iniciar treino quando dependências carregarem e exercício estiver selecionado
+  function detectOrientation() {
+    if (isOrientationManual) return;
+
+    if (window.matchMedia('(orientation: portrait)').matches) {
+      orientation = 'portrait';
+    } else {
+      orientation = 'landscape';
+    }
+  }
+
+  function toggleOrientation() {
+    isOrientationManual = true;
+    orientation = orientation === 'portrait' ? 'landscape' : 'portrait';
+  }
+
   $effect(() => {
     if (
       scriptsLoaded &&
@@ -545,12 +499,19 @@
     }
   });
 
-  // Lifecycle
   onMount(async () => {
     isDevMode = isDeveloper();
     await loadAllDependencies();
 
-    // Detectar scroll - IGUAL AO /exercises
+    detectOrientation();
+
+    const handleOrientationChange = () => {
+      detectOrientation();
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       isScrolled = target.scrollTop > 50;
@@ -560,18 +521,20 @@
 
     if (viewport) {
       viewport.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-        viewport.removeEventListener('scroll', handleScroll);
-      };
     } else {
       const handleWindowScroll = () => {
         isScrolled = window.scrollY > 50;
       };
       window.addEventListener('scroll', handleWindowScroll, { passive: true });
-      return () => {
-        window.removeEventListener('scroll', handleWindowScroll);
-      };
     }
+
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+      if (viewport) {
+        viewport.removeEventListener('scroll', handleScroll);
+      }
+    };
   });
 
   onDestroy(() => {
@@ -605,7 +568,13 @@
   <!-- Main Content -->
   <div class="content">
     <!-- Video Container -->
-    <div class="video-container" class:fullscreen={isFullscreen} bind:this={videoContainerElement}>
+    <div
+      class="video-container"
+      class:fullscreen={isFullscreen}
+      class:portrait={orientation === 'portrait'}
+      class:landscape={orientation === 'landscape'}
+      bind:this={videoContainerElement}
+    >
       <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
         <track kind="captions" src="" label="No captions" />
       </video>
@@ -669,7 +638,7 @@
         <div class="loading-overlay">
           <div class="text-center">
             <div
-              class="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8EB428] mx-auto mb-4"
+              class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
             ></div>
             <p class="text-white/70">{loadingStage}</p>
           </div>
@@ -681,6 +650,13 @@
         <div class="video-controls">
           <button class="btn btn-glass" onclick={stopCamera}> Pausar </button>
           <button class="btn btn-primary" onclick={finishTraining}> Finalizar </button>
+          <button class="btn btn-glass-icon" onclick={toggleOrientation} title="Alternar orientação">
+            {#if orientation === 'portrait'}
+              <Smartphone size={20} />
+            {:else}
+              <Monitor size={20} />
+            {/if}
+          </button>
           <button class="btn btn-glass-icon" onclick={toggleFullscreen}>
             {isFullscreen ? '⛶' : '⛶'}
           </button>
@@ -768,11 +744,10 @@
 <style>
   .train-page {
     min-height: 100vh;
-    background: #000000;
-    color: white;
+    background: var(--color-bg-dark);
+    color: var(--color-text-primary);
   }
 
-  /* Header Styles - Copiado de /exercises */
   .content {
     padding: 1rem;
     padding-top: 5rem;
@@ -801,17 +776,53 @@
     display: block;
   }
 
-  /* Mobile - Modo Retrato */
+  .video-container.portrait {
+    aspect-ratio: 9 / 16;
+    max-height: 70vh;
+  }
+
+  .video-container.portrait .video-canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .video-container.landscape {
+    aspect-ratio: 16 / 9;
+  }
+
+  .video-container.landscape .video-canvas {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
   @media (max-width: 768px) {
-    .video-container {
+    .video-container.portrait {
       aspect-ratio: 9 / 16;
       max-height: 70vh;
     }
 
-    .video-canvas {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .video-container.landscape {
+      aspect-ratio: 16 / 9;
+      max-height: 50vh;
+    }
+
+    .video-container.portrait .metrics-overlay {
+      max-width: 85px;
+    }
+
+    .video-container.portrait .metric {
+      padding: clamp(10px, 1.8vh, 18px) clamp(5px, 1.2vw, 8px);
+      min-width: clamp(55px, 7vw, 75px);
+    }
+
+    .video-container.portrait .metric-label {
+      font-size: clamp(7px, 1vw, 9px);
+    }
+
+    .video-container.portrait .metric-value {
+      font-size: clamp(14px, 2.2vw, 18px);
     }
   }
 
@@ -829,7 +840,8 @@
   .feedback-overlay {
     position: absolute;
     top: 20px;
-    right: 20px;
+    right: 10px;
+    left: auto;
     max-width: calc(50% - 30px);
     display: flex;
     flex-direction: column;
@@ -839,59 +851,52 @@
   }
 
   .feedback-overlay.with-mode-indicator {
-    top: 20px;
-    right: 20px;
-    left: auto;
+    top: 80px;
   }
 
   @media (max-width: 768px) {
     .feedback-overlay {
       top: 10px;
-      left: 20px;
-      right: 20px;
-      max-width: calc(100% - 40px);
+      max-width: calc(60% - 20px);
     }
 
     .feedback-overlay.with-mode-indicator {
       top: 60px;
-      right: 10px;
-      left: auto;
-      max-width: 80%;
     }
   }
 
   .feedback-message {
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border: 1px solid var(--color-border-light);
     padding: 12px 20px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     font-size: 16px;
     font-weight: 500;
     border-left: 4px solid transparent;
-    animation: slideIn 0.3s ease;
-    color: white;
+    animation: slideIn var(--transition-slow) ease;
+    color: var(--color-text-primary);
   }
 
   .feedback-message.success {
-    border-left-color: #00ff88;
-    color: #00ff88;
+    border-left-color: var(--color-success);
+    color: var(--color-success);
   }
 
   .feedback-message.error {
-    border-left-color: #ff4444;
-    color: #ff4444;
+    border-left-color: var(--color-error);
+    color: var(--color-error);
   }
 
   .feedback-message.warning {
-    border-left-color: #ffa500;
-    color: #ffa500;
+    border-left-color: var(--color-warning);
+    color: var(--color-warning);
   }
 
   .feedback-message.critical {
-    border-left-color: #ff0000;
-    color: #ff0000;
+    border-left-color: var(--color-error-dark);
+    color: var(--color-error-dark);
     animation: pulse 1s infinite;
   }
 
@@ -924,13 +929,16 @@
     display: flex;
     flex-direction: column;
     pointer-events: none;
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border: 1px solid var(--color-border-light);
     border-left: none;
-    border-top-right-radius: 40px;
-    border-bottom-right-radius: 40px;
+    border-top-right-radius: clamp(20px, 5vw, 40px);
+    border-bottom-right-radius: clamp(20px, 5vw, 40px);
+    max-width: clamp(80px, 15vw, 120px);
+    max-height: 90vh;
+    overflow: hidden;
   }
 
   .metric {
@@ -938,10 +946,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 35px 10px;
+    gap: 4px;
+    padding: clamp(15px, 3vh, 30px) clamp(8px, 2vw, 15px);
     position: relative;
-    min-width: 80px;
+    min-width: clamp(70px, 10vw, 100px);
   }
 
   .metric::after {
@@ -952,7 +960,7 @@
     transform: translateX(-50%);
     width: 80%;
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-border-light);
   }
 
   .metric:last-child::after {
@@ -960,17 +968,18 @@
   }
 
   .metric-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: clamp(9px, 1.5vw, 11px);
+    color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     text-align: center;
+    white-space: nowrap;
   }
 
   .metric-value {
-    font-size: 24px;
+    font-size: clamp(18px, 3vw, 24px);
     font-weight: bold;
-    color: #8eb428;
+    color: var(--color-primary-500);
   }
 
   .video-controls {
@@ -985,23 +994,23 @@
   .btn {
     padding: 12px 24px;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
-    backdrop-filter: blur(10px);
+    transition: var(--transition-base);
+    backdrop-filter: blur(var(--blur-md));
   }
 
   .btn-primary {
-    background: #8eb428;
-    color: white;
+    background: var(--color-primary-500);
+    color: var(--color-text-primary);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: #7a9922;
+    background: var(--color-primary-600);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(142, 180, 40, 0.4);
+    box-shadow: var(--glow-success);
   }
 
   .btn-primary:disabled {
@@ -1010,31 +1019,35 @@
   }
 
   .btn-glass {
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-light);
   }
 
   .btn-glass:hover {
-    background: rgba(18, 18, 18, 0.75);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--color-glass-dark-strong);
+    border-color: var(--color-border-light-hover);
   }
 
   .btn-glass-icon {
     padding: 12px;
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    color: var(--color-text-primary);
     width: 48px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--color-border-light);
   }
 
   .btn-glass-icon:hover {
-    background: rgba(18, 18, 18, 0.75);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--color-glass-dark-strong);
+    border-color: var(--color-border-light-hover);
+  }
+
+  .btn-glass-icon:active {
+    transform: scale(0.95);
   }
 
   .btn-large {
@@ -1047,9 +1060,9 @@
     margin: 20px auto;
     padding: 16px;
     background: rgba(255, 68, 68, 0.1);
-    border: 1px solid #ff4444;
-    border-radius: 10px;
-    color: #ff4444;
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-md);
+    color: var(--color-error);
   }
 
   .debug-panel {
@@ -1063,22 +1076,21 @@
   .debug-panel pre {
     overflow-x: auto;
     font-size: 12px;
-    color: #8eb428;
+    color: var(--color-primary-500);
   }
 
-  /* Mode Indicator (top-left overlay) */
   .mode-indicator {
     position: absolute;
     top: 20px;
     right: 10px;
     left: auto;
     max-width: calc(50% - 30px);
-    background: rgba(18, 18, 18, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-glass-dark);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border: 1px solid var(--color-border-light);
     padding: 12px 20px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     pointer-events: none;
     z-index: 15;
     display: flex;
@@ -1086,15 +1098,7 @@
     gap: 8px;
     font-size: 16px;
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mode-text {
-    font-size: 16px;
-    font-weight: 500;
-    color: white;
+    color: var(--color-text-primary);
   }
 
   /* Mode Selector Panel */
@@ -1102,13 +1106,13 @@
     max-width: 1280px;
     margin: 20px auto;
     padding: 25px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-dark-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
   }
 
   .mode-selector-panel h3 {
-    color: #8eb428;
+    color: var(--color-primary-500);
     margin-bottom: 20px;
     font-size: 1.3rem;
     display: flex;
@@ -1129,10 +1133,10 @@
     align-items: center;
     gap: 8px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: white;
+    background: var(--color-glass-light);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -1142,39 +1146,39 @@
   }
 
   .mode-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(142, 180, 40, 0.5);
+    background: var(--color-border-light);
+    border-color: var(--color-primary-600);
     transform: translateY(-2px);
   }
 
   .mode-btn.active {
     background: rgba(142, 180, 40, 0.2);
-    border-color: #8eb428;
+    border-color: var(--color-primary-500);
     box-shadow: 0 0 20px rgba(142, 180, 40, 0.3);
   }
 
   .mode-desc {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-text-secondary);
     font-weight: 400;
   }
 
   .mode-info {
     background: rgba(0, 180, 255, 0.1);
-    border-left: 4px solid #00b4ff;
+    border-left: 4px solid var(--color-info);
     padding: 15px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
   }
 
   .mode-info p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--color-text-secondary);
     font-size: 14px;
     line-height: 1.6;
   }
 
   .mode-info strong {
-    color: #8eb428;
+    color: var(--color-primary-500);
   }
 
   @media (max-width: 768px) {
@@ -1182,25 +1186,29 @@
       top: 50%;
       left: 0;
       transform: translateY(-50%);
+      max-width: 90px;
     }
 
     .metric {
-      padding: 20px 10px;
-      min-width: 70px;
+      padding: clamp(12px, 2vh, 20px) clamp(6px, 1.5vw, 10px);
+      min-width: clamp(60px, 8vw, 80px);
+      gap: 3px;
     }
 
     .metric-label {
-      font-size: 9px;
+      font-size: clamp(8px, 1.2vw, 10px);
+      letter-spacing: 0.3px;
     }
 
     .metric-value {
-      font-size: 18px;
+      font-size: clamp(16px, 2.5vw, 20px);
     }
 
     .mode-indicator {
       top: 10px;
-      left: 10px;
-      max-width: 60%;
+      right: 10px;
+      left: auto;
+      max-width: calc(70% - 20px);
       padding: 10px 16px;
       font-size: 14px;
     }
