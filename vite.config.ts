@@ -1,8 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vite';
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
+import obfuscatorConfig from './obfuscator.config.js';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     sveltekit(),
     SvelteKitPWA({
@@ -36,8 +38,21 @@ export default defineConfig({
       devOptions: {
         enabled: false
       }
+    }),
+    // Aplicar obfuscation apenas em produção
+    mode === 'production' && obfuscatorPlugin({
+      include: ['**/*.js', '**/*.ts', '**/*.svelte'],
+      exclude: [
+        '**/node_modules/**',
+        '**/service-worker.js',
+        '**/sw.js',
+        '**/workbox-*.js',
+        '**/*.d.ts'
+      ],
+      apply: 'build',
+      options: obfuscatorConfig
     })
-  ],
+  ].filter(Boolean),
   server: {
     host: true,
     allowedHosts: [
@@ -48,6 +63,16 @@ export default defineConfig({
       // Allow serving files from static folder
       allow: ['..']
     }
+  },
+  build: {
+    // Otimizações de build
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log em produção
+        drop_debugger: true
+      }
+    }
   }
-});
+}));
 

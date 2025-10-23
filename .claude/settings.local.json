@@ -9,7 +9,12 @@
       "Read(//c/Users/notebook-guilherme/Documents/elarin-backend-api-main/**)",
       "Bash(cat:*)",
       "Bash(npm install:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(set NODE_ENV=production)",
+      "Bash(pnpm build:*)",
+      "Bash(timeout 240 cmd:*)",
+      "Bash($env:NODE_ENV=\"production\")"
     ],
     "deny": [],
     "ask": []
