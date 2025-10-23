@@ -6,17 +6,10 @@
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { FlaskConical, Bot, Ruler, Microscope, Settings, Smartphone, Monitor, MessageSquare, MessageSquareOff } from 'lucide-svelte';
-
-  // ✅ Imports TypeScript do sistema de visão
+  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
+  import Loading from '$lib/components/common/Loading.svelte';
 
-  // DOM References
-  let videoElement: HTMLVideoElement;
-  let canvasElement: HTMLCanvasElement;
-  let videoContainerElement: HTMLDivElement;
-
-  // Type definitions for MediaPipe
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
     onResults: (callback: (results: PoseResults) => void) => void;
@@ -33,7 +26,9 @@
     image: HTMLVideoElement | HTMLCanvasElement;
   };
 
-  // Reactive State
+  let videoElement: HTMLVideoElement;
+  let canvasElement: HTMLCanvasElement;
+  let videoContainerElement: HTMLDivElement;
   let analyzer: ExerciseAnalyzer | null = $state(null);
   let pose: MediaPipePose | null = $state(null);
   let camera: MediaPipeCamera | null = $state(null);
@@ -48,27 +43,17 @@
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
   let orientation = $state<'portrait' | 'landscape'>('landscape');
-  let isOrientationManual = $state(false);
-
-  // Feedback state
   let currentFeedback: FeedbackRecord | null = $state(null);
   let skeletonColor = $state('var(--color-success)');
   let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> = $state([]);
   let isFeedbackEnabled = $state(true);
-
-  // Metrics
   let accuracy = $state(0);
   let confidence = $state(0);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
-
-  // Feedback Mode
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
   let modeIndicator = $state('Híbrido (ML + Heurística)');
 
-  /**
-   * Carrega um script externo de forma assíncrona
-   */
   function loadScript(src: string, name: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const existingScript = document.querySelector(`script[src="${src}"]`);
@@ -81,52 +66,31 @@
       script.src = src;
       script.async = true;
       script.crossOrigin = 'anonymous';
-
-      script.onload = () => {
-        resolve();
-      };
-
-      script.onerror = () => {
-        reject(new Error(`Falha ao carregar ${name}: ${src}`));
-      };
-
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Falha ao carregar ${name}: ${src}`));
       document.head.appendChild(script);
     });
   }
 
-  /**
-   * Aguarda até que uma variável global esteja disponível
-   */
   async function waitForGlobal(globalName: string, timeout = 10000): Promise<unknown> {
     const startTime = Date.now();
-
     while (!(window as Record<string, unknown>)[globalName]) {
       if (Date.now() - startTime > timeout) {
         throw new Error(`Timeout aguardando ${globalName}`);
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-
     return (window as Record<string, unknown>)[globalName];
   }
 
-  /**
-   * Carrega todas as dependências necessárias
-   */
   async function loadAllDependencies() {
     try {
       loadingStage = 'Carregando MediaPipe Camera Utils...';
-      await loadScript(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
-        'MediaPipe Camera Utils'
-      );
+      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', 'MediaPipe Camera Utils');
       await waitForGlobal('Camera');
 
       loadingStage = 'Carregando MediaPipe Drawing Utils...';
-      await loadScript(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js',
-        'MediaPipe Drawing Utils'
-      );
+      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js', 'MediaPipe Drawing Utils');
       await waitForGlobal('drawConnectors');
       await waitForGlobal('drawLandmarks');
 
@@ -144,9 +108,6 @@
     }
   }
 
-  /**
-   * Inicializa e inicia a câmera
-   */
   async function startCamera() {
     try {
       isLoading = true;
@@ -157,7 +118,6 @@
       }
 
       const selectedExercise = $integratedTrainStore.exerciseType;
-
       if (!selectedExercise) {
         throw new Error('Nenhum exercício selecionado. Por favor, volte e selecione um exercício.');
       }
@@ -167,13 +127,11 @@
       }
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
-
       if (!exerciseConfig) {
         throw new Error('Falha ao carregar configuração do exercício');
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
-
       analyzer.setCallbacks({
         onFeedback: handleFeedback,
         onMetricsUpdate: handleMetricsUpdate,
@@ -181,7 +139,6 @@
       });
 
       const success = await analyzer.initialize();
-
       if (!success) {
         throw new Error('Falha ao inicializar analyzer');
       }
@@ -190,9 +147,7 @@
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-        locateFile: (file: string) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-        }
+        locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
       });
 
       pose.setOptions({
@@ -221,11 +176,9 @@
       });
 
       await camera.start();
-
       trainActions.start();
       integratedTrainActions.start();
       startTimer();
-
       isCameraRunning = true;
       isLoading = false;
     } catch (error: unknown) {
@@ -234,9 +187,6 @@
     }
   }
 
-  /**
-   * Callback do MediaPipe Pose
-   */
   async function onPoseResults(results: PoseResults) {
     if (!canvasElement || !results.poseLandmarks) return;
 
@@ -290,9 +240,8 @@
 
     feedbackMessages = feedback.messages || [];
 
-    if (feedback.heuristic && feedback.heuristic.details) {
-      const validationDetails = feedback.heuristic.details;
-      const repResult = validationDetails.find(
+    if (feedback.heuristic?.details) {
+      const repResult = feedback.heuristic.details.find(
         (d: unknown) => (d as { type?: string }).type === 'valid_repetition'
       );
 
@@ -317,9 +266,7 @@
 
   function startTimer() {
     elapsedTime = 0;
-    if (timerInterval) {
-      clearInterval(timerInterval);
-    }
+    if (timerInterval) clearInterval(timerInterval);
     timerInterval = window.setInterval(() => {
       elapsedTime += 1;
     }, 1000);
@@ -339,12 +286,8 @@
   }
 
   async function stopCamera() {
-    if (camera) {
-      camera.stop();
-    }
-    if (analyzer) {
-      analyzer.reset();
-    }
+    if (camera) camera.stop();
+    if (analyzer) analyzer.reset();
     trainActions.pause();
     integratedTrainActions.pause();
     pauseTimer();
@@ -356,12 +299,9 @@
 
     try {
       isLoading = true;
-
       await integratedTrainActions.finish();
 
-      if (camera) {
-        camera.stop();
-      }
+      if (camera) camera.stop();
       pauseTimer();
       isCameraRunning = false;
 
@@ -394,7 +334,7 @@
       modeIndicator = 'Híbrido (ML + Heurística)';
     }
 
-    if (analyzer && analyzer.feedbackSystem) {
+    if (analyzer?.feedbackSystem) {
       analyzer.feedbackSystem.setMode(mode);
     }
   }
@@ -449,9 +389,7 @@
         }
         isFullscreen = false;
       }
-    } catch {
-      // Fullscreen API not supported or user denied permission
-    }
+    } catch {}
   }
 
   function toggleAvatarMenu() {
@@ -472,18 +410,7 @@
   }
 
   function detectOrientation() {
-    if (isOrientationManual) return;
-
-    if (window.matchMedia('(orientation: portrait)').matches) {
-      orientation = 'portrait';
-    } else {
-      orientation = 'landscape';
-    }
-  }
-
-  function toggleOrientation() {
-    // Alterna entre portrait e landscape
-    orientation = orientation === 'portrait' ? 'landscape' : 'portrait';
+    orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
   }
 
   function toggleFeedback() {
@@ -491,31 +418,17 @@
   }
 
   $effect(() => {
-    if (
-      scriptsLoaded &&
-      $integratedTrainStore.exerciseType &&
-      !isCameraRunning &&
-      !isLoading &&
-      !analyzer
-    ) {
-      setTimeout(() => {
-        startCamera();
-      }, 500);
+    if (scriptsLoaded && $integratedTrainStore.exerciseType && !isCameraRunning && !isLoading && !analyzer) {
+      setTimeout(() => startCamera(), 500);
     }
   });
-
-
 
   onMount(async () => {
     isDevMode = isDeveloper();
     await loadAllDependencies();
-
     detectOrientation();
 
-    const handleOrientationChange = () => {
-      detectOrientation();
-    };
-
+    const handleOrientationChange = () => detectOrientation();
     window.addEventListener('orientationchange', handleOrientationChange);
     window.addEventListener('resize', handleOrientationChange);
 
@@ -525,7 +438,6 @@
     };
 
     const viewport = document.querySelector('.sa-viewport');
-
     if (viewport) {
       viewport.addEventListener('scroll', handleScroll, { passive: true });
     } else {
@@ -545,15 +457,9 @@
   });
 
   onDestroy(() => {
-    if (camera) {
-      camera.stop();
-    }
-    if (analyzer) {
-      analyzer.destroy();
-    }
-    if (timerInterval) {
-      clearInterval(timerInterval);
-    }
+    if (camera) camera.stop();
+    if (analyzer) analyzer.destroy();
+    if (timerInterval) clearInterval(timerInterval);
   });
 </script>
 
@@ -562,7 +468,6 @@
 </svelte:head>
 
 <main class="train-page">
-  <!-- Header -->
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -572,9 +477,7 @@
     onClickOutside={handleClickOutside}
   />
 
-  <!-- Main Content -->
   <div class="content">
-    <!-- Video Container -->
     <div
       class="video-container"
       class:fullscreen={isFullscreen}
@@ -588,10 +491,8 @@
 
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
-      <!-- Container de Overlays -->
       <div class="overlays-container">
-        <!-- Indicador de Modo (apenas para devs) -->
-        {#if isCameraRunning && isDevMode}
+        {#if isCameraRunning && isDevMode && isFeedbackEnabled}
           <div class="mode-indicator">
             {#if feedbackMode === 'hybrid'}
               <Microscope />
@@ -604,34 +505,18 @@
           </div>
         {/if}
 
-        <!-- Overlay de feedback -->
         {#if isCameraRunning && feedbackMessages.length > 0 && isFeedbackEnabled}
-          <div class="feedback-overlay" class:with-mode-indicator={isDevMode}>
+          <div class="feedback-overlay">
             {#each feedbackMessages.slice(0, 3) as message}
-              <div
-                class="feedback-message {message.type}"
-                class:critical={message.severity === 'critical'}
-              >
+              <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
                 <span>{message.text}</span>
               </div>
             {/each}
           </div>
         {/if}
 
-        <!-- Loading Overlay -->
-        {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
-          <div class="loading-overlay">
-            <div class="text-center">
-              <div
-                class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
-              ></div>
-              <p class="text-white/70">{loadingStage}</p>
-            </div>
-          </div>
-        {/if}
       </div>
 
-      <!-- Métricas -->
       {#if isCameraRunning}
         <div class="metrics-overlay">
           <div class="metric">
@@ -655,11 +540,10 @@
         </div>
       {/if}
 
-      <!-- Controles (apenas quando câmera está rodando) -->
       {#if isCameraRunning}
         <div class="video-controls">
-          <button class="btn btn-glass" onclick={stopCamera}> Pausar </button>
-          <button class="btn btn-primary" onclick={finishTraining}> Finalizar </button>
+          <button class="btn btn-glass" onclick={stopCamera}>Pausar</button>
+          <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
           <button
             class="btn btn-glass-icon"
             onclick={toggleFeedback}
@@ -671,28 +555,19 @@
               <MessageSquareOff class="icon-responsive" />
             {/if}
           </button>
-          <button class="btn btn-glass-icon" onclick={toggleOrientation} title="Alternar orientação">
-            {#if orientation === 'portrait'}
-              <Smartphone class="icon-responsive" />
-            {:else}
-              <Monitor class="icon-responsive" />
-            {/if}
-          </button>
-          <button class="btn btn-glass-icon fullscreen-btn" onclick={toggleFullscreen}>
+          <button class="btn btn-glass-icon" onclick={toggleFullscreen}>
             <span class="fullscreen-icon">{isFullscreen ? '⛶' : '⛶'}</span>
           </button>
         </div>
       {/if}
     </div>
 
-    <!-- Error Message -->
     {#if errorMessage}
       <div class="error-banner">
         <p>{errorMessage}</p>
       </div>
     {/if}
 
-    <!-- Mode Selector (apenas para devs) -->
     {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
         <h3>
@@ -700,31 +575,19 @@
           Modo de Análise (Dev Only)
         </h3>
         <div class="mode-buttons">
-          <button
-            class="mode-btn"
-            class:active={feedbackMode === 'hybrid'}
-            onclick={() => changeFeedbackMode('hybrid')}
-          >
+          <button class="mode-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>
             <Microscope class="mode-btn-icon" />
             Híbrido
             <span class="mode-desc">ML + Heurística</span>
           </button>
 
-          <button
-            class="mode-btn"
-            class:active={feedbackMode === 'ml_only'}
-            onclick={() => changeFeedbackMode('ml_only')}
-          >
+          <button class="mode-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>
             <Bot class="mode-btn-icon" />
             ML Only
             <span class="mode-desc">Autoencoder</span>
           </button>
 
-          <button
-            class="mode-btn"
-            class:active={feedbackMode === 'heuristic_only'}
-            onclick={() => changeFeedbackMode('heuristic_only')}
-          >
+          <button class="mode-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>
             <Ruler class="mode-btn-icon" />
             Heurística Only
             <span class="mode-desc">Biomecânica</span>
@@ -752,7 +615,6 @@
       </div>
     {/if}
 
-    <!-- Debug Info -->
     {#if debugMode}
       <div class="debug-panel">
         <h3>Debug Info</h3>
@@ -760,6 +622,10 @@
       </div>
     {/if}
   </div>
+
+  {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
+    <Loading message={loadingStage} />
+  {/if}
 </main>
 
 <style>
@@ -796,7 +662,6 @@
     transition: all 0.3s ease-in-out;
   }
 
-  /* ========== LANDSCAPE (PAISAGEM) - 100% WIDTH ========== */
   .video-container.landscape {
     width: 100%;
     height: auto;
@@ -809,7 +674,6 @@
     object-fit: contain;
   }
 
-  /* ========== PORTRAIT (RETRATO) - 100% HEIGHT ========== */
   .video-container.portrait {
     width: auto;
     height: calc(100vh - 8rem);
@@ -829,7 +693,6 @@
     object-position: center center;
   }
 
-  /* ========== FULLSCREEN ========== */
   .video-container.fullscreen {
     position: fixed !important;
     inset: 0 !important;
@@ -842,7 +705,6 @@
     background: black !important;
   }
 
-  /* FULLSCREEN LANDSCAPE - 100% WIDTH */
   .video-container.fullscreen.landscape {
     width: 100vw !important;
     height: auto !important;
@@ -850,11 +712,17 @@
     max-height: 100vh !important;
   }
 
-  /* FULLSCREEN PORTRAIT - 100% HEIGHT */
+  .video-container.fullscreen.landscape .video-canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100vh !important;
+    object-fit: contain !important;
+  }
+
   .video-container.fullscreen.portrait {
     width: auto !important;
     height: 100vh !important;
-    max-width: 600px !important;
+    max-width: 100vw !important;
     aspect-ratio: 9 / 16 !important;
     overflow: hidden !important;
   }
@@ -896,7 +764,6 @@
     }
   }
 
-  /* Container de Overlays - Agrupa todos os overlays */
   .overlays-container {
     position: absolute;
     top: 0;
@@ -910,20 +777,6 @@
     z-index: 50;
   }
 
-  /* Loading Overlay - Cobertura total da tela durante carregamento */
-  .loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: all;
-    z-index: 100;
-  }
-
-  /* Feedback Overlay - Mensagens de feedback do exercício */
   .feedback-overlay {
     display: flex;
     flex-direction: column;
@@ -932,7 +785,6 @@
     width: 100%;
   }
 
-  /* Feedback Messages - Estilos das mensagens de feedback */
   .feedback-message {
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
@@ -968,7 +820,6 @@
     animation: pulse 1s infinite;
   }
 
-  /* Animações */
   @keyframes slideIn {
     from {
       transform: translateX(-20px);
@@ -989,7 +840,6 @@
     }
   }
 
-  /* Metrics Overlay - Box de métricas (Repetições, Tempo, etc) */
   .metrics-overlay {
     position: absolute;
     top: 50%;
@@ -1053,7 +903,6 @@
     line-height: 1.2;
   }
 
-  /* Video Controls - Botões de controle (Pausar, Finalizar, etc) */
   .video-controls {
     position: absolute;
     bottom: clamp(12px, 2.5vh, 20px);
@@ -1068,7 +917,6 @@
     z-index: 20;
   }
 
-  /* Botões base */
   .btn {
     padding: 0 clamp(16px, 3vw, 24px);
     height: clamp(38px, 6vh, 48px);
@@ -1139,7 +987,6 @@
     transform: scale(0.95);
   }
 
-  /* Ícones responsivos - Todos os ícones dentro dos botões */
   :global(.icon-responsive) {
     width: clamp(18px, 2.8vw, 22px) !important;
     height: clamp(18px, 2.8vw, 22px) !important;
@@ -1175,7 +1022,6 @@
     color: var(--color-primary-500);
   }
 
-  /* Mode Indicator - Indicador de modo (Dev Only) */
   .mode-indicator {
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
@@ -1205,7 +1051,6 @@
     text-overflow: ellipsis;
   }
 
-  /* Mode Selector Panel */
   .mode-selector-panel {
     max-width: 1280px;
     margin: clamp(12px, 2.5vh, 20px) auto;
@@ -1251,8 +1096,6 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-transform: none;
-    letter-spacing: normal;
   }
 
   :global(.mode-btn-icon) {
@@ -1297,11 +1140,6 @@
     color: var(--color-primary-500);
   }
 
-  /* ========================================
-     MEDIA QUERIES - Ajustes responsivos
-     ======================================== */
-
-  /* Tablets e telas médias */
   @media (max-width: 768px) {
     .overlays-container {
       padding: clamp(8px, 1.5vh, 15px) clamp(6px, 1.2vw, 8px);
@@ -1354,7 +1192,6 @@
     }
   }
 
-  /* Mobile - Telas pequenas */
   @media (max-width: 640px) {
     .video-controls {
       gap: clamp(4px, 1vw, 8px);
@@ -1383,7 +1220,6 @@
     }
   }
 
-  /* Mobile - Telas muito pequenas */
   @media (max-width: 480px) {
     .overlays-container {
       padding: clamp(6px, 1vh, 12px) clamp(4px, 1vw, 6px);

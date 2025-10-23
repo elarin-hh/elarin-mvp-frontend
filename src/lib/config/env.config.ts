@@ -5,7 +5,7 @@
 
 export const env = {
   // API
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3337',
 
   // Supabase
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',

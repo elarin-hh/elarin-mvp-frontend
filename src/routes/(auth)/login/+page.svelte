@@ -19,12 +19,12 @@
 
       if (result.error) {
         error = result.error.message || 'Credenciais inválidas';
+        isLoading = false;
       } else {
         goto(`${base}/exercises`);
       }
     } catch (e: any) {
       error = e.message || 'Erro ao fazer login';
-    } finally {
       isLoading = false;
     }
   }

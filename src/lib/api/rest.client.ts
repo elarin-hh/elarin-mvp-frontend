@@ -1,6 +1,6 @@
 // REST API client - Connected to Elarin NestJS Backend
-// Backend runs on port 3001 (NestJS + Fastify)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// Backend runs on port 3337 (NestJS + Fastify)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3337';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -76,8 +76,8 @@ class RestClient {
           // Clear invalid token
           this.setToken(null);
 
-          // Redirect to login if in browser context
-          if (typeof window !== 'undefined') {
+          // Redirect to login if in browser context AND not already on login page
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
           }
         }

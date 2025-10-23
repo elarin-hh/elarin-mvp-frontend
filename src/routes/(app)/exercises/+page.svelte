@@ -9,6 +9,7 @@
   import { exercisesApi, type Exercise } from '$lib/api/exercises.api';
   import { authActions } from '$lib/stores/auth.store';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
+  import Loading from '$lib/components/common/Loading.svelte';
 
   let isScrolled = $state(false);
   let exercises = $state<Exercise[]>([]);
@@ -151,17 +152,7 @@
   />
 
   <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
-    {#if isLoading}
-      <!-- Loading State -->
-      <div class="flex items-center justify-center py-20">
-        <div class="text-center">
-          <div
-            class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
-          ></div>
-          <p class="text-white/70">Carregando exercícios...</p>
-        </div>
-      </div>
-    {:else if error}
+    {#if error}
       <!-- Error State -->
       <div class="flex items-center justify-center py-20">
         <div class="text-center text-red-400">
@@ -253,6 +244,10 @@
       </div>
     {/if}
   </main>
+
+  {#if isLoading}
+    <Loading message="Carregando exercícios..." />
+  {/if}
 </div>
 
 <style>
