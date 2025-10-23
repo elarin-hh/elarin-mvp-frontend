@@ -482,7 +482,7 @@
   }
 
   function toggleOrientation() {
-    isOrientationManual = true;
+    // Alterna entre portrait e landscape
     orientation = orientation === 'portrait' ? 'landscape' : 'portrait';
   }
 
@@ -503,6 +503,8 @@
       }, 500);
     }
   });
+
+
 
   onMount(async () => {
     isDevMode = isDeveloper();
@@ -781,39 +783,88 @@
 
   .video-container {
     position: relative;
-    max-width: 1280px;
     margin: 0 auto;
     border-radius: 12px;
     overflow: hidden;
     background: black;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease-in-out;
   }
 
   .video-canvas {
+    display: block;
+    transition: all 0.3s ease-in-out;
+  }
+
+  /* ========== LANDSCAPE (PAISAGEM) - 100% WIDTH ========== */
+  .video-container.landscape {
     width: 100%;
     height: auto;
-    display: block;
-  }
-
-  .video-container.portrait {
-    aspect-ratio: 9 / 16;
-    max-height: 100vh;
-  }
-
-  .video-container.portrait .video-canvas {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .video-container.landscape {
-    aspect-ratio: 16 / 9;
+    max-width: 1280px;
   }
 
   .video-container.landscape .video-canvas {
     width: 100%;
     height: auto;
     object-fit: contain;
+  }
+
+  /* ========== PORTRAIT (RETRATO) - 100% HEIGHT ========== */
+  .video-container.portrait {
+    width: auto;
+    height: calc(100vh - 8rem);
+    max-width: 500px;
+    aspect-ratio: 9 / 16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .video-container.portrait .video-canvas {
+    width: auto;
+    height: 100%;
+    min-width: 100%;
+    object-fit: cover;
+    object-position: center center;
+  }
+
+  /* ========== FULLSCREEN ========== */
+  .video-container.fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: black !important;
+  }
+
+  /* FULLSCREEN LANDSCAPE - 100% WIDTH */
+  .video-container.fullscreen.landscape {
+    width: 100vw !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: 100vh !important;
+  }
+
+  /* FULLSCREEN PORTRAIT - 100% HEIGHT */
+  .video-container.fullscreen.portrait {
+    width: auto !important;
+    height: 100vh !important;
+    max-width: 600px !important;
+    aspect-ratio: 9 / 16 !important;
+    overflow: hidden !important;
+  }
+
+  .video-container.fullscreen.portrait .video-canvas {
+    width: auto !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
   }
 
   @media (max-width: 768px) {
