@@ -4,7 +4,19 @@
 
 <div class="loading-container">
   <div class="loading-content">
-    <div class="spinner"></div>
+    <div class="cube-loader">
+      <div class="cube" style="animation-delay: 0.2s;"></div>
+      <div class="cube" style="animation-delay: 0.3s;"></div>
+      <div class="cube" style="animation-delay: 0.4s;"></div>
+
+      <div class="cube" style="animation-delay: 0.1s;"></div>
+      <div class="cube" style="animation-delay: 0.2s;"></div>
+      <div class="cube" style="animation-delay: 0.3s;"></div>
+
+      <div class="cube" style="animation-delay: 0s;"></div>
+      <div class="cube" style="animation-delay: 0.1s;"></div>
+      <div class="cube" style="animation-delay: 0.2s;"></div>
+    </div>
     <p class="loading-text">{message}</p>
   </div>
 </div>
@@ -16,8 +28,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
     z-index: 100;
   }
 
@@ -25,21 +37,32 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 2rem;
   }
 
-  .spinner {
-    width: 4rem;
-    height: 4rem;
-    border: 2px solid transparent;
-    border-bottom-color: var(--color-primary-500);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  .cube-loader {
+    display: grid;
+    grid-template-columns: repeat(3, 10px);
+    grid-template-rows: repeat(3, 10px);
+    width: 34px;
+    height: 34px;
   }
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+  .cube {
+    width: 10px;
+    height: 10px;
+    background: var(--color-primary-500);
+    animation: fadeInOut 1s ease-in-out infinite;
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0;
+      transform: scale(0.5);
     }
   }
 
@@ -47,5 +70,6 @@
     color: var(--color-text-secondary);
     font-size: 0.875rem;
     margin: 0;
+    font-weight: 500;
   }
 </style>

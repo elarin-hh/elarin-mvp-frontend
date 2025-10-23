@@ -157,14 +157,14 @@
           </button>
         </div>
       </div>
-    {:else if exercises.length === 0}
+    {:else if !isLoading && exercises.length === 0}
       <div class="flex items-center justify-center py-20">
         <div class="text-center text-white/70">
           <p class="font-semibold mb-2">Nenhum exercício disponível</p>
           <p class="text-sm">Entre em contato com o suporte</p>
         </div>
       </div>
-    {:else}
+    {:else if exercises.length > 0}
       <div
         class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
