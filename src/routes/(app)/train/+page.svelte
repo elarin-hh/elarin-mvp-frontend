@@ -54,6 +54,22 @@
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
   let modeIndicator = $state('Híbrido (ML + Heurística)');
 
+  let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
+  let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
+  let POSE_CONNECTIONS: unknown = null;
+
+  let lastFrameTime = 0;
+  const FRAME_THROTTLE_MS = 60;
+  let animationFrameId: number | null = null;
+
+  function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void {
+    let timeout: number | null = null;
+    return (...args: Parameters<T>) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = window.setTimeout(() => func(...args), wait);
+    };
+  }
+
   function loadScript(src: string, name: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const existingScript = document.querySelector(`script[src="${src}"]`);
@@ -161,6 +177,10 @@
 
       pose.onResults(onPoseResults);
 
+      drawConnectors = (window as Record<string, unknown>).drawConnectors as typeof drawConnectors;
+      drawLandmarks = (window as Record<string, unknown>).drawLandmarks as typeof drawLandmarks;
+      POSE_CONNECTIONS = (window as Record<string, unknown>).POSE_CONNECTIONS;
+
       const Camera = (window as Record<string, unknown>).Camera as new (
         video: HTMLVideoElement,
         config: { onFrame: () => Promise<void>; width: number; height: number }
@@ -190,45 +210,47 @@
   async function onPoseResults(results: PoseResults) {
     if (!canvasElement || !results.poseLandmarks) return;
 
+    const now = Date.now();
+    if (now - lastFrameTime < FRAME_THROTTLE_MS) {
+      return;
+    }
+    lastFrameTime = now;
+
     const ctx = canvasElement.getContext('2d');
     if (!ctx) return;
 
-    ctx.save();
-    ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    ctx.translate(canvasElement.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    // Usar requestAnimationFrame para sincronizar com refresh rate
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    animationFrameId = requestAnimationFrame(() => {
+      ctx.save();
+      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      ctx.translate(canvasElement.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+      if (results.poseLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS) {
+        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: skeletonColor,
+          lineWidth: 4
+        });
+        drawLandmarks(ctx, results.poseLandmarks, {
+          color: skeletonColor,
+          lineWidth: 2,
+          radius: 6
+        });
+      }
+
+      ctx.restore();
+    });
 
     if (analyzer && results.poseLandmarks) {
-      await analyzer.analyzeFrame(results.poseLandmarks);
-    }
-
-    const drawConnectors = (window as Record<string, unknown>).drawConnectors as (
-      ctx: CanvasRenderingContext2D,
-      landmarks: unknown,
-      connections: unknown,
-      options: { color: string; lineWidth: number }
-    ) => void;
-    const drawLandmarks = (window as Record<string, unknown>).drawLandmarks as (
-      ctx: CanvasRenderingContext2D,
-      landmarks: unknown,
-      options: { color: string; lineWidth: number; radius: number }
-    ) => void;
-    const POSE_CONNECTIONS = (window as Record<string, unknown>).POSE_CONNECTIONS;
-
-    if (results.poseLandmarks) {
-      drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-        color: skeletonColor,
-        lineWidth: 4
-      });
-      drawLandmarks(ctx, results.poseLandmarks, {
-        color: skeletonColor,
-        lineWidth: 2,
-        radius: 6
+      queueMicrotask(() => {
+        analyzer?.analyzeFrame(results.poseLandmarks);
       });
     }
-
-    ctx.restore();
   }
 
   function handleFeedback(feedback: FeedbackRecord) {
@@ -238,7 +260,11 @@
       skeletonColor = feedback.visualization.color;
     }
 
-    feedbackMessages = feedback.messages || [];
+    // Memoização: só atualiza se as mensagens mudaram
+    const newMessages = feedback.messages || [];
+    if (JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages)) {
+      feedbackMessages = newMessages;
+    }
 
     if (feedback.heuristic?.details) {
       const repResult = feedback.heuristic.details.find(
@@ -292,6 +318,11 @@
     integratedTrainActions.pause();
     pauseTimer();
     isCameraRunning = false;
+    hasStartedCamera = false;
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
   }
 
   async function finishTraining() {
@@ -304,6 +335,12 @@
       if (camera) camera.stop();
       pauseTimer();
       isCameraRunning = false;
+      hasStartedCamera = false;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
 
       setTimeout(() => {
         analyzer = null;
@@ -413,12 +450,17 @@
     orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
   }
 
+  const debouncedDetectOrientation = debounce(detectOrientation, 150);
+
   function toggleFeedback() {
     isFeedbackEnabled = !isFeedbackEnabled;
   }
 
+  let hasStartedCamera = $state(false);
+
   $effect(() => {
-    if (scriptsLoaded && $integratedTrainStore.exerciseType && !isCameraRunning && !isLoading && !analyzer) {
+    if (scriptsLoaded && $integratedTrainStore.exerciseType && !isCameraRunning && !isLoading && !analyzer && !hasStartedCamera) {
+      hasStartedCamera = true;
       setTimeout(() => startCamera(), 500);
     }
   });
@@ -428,28 +470,28 @@
     await loadAllDependencies();
     detectOrientation();
 
-    const handleOrientationChange = () => detectOrientation();
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('orientationchange', debouncedDetectOrientation);
+    window.addEventListener('resize', debouncedDetectOrientation);
 
-    const handleScroll = (e: Event) => {
+    const handleScroll = debounce((e: Event) => {
       const target = e.target as HTMLElement;
       isScrolled = target.scrollTop > 50;
-    };
+    }, 100);
+
+    const handleWindowScroll = debounce(() => {
+      isScrolled = window.scrollY > 50;
+    }, 100);
 
     const viewport = document.querySelector('.sa-viewport');
     if (viewport) {
       viewport.addEventListener('scroll', handleScroll, { passive: true });
     } else {
-      const handleWindowScroll = () => {
-        isScrolled = window.scrollY > 50;
-      };
       window.addEventListener('scroll', handleWindowScroll, { passive: true });
     }
 
     return () => {
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('orientationchange', debouncedDetectOrientation);
+      window.removeEventListener('resize', debouncedDetectOrientation);
       if (viewport) {
         viewport.removeEventListener('scroll', handleScroll);
       }
@@ -460,6 +502,7 @@
     if (camera) camera.stop();
     if (analyzer) analyzer.destroy();
     if (timerInterval) clearInterval(timerInterval);
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
   });
 </script>
 
