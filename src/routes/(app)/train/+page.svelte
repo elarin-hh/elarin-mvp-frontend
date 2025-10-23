@@ -6,7 +6,7 @@
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { FlaskConical, Bot, Ruler, Microscope, Settings, Smartphone, Monitor } from 'lucide-svelte';
+  import { FlaskConical, Bot, Ruler, Microscope, Settings, Smartphone, Monitor, MessageSquare, MessageSquareOff } from 'lucide-svelte';
 
   // ✅ Imports TypeScript do sistema de visão
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
@@ -54,6 +54,7 @@
   let currentFeedback: FeedbackRecord | null = $state(null);
   let skeletonColor = $state('var(--color-success)');
   let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> = $state([]);
+  let isFeedbackEnabled = $state(true);
 
   // Metrics
   let accuracy = $state(0);
@@ -485,6 +486,10 @@
     orientation = orientation === 'portrait' ? 'landscape' : 'portrait';
   }
 
+  function toggleFeedback() {
+    isFeedbackEnabled = !isFeedbackEnabled;
+  }
+
   $effect(() => {
     if (
       scriptsLoaded &&
@@ -581,33 +586,48 @@
 
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
-      <!-- Indicador de Modo (apenas para devs) -->
-      {#if isCameraRunning && isDevMode}
-        <div class="mode-indicator">
-          {#if feedbackMode === 'hybrid'}
-            <Microscope size={18} />
-          {:else if feedbackMode === 'ml_only'}
-            <Bot size={18} />
-          {:else}
-            <Ruler size={18} />
-          {/if}
-          <span class="mode-text">{modeIndicator}</span>
-        </div>
-      {/if}
+      <!-- Container de Overlays -->
+      <div class="overlays-container">
+        <!-- Indicador de Modo (apenas para devs) -->
+        {#if isCameraRunning && isDevMode}
+          <div class="mode-indicator">
+            {#if feedbackMode === 'hybrid'}
+              <Microscope />
+            {:else if feedbackMode === 'ml_only'}
+              <Bot />
+            {:else}
+              <Ruler />
+            {/if}
+            <span class="mode-text">{modeIndicator}</span>
+          </div>
+        {/if}
 
-      <!-- Overlay de feedback -->
-      {#if isCameraRunning && feedbackMessages.length > 0}
-        <div class="feedback-overlay" class:with-mode-indicator={isDevMode}>
-          {#each feedbackMessages.slice(0, 3) as message}
-            <div
-              class="feedback-message {message.type}"
-              class:critical={message.severity === 'critical'}
-            >
-              <span>{message.text}</span>
+        <!-- Overlay de feedback -->
+        {#if isCameraRunning && feedbackMessages.length > 0 && isFeedbackEnabled}
+          <div class="feedback-overlay" class:with-mode-indicator={isDevMode}>
+            {#each feedbackMessages.slice(0, 3) as message}
+              <div
+                class="feedback-message {message.type}"
+                class:critical={message.severity === 'critical'}
+              >
+                <span>{message.text}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Loading Overlay -->
+        {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
+          <div class="loading-overlay">
+            <div class="text-center">
+              <div
+                class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
+              ></div>
+              <p class="text-white/70">{loadingStage}</p>
             </div>
-          {/each}
-        </div>
-      {/if}
+          </div>
+        {/if}
+      </div>
 
       <!-- Métricas -->
       {#if isCameraRunning}
@@ -633,32 +653,31 @@
         </div>
       {/if}
 
-      <!-- Loading Overlay -->
-      {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
-        <div class="loading-overlay">
-          <div class="text-center">
-            <div
-              class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"
-            ></div>
-            <p class="text-white/70">{loadingStage}</p>
-          </div>
-        </div>
-      {/if}
-
       <!-- Controles (apenas quando câmera está rodando) -->
       {#if isCameraRunning}
         <div class="video-controls">
           <button class="btn btn-glass" onclick={stopCamera}> Pausar </button>
           <button class="btn btn-primary" onclick={finishTraining}> Finalizar </button>
-          <button class="btn btn-glass-icon" onclick={toggleOrientation} title="Alternar orientação">
-            {#if orientation === 'portrait'}
-              <Smartphone size={20} />
+          <button
+            class="btn btn-glass-icon"
+            onclick={toggleFeedback}
+            title={isFeedbackEnabled ? 'Desativar feedback' : 'Ativar feedback'}
+          >
+            {#if isFeedbackEnabled}
+              <MessageSquare class="icon-responsive" />
             {:else}
-              <Monitor size={20} />
+              <MessageSquareOff class="icon-responsive" />
             {/if}
           </button>
-          <button class="btn btn-glass-icon" onclick={toggleFullscreen}>
-            {isFullscreen ? '⛶' : '⛶'}
+          <button class="btn btn-glass-icon" onclick={toggleOrientation} title="Alternar orientação">
+            {#if orientation === 'portrait'}
+              <Smartphone class="icon-responsive" />
+            {:else}
+              <Monitor class="icon-responsive" />
+            {/if}
+          </button>
+          <button class="btn btn-glass-icon fullscreen-btn" onclick={toggleFullscreen}>
+            <span class="fullscreen-icon">{isFullscreen ? '⛶' : '⛶'}</span>
           </button>
         </div>
       {/if}
@@ -675,7 +694,7 @@
     {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
         <h3>
-          <Settings size={20} class="inline-block" />
+          <Settings class="mode-panel-icon" />
           Modo de Análise (Dev Only)
         </h3>
         <div class="mode-buttons">
@@ -684,7 +703,7 @@
             class:active={feedbackMode === 'hybrid'}
             onclick={() => changeFeedbackMode('hybrid')}
           >
-            <Microscope size={20} />
+            <Microscope class="mode-btn-icon" />
             Híbrido
             <span class="mode-desc">ML + Heurística</span>
           </button>
@@ -694,7 +713,7 @@
             class:active={feedbackMode === 'ml_only'}
             onclick={() => changeFeedbackMode('ml_only')}
           >
-            <Bot size={20} />
+            <Bot class="mode-btn-icon" />
             ML Only
             <span class="mode-desc">Autoencoder</span>
           </button>
@@ -704,7 +723,7 @@
             class:active={feedbackMode === 'heuristic_only'}
             onclick={() => changeFeedbackMode('heuristic_only')}
           >
-            <Ruler size={20} />
+            <Ruler class="mode-btn-icon" />
             Heurística Only
             <span class="mode-desc">Biomecânica</span>
           </button>
@@ -778,7 +797,7 @@
 
   .video-container.portrait {
     aspect-ratio: 9 / 16;
-    max-height: 95vh;
+    max-height: 100vh;
   }
 
   .video-container.portrait .video-canvas {
@@ -826,55 +845,53 @@
     }
   }
 
-  .loading-overlay {
+  /* Container de Overlays - Agrupa todos os overlays */
+  .overlays-container {
     position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: clamp(8px, 1.5vh, 12px);
+    padding: clamp(10px, 2vh, 20px) clamp(8px, 1.5vw, 10px);
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* Loading Overlay - Cobertura total da tela durante carregamento */
+  .loading-overlay {
+    position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.9);
     backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    pointer-events: all;
+    z-index: 100;
   }
 
+  /* Feedback Overlay - Mensagens de feedback do exercício */
   .feedback-overlay {
-    position: absolute;
-    top: 20px;
-    right: 10px;
-    left: auto;
-    max-width: calc(50% - 30px);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
-    z-index: 5;
+    gap: clamp(6px, 1.2vh, 10px);
+    max-width: clamp(200px, 50vw, 600px);
+    width: 100%;
   }
 
-  .feedback-overlay.with-mode-indicator {
-    top: 80px;
-  }
-
-  @media (max-width: 768px) {
-    .feedback-overlay {
-      top: 10px;
-      max-width: calc(60% - 20px);
-    }
-
-    .feedback-overlay.with-mode-indicator {
-      top: 60px;
-    }
-  }
-
+  /* Feedback Messages - Estilos das mensagens de feedback */
   .feedback-message {
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
     -webkit-backdrop-filter: blur(var(--blur-md));
     border: 1px solid var(--color-border-light);
-    padding: 12px 20px;
+    padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
     border-radius: var(--radius-md);
-    font-size: 16px;
+    font-size: clamp(12px, 2vw, 16px);
     font-weight: 500;
-    border-left: 4px solid transparent;
+    border-left: clamp(3px, 0.5vw, 4px) solid transparent;
     animation: slideIn var(--transition-slow) ease;
     color: var(--color-text-primary);
   }
@@ -900,6 +917,7 @@
     animation: pulse 1s infinite;
   }
 
+  /* Animações */
   @keyframes slideIn {
     from {
       transform: translateX(-20px);
@@ -912,8 +930,7 @@
   }
 
   @keyframes pulse {
-    0%,
-    100% {
+    0%, 100% {
       opacity: 1;
     }
     50% {
@@ -921,6 +938,7 @@
     }
   }
 
+  /* Metrics Overlay - Box de métricas (Repetições, Tempo, etc) */
   .metrics-overlay {
     position: absolute;
     top: 50%;
@@ -934,11 +952,12 @@
     -webkit-backdrop-filter: blur(var(--blur-md));
     border: 1px solid var(--color-border-light);
     border-left: none;
-    border-top-right-radius: clamp(20px, 5vw, 40px);
-    border-bottom-right-radius: clamp(20px, 5vw, 40px);
-    max-width: clamp(80px, 15vw, 120px);
+    border-top-right-radius: clamp(15px, 4vw, 40px);
+    border-bottom-right-radius: clamp(15px, 4vw, 40px);
+    max-width: clamp(70px, 12vw, 140px);
     max-height: 90vh;
     overflow: hidden;
+    z-index: 10;
   }
 
   .metric {
@@ -946,10 +965,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: clamp(15px, 3vh, 30px) clamp(8px, 2vw, 15px);
+    gap: clamp(2px, 0.5vh, 4px);
+    padding: clamp(12px, 2.5vh, 30px) clamp(6px, 1.5vw, 15px);
     position: relative;
-    min-width: clamp(70px, 10vw, 100px);
+    min-width: clamp(65px, 9vw, 110px);
   }
 
   .metric::after {
@@ -968,38 +987,51 @@
   }
 
   .metric-label {
-    font-size: clamp(9px, 1.5vw, 11px);
+    font-size: clamp(8px, 1.2vw, 12px);
     color: var(--color-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: clamp(0.3px, 0.5px, 0.8px);
     text-align: center;
     white-space: nowrap;
   }
 
   .metric-value {
-    font-size: clamp(18px, 3vw, 24px);
+    font-size: clamp(16px, 2.5vw, 26px);
     font-weight: bold;
     color: var(--color-primary-500);
+    line-height: 1.2;
   }
 
+  /* Video Controls - Botões de controle (Pausar, Finalizar, etc) */
   .video-controls {
     position: absolute;
-    bottom: 20px;
+    bottom: clamp(12px, 2.5vh, 20px);
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: clamp(6px, 1.5vw, 10px);
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    padding: 0 clamp(8px, 2vw, 16px);
+    z-index: 20;
   }
 
+  /* Botões base */
   .btn {
-    padding: 12px 24px;
+    padding: 0 clamp(16px, 3vw, 24px);
+    height: clamp(38px, 6vh, 48px);
     border: none;
     border-radius: var(--radius-md);
-    font-size: 16px;
+    font-size: clamp(13px, 2vw, 16px);
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition-base);
     backdrop-filter: blur(var(--blur-md));
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-primary {
@@ -1032,13 +1064,19 @@
   }
 
   .btn-glass-icon {
-    padding: 12px;
+    padding: 0;
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
     -webkit-backdrop-filter: blur(var(--blur-md));
     color: var(--color-text-primary);
-    width: 48px;
+    width: clamp(38px, 6vh, 48px);
+    height: clamp(38px, 6vh, 48px);
+    min-width: clamp(38px, 6vh, 48px);
     border: 1px solid var(--color-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .btn-glass-icon:hover {
@@ -1050,9 +1088,16 @@
     transform: scale(0.95);
   }
 
-  .btn-large {
-    padding: 16px 32px;
-    font-size: 18px;
+  /* Ícones responsivos - Todos os ícones dentro dos botões */
+  :global(.icon-responsive) {
+    width: clamp(18px, 2.8vw, 22px) !important;
+    height: clamp(18px, 2.8vw, 22px) !important;
+    flex-shrink: 0;
+  }
+
+  .fullscreen-icon {
+    font-size: clamp(18px, 2.8vw, 22px);
+    line-height: 1;
   }
 
   .error-banner {
@@ -1079,33 +1124,41 @@
     color: var(--color-primary-500);
   }
 
+  /* Mode Indicator - Indicador de modo (Dev Only) */
   .mode-indicator {
-    position: absolute;
-    top: 20px;
-    right: 10px;
-    left: auto;
-    max-width: calc(50% - 30px);
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
     -webkit-backdrop-filter: blur(var(--blur-md));
     border: 1px solid var(--color-border-light);
-    padding: 12px 20px;
+    padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
     border-radius: var(--radius-md);
-    pointer-events: none;
-    z-index: 15;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 16px;
+    gap: clamp(4px, 1vw, 8px);
+    font-size: clamp(12px, 2vw, 16px);
     font-weight: 500;
     color: var(--color-text-primary);
+    max-width: clamp(180px, 50vw, 500px);
+    width: fit-content;
+  }
+
+  .mode-indicator :global(svg) {
+    width: clamp(14px, 2.2vw, 18px) !important;
+    height: clamp(14px, 2.2vw, 18px) !important;
+    flex-shrink: 0;
+  }
+
+  .mode-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Mode Selector Panel */
   .mode-selector-panel {
     max-width: 1280px;
-    margin: 20px auto;
-    padding: 25px;
+    margin: clamp(12px, 2.5vh, 20px) auto;
+    padding: clamp(15px, 3vw, 25px);
     background: var(--color-bg-dark-secondary);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border-light);
@@ -1113,36 +1166,48 @@
 
   .mode-selector-panel h3 {
     color: var(--color-primary-500);
-    margin-bottom: 20px;
-    font-size: 1.3rem;
+    margin-bottom: clamp(12px, 2.5vh, 20px);
+    font-size: clamp(1.1rem, 2.5vw, 1.3rem);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: clamp(6px, 1.5vw, 10px);
+  }
+
+  :global(.mode-panel-icon) {
+    width: clamp(16px, 2.5vw, 20px) !important;
+    height: clamp(16px, 2.5vw, 20px) !important;
+    flex-shrink: 0;
   }
 
   .mode-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: clamp(10px, 2vw, 15px);
+    margin-bottom: clamp(12px, 2.5vh, 20px);
   }
 
   .mode-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 20px;
+    gap: clamp(4px, 1vh, 8px);
+    padding: clamp(12px, 2.5vw, 20px);
     background: var(--color-glass-light);
     border: 2px solid var(--color-border-light);
     border-radius: var(--radius-md);
     color: var(--color-text-primary);
-    font-size: 16px;
+    font-size: clamp(14px, 2vw, 16px);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: none;
     letter-spacing: normal;
+  }
+
+  :global(.mode-btn-icon) {
+    width: clamp(18px, 2.8vw, 20px) !important;
+    height: clamp(18px, 2.8vw, 20px) !important;
+    flex-shrink: 0;
   }
 
   .mode-btn:hover {
@@ -1158,22 +1223,22 @@
   }
 
   .mode-desc {
-    font-size: 12px;
+    font-size: clamp(10px, 1.5vw, 12px);
     color: var(--color-text-secondary);
     font-weight: 400;
   }
 
   .mode-info {
     background: rgba(0, 180, 255, 0.1);
-    border-left: 4px solid var(--color-info);
-    padding: 15px;
+    border-left: clamp(3px, 0.5vw, 4px) solid var(--color-info);
+    padding: clamp(10px, 2vw, 15px);
     border-radius: var(--radius-md);
   }
 
   .mode-info p {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: 14px;
+    font-size: clamp(12px, 1.8vw, 14px);
     line-height: 1.6;
   }
 
@@ -1181,50 +1246,104 @@
     color: var(--color-primary-500);
   }
 
+  /* ========================================
+     MEDIA QUERIES - Ajustes responsivos
+     ======================================== */
+
+  /* Tablets e telas médias */
   @media (max-width: 768px) {
+    .overlays-container {
+      padding: clamp(8px, 1.5vh, 15px) clamp(6px, 1.2vw, 8px);
+      gap: clamp(6px, 1.2vh, 10px);
+    }
+
     .metrics-overlay {
-      top: 50%;
-      left: 0;
-      transform: translateY(-50%);
-      max-width: 90px;
+      max-width: clamp(65px, 10vw, 100px);
     }
 
     .metric {
-      padding: clamp(12px, 2vh, 20px) clamp(6px, 1.5vw, 10px);
-      min-width: clamp(60px, 8vw, 80px);
-      gap: 3px;
+      padding: clamp(10px, 2vh, 18px) clamp(5px, 1.2vw, 8px);
+      min-width: clamp(55px, 7vw, 75px);
     }
 
     .metric-label {
-      font-size: clamp(8px, 1.2vw, 10px);
-      letter-spacing: 0.3px;
+      font-size: clamp(7px, 1vw, 10px);
     }
 
     .metric-value {
-      font-size: clamp(16px, 2.5vw, 20px);
+      font-size: clamp(14px, 2.2vw, 20px);
     }
 
     .mode-indicator {
-      top: 10px;
-      right: 10px;
-      left: auto;
-      max-width: calc(70% - 20px);
-      padding: 10px 16px;
-      font-size: 14px;
+      max-width: clamp(160px, 60vw, 400px);
+      padding: clamp(6px, 1.2vh, 10px) clamp(10px, 2vw, 16px);
+      font-size: clamp(11px, 1.8vw, 14px);
     }
 
-    .feedback-message {
-      font-size: 14px;
-      padding: 10px 16px;
+    .mode-indicator :global(svg) {
+      width: clamp(12px, 1.8vw, 16px) !important;
+      height: clamp(12px, 1.8vw, 16px) !important;
+    }
+
+    .feedback-overlay {
+      max-width: clamp(180px, 60vw, 400px);
     }
 
     .mode-buttons {
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: clamp(8px, 2vw, 10px);
     }
 
     .mode-selector-panel {
-      padding: 15px;
+      padding: clamp(12px, 3vw, 15px);
+    }
+
+    .mode-selector-panel h3 {
+      font-size: clamp(1.1rem, 3vw, 1.3rem);
+    }
+  }
+
+  /* Mobile - Telas pequenas */
+  @media (max-width: 640px) {
+    .video-controls {
+      gap: clamp(4px, 1vw, 8px);
+      padding: 0 clamp(4px, 1vw, 8px);
+    }
+
+    .btn {
+      padding: 0 clamp(12px, 2.5vw, 20px);
+      height: clamp(34px, 5vh, 42px);
+      font-size: clamp(11px, 1.8vw, 14px);
+    }
+
+    .btn-glass-icon {
+      width: clamp(34px, 5vh, 42px);
+      height: clamp(34px, 5vh, 42px);
+      min-width: clamp(34px, 5vh, 42px);
+    }
+
+    :global(.icon-responsive) {
+      width: clamp(16px, 2.5vw, 20px) !important;
+      height: clamp(16px, 2.5vw, 20px) !important;
+    }
+
+    .fullscreen-icon {
+      font-size: clamp(16px, 2.5vw, 20px);
+    }
+  }
+
+  /* Mobile - Telas muito pequenas */
+  @media (max-width: 480px) {
+    .overlays-container {
+      padding: clamp(6px, 1vh, 12px) clamp(4px, 1vw, 6px);
+    }
+
+    .mode-indicator {
+      max-width: clamp(140px, 70vw, 350px);
+    }
+
+    .feedback-overlay {
+      max-width: clamp(150px, 65vw, 350px);
     }
   }
 </style>
