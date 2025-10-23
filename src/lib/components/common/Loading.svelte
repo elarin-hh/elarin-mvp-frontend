@@ -17,7 +17,7 @@
       <div class="cube" style="animation-delay: 0.1s;"></div>
       <div class="cube" style="animation-delay: 0.2s;"></div>
     </div>
-    <p class="loading-text">{message}</p>
+    <!-- <p class="loading-text">{message}</p> -->
   </div>
 </div>
 
