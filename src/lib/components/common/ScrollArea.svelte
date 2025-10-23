@@ -137,15 +137,13 @@
   :global(.sa-viewport) {
     width: 100%;
     height: 100%;
-    overflow: auto; /* ativa rolagem interna personalizada */
-    scrollbar-width: none; /* Firefox: oculta barra nativa */
+    overflow: auto;
+    scrollbar-width: none;
   }
 
-  /* Chrome/Edge/Safari: oculta barra nativa */
   :global(.sa-viewport::-webkit-scrollbar) { width: 0; height: 0; }
   :global(.sa-viewport::-webkit-scrollbar-button) { display: none; width: 0; height: 0; }
 
-  /* Trilhos custom */
   :global(.sa-scrollbar) {
     position: absolute;
     background: transparent;
@@ -178,7 +176,6 @@
     pointer-events: auto;
   }
 
-  /* Estados */
   :global(.sa-thumb:hover) { background: var(--sa-thumb, #3D3F42); }
   :global(.sa-thumb:active) { background: var(--sa-thumb, #3D3F42); }
 
@@ -190,7 +187,5 @@
   :global(.sa-root[data-autohide="true"]) .sa-scrollbar-x { display: none; }
   :global(.sa-root:hover) .sa-scrollbar-y,
   :global(.sa-root:hover) .sa-scrollbar-x { display: block; pointer-events: auto; }
-
-  /* Sem tokens de tema: cor única e minimalista */
 </style>
 

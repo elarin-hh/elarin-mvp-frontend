@@ -28,7 +28,6 @@ export function createValidator(exerciseId: string, config: any = {}): BaseValid
 	const ValidatorClass = VALIDATOR_REGISTRY[exerciseId];
 
 	if (!ValidatorClass) {
-		console.warn(`No validator found for exercise: ${exerciseId}`);
 		return null;
 	}
 

@@ -21,7 +21,6 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 	try {
 		const response = await fetch(`/exercises/${exerciseId}/config.json`);
 		if (!response.ok) {
-			console.error(`Config not found for exercise: ${exerciseId}`);
 			return null;
 		}
 
@@ -29,7 +28,6 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 		configCache[exerciseId] = config;
 		return config;
 	} catch (error) {
-		console.error(`Failed to load config for ${exerciseId}:`, error);
 		return null;
 	}
 }

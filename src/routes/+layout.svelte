@@ -8,10 +8,8 @@
 
   let isReady = $state(false);
 
-  // Initialize i18n
   initI18n();
 
-  // Initialize telemetry
   onMount(() => {
     telemetry.init(featureFlags.enableTelemetry);
     telemetry.emit('app_started');

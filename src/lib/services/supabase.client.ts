@@ -1,5 +1,3 @@
-// Supabase client - Now uses Elarin Backend API
-// Kept for backward compatibility but redirects to backend
 import { authActions } from '$lib/stores/auth.store';
 
 export const authService = {

@@ -17,7 +17,6 @@
   let error = $state('');
   let showAvatarMenu = $state(false);
 
-  // Mapeamento de imagens para os exercícios
   const exerciseImages: Record<string, string> = {
     plank: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
     squat: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&h=600&fit=crop',
@@ -51,10 +50,7 @@
   };
 
   onMount(async () => {
-    // Carregar exercícios do backend
     await loadExercises();
-
-    // Setup scroll handler
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       isScrolled = target.scrollTop > 50;
@@ -91,27 +87,19 @@
       }
     } catch (e: unknown) {
       error = (e as Error).message || 'Falha ao carregar exercícios';
-      console.error('❌ Erro ao carregar exercícios:', e);
     } finally {
       isLoading = false;
     }
   }
 
   async function handleExerciseSelect(exercise: Exercise) {
-    // Se o exercício está inativo, não faz nada
     if (!exercise.is_active) {
       return;
     }
 
-    // Salvar no trainStore (compatibilidade)
     trainActions.selectExercise(exercise.type as ExerciseType);
-
-    // Salvar no integratedTrainStore (usado pela página /train)
     await integratedTrainActions.selectExercise(exercise.type as ExerciseType);
-
     telemetry.emit('exercise_selected', { exercise: exercise.type });
-
-    // Todos os exercícios vão para /framer primeiro (tela de preparação)
     goto('/framer');
   }
 
@@ -132,7 +120,6 @@
     goto('/login');
   }
 
-  // Fechar menu ao clicar fora
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('.avatar-menu-container')) {
@@ -153,7 +140,6 @@
 
   <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
     {#if error}
-      <!-- Error State -->
       <div class="flex items-center justify-center py-20">
         <div class="text-center text-red-400">
           <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +158,6 @@
         </div>
       </div>
     {:else if exercises.length === 0}
-      <!-- Empty State -->
       <div class="flex items-center justify-center py-20">
         <div class="text-center text-white/70">
           <p class="font-semibold mb-2">Nenhum exercício disponível</p>
@@ -180,7 +165,6 @@
         </div>
       </div>
     {:else}
-      <!-- Grid de exercícios -->
       <div
         class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
@@ -228,7 +212,6 @@
                 </div>
               </div>
 
-              <!-- Badge de Indisponível -->
               {#if !exercise.is_active}
                 <div class="absolute top-2 right-2 badge-inactive">Em Breve</div>
               {/if}
@@ -237,7 +220,6 @@
             <span
               class="exercise-name text-white text-sm sm:text-base font-medium px-2 sm:px-3 py-2 pt-4 sm:pt-5 -mt-3 z-0 group-hover:rounded-b-lg"
             >
-              <!-- {exercise.name_pt} -->
             </span>
           </div>
         {/each}
@@ -277,7 +259,6 @@
     -webkit-backdrop-filter: blur(var(--blur-md));
   }
 
-  /* Estilos para exercícios inativos */
   .exercise-inactive {
     opacity: 0.6;
     cursor: not-allowed !important;
@@ -300,7 +281,6 @@
     background: transparent !important;
   }
 
-  /* Badge de indisponível */
   .badge-inactive {
     background: rgba(220, 53, 69, 0.9);
     backdrop-filter: blur(var(--blur-md));

@@ -120,7 +120,6 @@ export const integratedTrainActions = {
     const state = get(integratedTrainStore);
 
     if (!state.backendSessionId) {
-      console.error('No backend session ID');
       return;
     }
 
