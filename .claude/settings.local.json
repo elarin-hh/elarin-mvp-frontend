@@ -14,7 +14,11 @@
       "Bash(set NODE_ENV=production)",
       "Bash(pnpm build:*)",
       "Bash(timeout 240 cmd:*)",
-      "Bash($env:NODE_ENV=\"production\")"
+      "Bash($env:NODE_ENV=\"production\")",
+      "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-backend-api\" /B)",
+      "Read(//c/Users/notebook-guilherme/Documents/Elarin-projects/elarin-backend-api/src/**)",
+      "Read(//c/Users/notebook-guilherme/Documents/Elarin-projects/elarin-backend-api/**)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": [],
     "ask": []
