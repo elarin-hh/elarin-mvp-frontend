@@ -118,7 +118,7 @@ export class GenericExerciseClassifier {
           this.threshold = metadata.threshold;
           this.config.threshold = metadata.threshold;
         }
-      } catch {
+      } catch (metadataError) {
         // Metadata file not found or invalid, using default threshold
       }
 
@@ -176,18 +176,38 @@ export class GenericExerciseClassifier {
 
   /**
    * Calculates reconstruction error (MSE)
+   * IMPORTANT: Must match Python training code exactly!
+   * Python: torch.mean((x - reconstruction) ** 2, dim=[1, 2])
+   * This means: mean over frames AND features dimensions
    */
   private calculateReconstructionError(input: number[], reconstruction: number[]): number {
-    let sumSquaredError = 0;
-    let count = 0;
+    // Input/reconstruction are already flattened from [60, 99] to [5940]
+    // We need to calculate MSE per frame, then average across frames
+    // to match the Python implementation: mean(dim=[1,2])
 
-    for (let i = 0; i < input.length; i++) {
-      const diff = input[i] - reconstruction[i];
-      sumSquaredError += diff * diff;
-      count++;
+    const numFrames = this.config.maxFrames;  // 60
+    const numFeatures = 99;
+
+    let totalFrameError = 0;
+
+    // Calculate error for each frame
+    for (let frame = 0; frame < numFrames; frame++) {
+      let frameSquaredError = 0;
+
+      // Calculate squared error for all features in this frame
+      for (let feature = 0; feature < numFeatures; feature++) {
+        const idx = frame * numFeatures + feature;
+        const diff = input[idx] - reconstruction[idx];
+        frameSquaredError += diff * diff;
+      }
+
+      // Average error for this frame
+      const frameError = frameSquaredError / numFeatures;
+      totalFrameError += frameError;
     }
 
-    return sumSquaredError / count;
+    // Average across all frames (matching PyTorch's mean(dim=[1,2]))
+    return totalFrameError / numFrames;
   }
 
   /**
@@ -280,6 +300,7 @@ export class GenericExerciseClassifier {
 
       // Decide if correct or incorrect
       const isCorrect = reconstructionError <= this.threshold;
+
       // Calculate confidence based on distance to threshold
       let confidence: number;
       if (isCorrect) {
