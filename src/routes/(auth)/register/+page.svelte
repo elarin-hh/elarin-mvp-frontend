@@ -205,8 +205,6 @@
   <!-- Initial Step -->
   {#if currentStep === 'initial'}
     <div class="w-full max-w-md space-y-4">
-      <h2 class="text-2xl font-bold text-white text-center mb-6">Criar Conta</h2>
-
       <form onsubmit={(e) => { e.preventDefault(); handleRegularRegister(); }} class="space-y-4">
         {#if error}
           <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: 18px;">
@@ -302,7 +300,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h2 class="text-2xl font-bold text-white">Selecione a Academia</h2>
+        <h2 class="text-2xl font-bold text-white">Selecione a Organização</h2>
       </div>
 
       {#if error}
