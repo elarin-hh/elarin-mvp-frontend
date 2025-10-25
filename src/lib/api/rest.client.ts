@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3337';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -41,9 +41,9 @@ class RestClient {
     options?: RequestInit
   ): Promise<ApiResponse<T>> {
     try {
-      const headers: HeadersInit = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options?.headers
+        ...(options?.headers as Record<string, string>)
       };
 
       if (this.accessToken) {
