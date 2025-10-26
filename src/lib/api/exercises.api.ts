@@ -3,44 +3,30 @@
 import { restClient, type ApiResponse } from './rest.client';
 
 /**
- * Exercise model from backend
+ * Exercise model from backend (user-specific, auto-created on registration)
  */
 export interface Exercise {
   id: number;
+  user_id: number;
   type: string;
-  name_en: string;
-  name_pt: string;
-  description_en?: string;
-  description_pt?: string;
-  category: string;
-  difficulty: number;
-  ml_model_path?: string;
+  name: string;
   is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
 }
 
 /**
  * Exercises API client
  * All endpoints require authentication (Bearer token)
+ * Exercises are automatically created when user registers
+ * No create/update/delete endpoints (exercises are fixed)
  */
 export const exercisesApi = {
   /**
-   * Get all active exercises
+   * Get all exercises for the current user (active and inactive)
    * GET /exercises
-   * @returns List of all active exercises
+   * @returns List of all user exercises
    */
   async getAll(): Promise<ApiResponse<Exercise[]>> {
     return restClient.get<Exercise[]>('/exercises');
   },
-
-  /**
-   * Get exercise by type
-   * GET /exercises/:type
-   * @param type - Exercise type (e.g., 'squat', 'push_up', 'plank')
-   * @returns Exercise details
-   */
-  async getByType(type: string): Promise<ApiResponse<Exercise>> {
-    return restClient.get<Exercise>(`/exercises/${type}`);
-  }
 };

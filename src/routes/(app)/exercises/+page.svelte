@@ -178,8 +178,8 @@
             role="button"
             tabindex={exercise.is_active ? 0 : -1}
             aria-label={exercise.is_active
-              ? `Selecionar ${exercise.name_pt}`
-              : `${exercise.name_pt} - Em Breve`}
+              ? `Selecionar ${exercise.name}`
+              : `${exercise.name} - Em Breve`}
           >
             <div class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10">
               <img
@@ -207,7 +207,7 @@
                       d="M9 5l7 7-7 7"
                     />
                   </svg>
-                  <span class="text-white text-sm sm:text-base font-medium">{exercise.name_pt}</span
+                  <span class="text-white text-sm sm:text-base font-medium">{exercise.name}</span
                   >
                 </div>
               </div>

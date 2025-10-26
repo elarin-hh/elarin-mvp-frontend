@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { restClient } from '$lib/api/rest.client';
-import { gymsApi } from '$lib/api/gyms.api';
+import { organizationsApi } from '$lib/api/organizations.api';
 
 export interface User {
   id: string;
@@ -87,54 +87,29 @@ export const authActions = {
   },
 
   /**
-   * Register a new user with gym partner
+   * Register a new user with organization partner
    */
-  async registerWithGym(
+  async registerWithOrganization(
     email: string,
     password: string,
     fullName: string,
-    gymId: number
+    organizationId: number
   ) {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
-    // Step 1: Register user normally
+    // Register user with organization in a single request
     const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/auth/register',
+      '/auth/register-with-organization',
       {
         email,
         password,
-        full_name: fullName
+        full_name: fullName,
+        organization_id: organizationId
       }
     );
 
     if (response.success && response.data) {
       const { user, session } = response.data;
-
-      // Step 2: Link user to gym
-      const userIdForLink = parseInt(user.id) || 0;
-
-      if (userIdForLink > 0) {
-        const linkResult = await gymsApi.linkUserToGym(userIdForLink, gymId);
-
-        if (!linkResult.success) {
-          // Fail the registration if link fails
-          authStore.update((state) => ({
-            ...state,
-            loading: false,
-            error: 'Erro ao vincular usuário à academia: ' + linkResult.error
-          }));
-
-          return { success: false, error: linkResult.error };
-        }
-      } else {
-        authStore.update((state) => ({
-          ...state,
-          loading: false,
-          error: 'ID de usuário inválido para vinculação'
-        }));
-
-        return { success: false, error: 'Invalid user ID' };
-      }
 
       // Save token
       if (session?.access_token) {
