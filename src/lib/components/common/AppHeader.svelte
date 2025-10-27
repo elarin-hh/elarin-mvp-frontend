@@ -1,12 +1,14 @@
 <script lang="ts">
   import { asset } from '$lib/utils/assets';
   import { isDeveloper } from '$lib/config/env.config';
+  import { goto } from '$app/navigation';
 
   interface Props {
     isScrolled?: boolean;
     showAvatarMenu?: boolean;
     hasDropdownMenu?: boolean;
     onToggleAvatarMenu?: () => void;
+    onSettings?: () => void;
     onLogout?: () => void;
     onClickOutside?: (e: MouseEvent) => void;
   }
@@ -16,6 +18,7 @@
     showAvatarMenu = $bindable(false),
     hasDropdownMenu = true,
     onToggleAvatarMenu = () => {},
+    onSettings = () => {},
     onLogout = () => {},
     onClickOutside = () => {}
   }: Props = $props();
@@ -25,17 +28,21 @@
   $effect(() => {
     isDevMode = isDeveloper();
   });
+
+  function handleLogoClick() {
+    goto('/');
+  }
 </script>
 
 <svelte:window onclick={onClickOutside} />
 
-<header class="fixed top-0 left-0 right-0 z-50">
+<header class="fixed top-0 left-0 right-0 z-[10000]">
   <div class="header-container px-3 sm:px-4" class:scrolled={isScrolled}>
     <div class="header-glass mx-auto py-2" class:scrolled={isScrolled}>
       <div class="flex items-center justify-between px-4">
-        <div class="flex items-center">
+        <button type="button" class="flex items-center logo-button" onclick={handleLogoClick}>
           <img src={asset('/logo-elarin.png')} alt="Elarin" class="h-12 sm:h-14" />
-        </div>
+        </button>
 
         <div class="flex items-center gap-2 sm:gap-4">
           {#if isDevMode}
@@ -78,7 +85,24 @@
 
             {#if hasDropdownMenu}
               <div class="dropdown-menu" class:show={showAvatarMenu}>
-                <button type="button" class="menu-item w-full text-left" onclick={onLogout}>
+                <button type="button" class="menu-item menu-item-settings w-full text-left" onclick={onSettings}>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  Configurações
+                </button>
+                <button type="button" class="menu-item menu-item-logout w-full text-left" onclick={onLogout}>
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -158,7 +182,7 @@
     border-radius: 12px;
     padding: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 9999;
     opacity: 0;
     transform: translateY(-10px);
     pointer-events: none;
@@ -176,7 +200,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    color: var(--color-error);
+    color: var(--color-text-primary);
     border-radius: 8px;
     transition: var(--transition-base);
     cursor: pointer;
@@ -185,7 +209,36 @@
   }
 
   .menu-item:hover {
+    background: var(--color-border-light);
+  }
+
+  .menu-item-settings {
+    color: var(--color-text-primary);
+  }
+
+  .menu-item-settings:hover {
+    background: rgba(142, 180, 40, 0.1);
+    color: var(--color-primary-500);
+  }
+
+  .menu-item-logout {
+    color: var(--color-error);
+  }
+
+  .menu-item-logout:hover {
     background: rgba(255, 68, 68, 0.1);
+  }
+
+  .logo-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .logo-button:hover {
+    opacity: 0.8;
   }
 
   .dev-badge {

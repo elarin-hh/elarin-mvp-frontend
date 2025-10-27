@@ -11,6 +11,11 @@
     showAvatarMenu = !showAvatarMenu;
   }
 
+  function handleSettings() {
+    showAvatarMenu = false;
+    goto('/settings');
+  }
+
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
@@ -79,6 +84,7 @@
     bind:showAvatarMenu
     hasDropdownMenu={true}
     onToggleAvatarMenu={toggleAvatarMenu}
+    onSettings={handleSettings}
     onLogout={handleLogout}
     onClickOutside={handleClickOutside}
   />
