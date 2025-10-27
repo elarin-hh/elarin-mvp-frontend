@@ -2,8 +2,11 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { authActions, authStore } from '$lib/stores/auth.store';
+  import { authApi } from '$lib/api/auth.api';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import { User, CreditCard, HelpCircle, Trash2, Camera } from 'lucide-svelte';
+  import Modal from '$lib/components/common/Modal.svelte';
+  import Loading from '$lib/components/common/Loading.svelte';
+  import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert } from 'lucide-svelte';
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
@@ -13,7 +16,9 @@
   let userName = $state('');
   let userEmail = $state('');
   let avatarUrl = $state('');
-  let showDeleteConfirmation = $state(false);
+  let showDeleteModal = $state(false);
+  let isDeleting = $state(false);
+  let deleteError = $state('');
 
   // Subscription tab
   let subscriptionStatus = $state('active');
@@ -46,29 +51,36 @@
     activeTab = tab;
   }
 
-  async function handleAvatarUpload(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      // TODO: Implement avatar upload to backend
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        avatarUrl = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+  function openDeleteModal() {
+    showDeleteModal = true;
+    deleteError = '';
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    deleteError = '';
+  }
+
+  async function confirmDeleteAccount() {
+    try {
+      isDeleting = true;
+      deleteError = '';
+
+      const response = await authApi.deleteAccount();
+
+      if (!response.success) {
+        deleteError = response.error?.message || 'Falha ao excluir conta';
+        return;
+      }
+
+      // Logout and redirect to home
+      await authActions.logout();
+      goto('/');
+    } catch (error) {
+      deleteError = error instanceof Error ? error.message : 'Erro desconhecido';
+    } finally {
+      isDeleting = false;
     }
-  }
-
-  async function saveAccountChanges() {
-    // TODO: Implement save account changes to backend
-    console.log('Saving account changes:', { userName, userEmail, avatarUrl });
-  }
-
-  async function deleteAccount() {
-    // TODO: Implement account deletion
-    console.log('Deleting account...');
-    await authActions.logout();
-    goto('/');
   }
 
   function cancelSubscription() {
@@ -80,8 +92,31 @@
     // Load user data
     const user = $authStore.user;
     if (user) {
-      userName = user.name || '';
+      userName = user.full_name || user.name || '';
       userEmail = user.email || '';
+    }
+
+    // Handle scroll for header effect
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      isScrolled = target.scrollTop > 50;
+    };
+
+    const viewport = document.querySelector('.sa-viewport');
+
+    if (viewport) {
+      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        viewport.removeEventListener('scroll', handleScroll);
+      };
+    } else {
+      const handleWindowScroll = () => {
+        isScrolled = window.scrollY > 50;
+      };
+      window.addEventListener('scroll', handleWindowScroll, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', handleWindowScroll);
+      };
     }
   });
 </script>
@@ -149,20 +184,22 @@
                     <img src={avatarUrl} alt="Avatar" class="avatar-image" />
                   {:else}
                     <div class="avatar-placeholder">
-                      <User class="avatar-placeholder-icon" />
+                      <svg
+                        class="avatar-icon"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                        />
+                      </svg>
                     </div>
                   {/if}
                 </div>
-                <label class="avatar-upload-btn">
+                <button type="button" class="avatar-upload-btn" disabled>
                   <Camera class="btn-icon" />
-                  Alterar Avatar
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="hidden"
-                    onchange={handleAvatarUpload}
-                  />
-                </label>
+                  Em breve
+                </button>
               </div>
 
               <div class="form-group">
@@ -170,9 +207,10 @@
                 <input
                   id="name"
                   type="text"
-                  bind:value={userName}
+                  value={userName}
                   class="form-input"
                   placeholder="Seu nome"
+                  disabled
                 />
               </div>
 
@@ -181,47 +219,18 @@
                 <input
                   id="email"
                   type="email"
-                  bind:value={userEmail}
+                  value={userEmail}
                   class="form-input"
                   placeholder="seu@email.com"
+                  disabled
                 />
               </div>
 
-              <button type="button" class="btn btn-primary" onclick={saveAccountChanges}>
-                Salvar Alterações
-              </button>
-
               <div class="danger-zone">
-                <h3 class="danger-title">Zona de Perigo</h3>
+                <h3 class="danger-title">Deletar Conta</h3>
                 <p class="danger-description">
-                  Uma vez que você excluir sua conta, não há como voltar atrás. Por favor, tenha certeza.
+                  Uma vez que você excluir sua conta, não há como voltar atrás. Para excluir <button type="button" class="delete-link" onclick={openDeleteModal}>clique aqui</button>.
                 </p>
-                {#if !showDeleteConfirmation}
-                  <button
-                    type="button"
-                    class="btn btn-danger"
-                    onclick={() => showDeleteConfirmation = true}
-                  >
-                    <Trash2 class="btn-icon" />
-                    Excluir Conta
-                  </button>
-                {:else}
-                  <div class="delete-confirmation">
-                    <p class="confirmation-text">Tem certeza que deseja excluir sua conta?</p>
-                    <div class="confirmation-buttons">
-                      <button type="button" class="btn btn-danger" onclick={deleteAccount}>
-                        Sim, excluir conta
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-secondary"
-                        onclick={() => showDeleteConfirmation = false}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                {/if}
               </div>
             </div>
           {:else if activeTab === 'subscription'}
@@ -332,6 +341,55 @@
     </div>
   </div>
 </main>
+
+<!-- Delete Account Modal -->
+<Modal isOpen={showDeleteModal} onClose={closeDeleteModal} showCloseButton={false} class="delete-modal-wrapper">
+  {#snippet children()}
+    <div class="delete-modal-content">
+      <h2 class="delete-modal-title">Excluir Conta</h2>
+
+      <p class="delete-modal-description">
+        Você tem certeza que deseja excluir sua conta permanentemente e todos os dados vinculados a ela?
+      </p>
+
+      <div class="delete-modal-warning">
+        <TriangleAlert class="warning-icon" />
+        <span>Esta ação não pode ser desfeita!</span>
+      </div>
+
+      {#if deleteError}
+        <div class="delete-modal-error">
+          {deleteError}
+        </div>
+      {/if}
+
+      <div class="delete-modal-buttons">
+        <button
+          type="button"
+          class="btn-modal btn-modal-secondary"
+          onclick={closeDeleteModal}
+          disabled={isDeleting}
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-modal btn-modal-danger"
+          onclick={confirmDeleteAccount}
+          disabled={isDeleting}
+        >
+          Sim, excluir permanentemente
+        </button>
+      </div>
+    </div>
+  {/snippet}
+</Modal>
+
+{#if isDeleting}
+  <div class="loading-overlay">
+    <Loading message="Excluindo conta..." />
+  </div>
+{/if}
 
 <style>
   .settings-page {
@@ -467,12 +525,18 @@
   }
 
   .avatar-preview {
-    width: 100px;
-    height: 100px;
+    width: 70px;
+    height: 70px;
+    min-width: 70px;
+    min-height: 70px;
     border-radius: 50%;
     overflow: hidden;
     background: var(--color-border-light);
-    border: 3px solid var(--color-primary-500);
+    border: 1px solid var(--color-border-light);    
+    cursor: not-allowed;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+    flex-shrink: 0;
   }
 
   .avatar-image {
@@ -490,9 +554,9 @@
     background: var(--color-glass-light);
   }
 
-  :global(.avatar-placeholder-icon) {
-    width: 50px !important;
-    height: 50px !important;
+  .avatar-icon {
+    width: 30px;
+    height: 30px;
     color: var(--color-text-secondary);
   }
 
@@ -500,23 +564,23 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.45rem 1rem;
     background: var(--color-border-light);
     border: 1px solid var(--color-border-light);
     border-radius: 8px;
     color: var(--color-text-primary);
+    font-size: 14px;
     font-weight: 500;
-    cursor: pointer;
+    cursor: not-allowed;
     transition: all 0.2s ease;
+    opacity: 0.6;
   }
 
-  .avatar-upload-btn:hover {
+  .avatar-upload-btn:not(:disabled):hover {
     background: var(--color-primary-500);
     border-color: var(--color-primary-500);
-  }
-
-  .hidden {
-    display: none;
+    cursor: pointer;
+    opacity: 1;
   }
 
   .form-group {
@@ -544,6 +608,125 @@
     outline: none;
     border-color: var(--color-primary-500);
     background: var(--color-bg-dark);
+  }
+
+  .form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+  }
+
+  .loading-overlay :global(.loading-container) {
+    z-index: 10001 !important;
+  }
+
+  :global(.delete-modal-wrapper) {
+    background: var(--color-bg-dark-secondary) !important;
+    border: 1px solid var(--color-border-light) !important;
+  }
+
+  .delete-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0.5rem;
+  }
+
+  .delete-modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+    text-align: left;
+  }
+
+  .delete-modal-description {
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+    text-align: left;
+  }
+
+  .delete-modal-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--color-error);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
+    text-align: left;
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid var(--color-error);
+    border-radius: 4px;
+  }
+
+  :global(.warning-icon) {
+    width: 20px !important;
+    height: 20px !important;
+    color: var(--color-error);
+    flex-shrink: 0;
+  }
+
+  .delete-modal-error {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--color-error);
+    border-radius: 8px;
+    color: var(--color-error);
+    font-size: 0.875rem;
+    text-align: left;
+  }
+
+  .delete-modal-buttons {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .btn-modal {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-modal:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-modal-secondary {
+    background: var(--color-border-light);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-light);
+  }
+
+  .btn-modal-secondary:hover:not(:disabled) {
+    background: var(--color-glass-dark-strong);
+  }
+
+  .btn-modal-danger {
+    background: var(--color-error);
+    color: white;
+  }
+
+  .btn-modal-danger:hover:not(:disabled) {
+    background: var(--color-error-dark);
+    transform: translateY(-2px);
   }
 
   .btn {
@@ -601,38 +784,42 @@
   }
 
   .danger-zone {
-    margin-top: 3rem;
-    padding: 1.5rem;
+    margin-top: 2rem;
+    padding: 1rem;
     background: rgba(255, 68, 68, 0.05);
     border: 1px solid var(--color-error);
     border-radius: 12px;
   }
 
   .danger-title {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--color-error);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .danger-description {
     color: var(--color-text-secondary);
-    margin-bottom: 1rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
 
-  .delete-confirmation {
-    margin-top: 1rem;
-  }
-
-  .confirmation-text {
+  .delete-link {
+    background: none;
+    border: none;
     color: var(--color-error);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.875rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    padding: 0;
+    transition: all 0.2s ease;
   }
 
-  .confirmation-buttons {
-    display: flex;
-    gap: 1rem;
+  .delete-link:hover {
+    color: var(--color-error-dark);
+    text-decoration: none;
   }
 
   .subscription-card {

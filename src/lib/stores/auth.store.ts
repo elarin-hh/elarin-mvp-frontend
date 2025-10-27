@@ -197,9 +197,7 @@ export const authActions = {
   async logout() {
     authStore.update((state) => ({ ...state, loading: true }));
 
-    await restClient.post('/auth/logout');
-
-    // Clear token, is_dev flag and state
+    // Clear token, is_dev flag and state (no backend call needed for JWT logout)
     restClient.setToken(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('is_dev');
