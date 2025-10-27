@@ -293,6 +293,7 @@
             <div class="tab-panel">
               <h2 class="section-title">Ajuda e Suporte</h2>
 
+              <!-- Contact Section -->
               <div class="help-section">
                 <h3 class="subsection-title">Entre em Contato</h3>
                 <p class="help-text">
@@ -318,6 +319,7 @@
                 </div>
               </div>
 
+              <!-- Resources Section -->
               <div class="help-section">
                 <h3 class="subsection-title">Recursos Úteis</h3>
                 <ul class="resources-list">
@@ -329,12 +331,22 @@
                 </ul>
               </div>
 
+              <!-- About Section -->
               <div class="help-section">
                 <h3 class="subsection-title">Sobre o Elarin</h3>
-                <p class="help-text">
-                  Versão: 1.0.0<br />
-                  © 2025 Elarin. Todos os direitos reservados.
-                </p>
+                <div class="about-content">
+                  <p class="about-item">
+                    <span class="about-label">Versão:</span>
+                    <span class="about-value">1.0.0</span>
+                  </p>
+                  <p class="about-item">
+                    <span class="about-label">Desenvolvido por:</span>
+                    <span class="about-value">Equipe Elarin</span>
+                  </p>
+                  <p class="about-copyright">
+                    © 2025 Elarin. Todos os direitos reservados.
+                  </p>
+                </div>
               </div>
             </div>
           {/if}
@@ -1010,16 +1022,23 @@
     }
   }
 
+  /* Help Section */
   .help-section {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .help-section:last-child {
+    margin-bottom: 0;
   }
 
   .help-text {
     color: var(--color-text-secondary);
     line-height: 1.6;
-    margin-bottom: 1rem;
+    margin: 0;
+    margin-bottom: 1.5rem;
   }
 
   .contact-options {
@@ -1032,8 +1051,8 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
-    background: var(--color-bg-dark-secondaryk);
+    padding: 1.25rem;
+    background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
     border-radius: 8px;
     text-decoration: none;
@@ -1043,43 +1062,189 @@
   .contact-card:hover {
     background: var(--color-border-light);
     border-color: var(--color-primary-500);
-    transform: translateY(-2px);
   }
-
   .contact-icon {
     font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
   }
 
   .contact-info {
     flex: 1;
+    min-width: 0;
   }
 
   .contact-title {
     font-weight: 600;
+    font-size: 1rem;
     color: var(--color-text-primary);
+    margin-bottom: 0.25rem;
   }
 
   .contact-detail {
     font-size: 0.875rem;
     color: var(--color-text-secondary);
+    word-break: break-word;
   }
 
   .resources-list {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .resources-list li {
+    padding-left: 1.5rem;
+    position: relative;
+  }
+
+  .resources-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--color-primary-500);
+    font-weight: bold;
   }
 
   .resource-link {
     color: var(--color-primary-500);
     text-decoration: none;
     transition: all 0.2s ease;
+    font-weight: 500;
   }
 
   .resource-link:hover {
     color: var(--color-primary-600);
     text-decoration: underline;
+  }
+
+  /* About Section */
+  .about-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .about-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.75rem;
+    background: var(--color-bg-dark-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+  }
+
+  .about-label {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .about-value {
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+  }
+
+  .about-copyright {
+    margin: 0;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border-light);
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  /* Responsive adjustments for Help section */
+  @media (max-width: 768px) {
+    .tab-content {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tab-content {
+      padding: 1rem;
+    }
+
+    .help-section {
+      padding: 1rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+    }
+
+    .subsection-title {
+      font-size: 1rem;
+    }
+
+    .contact-options {
+      grid-template-columns: 1fr;
+    }
+
+    .contact-card {
+      padding: 1rem;
+    }
+
+    .contact-icon {
+      font-size: 1.75rem;
+    }
+
+    .contact-title {
+      font-size: 0.875rem;
+    }
+
+    .contact-detail {
+      font-size: 0.8rem;
+    }
+
+    .resources-list {
+      gap: 0.625rem;
+    }
+
+    .resources-list li {
+      padding-left: 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .about-item {
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.625rem;
+    }
+
+    .about-label,
+    .about-value {
+      font-size: 0.8rem;
+    }
+
+    .about-copyright {
+      font-size: 0.75rem;
+      padding-top: 0.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .page-title {
+      font-size: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 1.125rem;
+    }
+
+    .contact-icon {
+      font-size: 1.5rem;
+    }
+
+    .help-text {
+      font-size: 0.875rem;
+    }
   }
 </style>
