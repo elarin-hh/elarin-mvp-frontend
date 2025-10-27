@@ -439,7 +439,7 @@
   .settings-layout {
     display: grid;
     grid-template-columns: 70px 1fr;
-    gap: 2rem;
+    gap: 1rem;
   }
 
   @media (max-width: 768px) {
