@@ -60,9 +60,9 @@
           {/if}
 
           <div
-            class="glass-button w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center rounded-full"
+            class="glass-button w-16 h-6 sm:w-16 sm:h-8 flex items-center justify-center rounded-full"
           >
-            <span class="text-white text-xs font-semibold whitespace-nowrap">PRO</span>
+            <span class="text-white text-xs font-semibold whitespace-nowrap">PARTNER</span>
           </div>
 
           <div class="avatar-menu-container">

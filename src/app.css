@@ -9,5 +9,12 @@
   body {
     font-family: 'Nunito Sans', sans-serif;
   }
+
+  /* Global input styles */
+  input,
+  textarea,
+  select {
+    border-radius: 8px;
+  }
 }
 

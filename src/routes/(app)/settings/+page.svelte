@@ -6,7 +6,7 @@
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import Modal from '$lib/components/common/Modal.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
-  import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert } from 'lucide-svelte';
+  import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert, Building2, Shield, CheckCircle } from 'lucide-svelte';
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
@@ -20,10 +20,15 @@
   let isDeleting = $state(false);
   let deleteError = $state('');
 
-  // Subscription tab
-  let subscriptionStatus = $state('active');
-  let subscriptionPlan = $state('Pro');
-  let subscriptionRenewalDate = $state('2025-11-26');
+  // Subscription tab - B2B Model
+  let organizationName = $state('Academia FitLife');
+  let organizationPlan = $state('Partner');
+  let planFeatures = $state([
+    'Acesso completo à plataforma',
+    'Suporte prioritário',
+    'Análises avançadas',
+    'Integrações personalizadas'
+  ]);
 
   function toggleAvatarMenu() {
     showAvatarMenu = !showAvatarMenu;
@@ -83,10 +88,6 @@
     }
   }
 
-  function cancelSubscription() {
-    // TODO: Implement subscription cancellation
-    console.log('Cancelling subscription...');
-  }
 
   onMount(() => {
     // Load user data
@@ -237,53 +238,54 @@
             <div class="tab-panel">
               <h2 class="section-title">Assinatura</h2>
 
-              <div class="subscription-card">
-                <div class="subscription-header">
-                  <div class="plan-badge">Plano {subscriptionPlan}</div>
-                  <div
-                    class="status-badge"
-                    class:active={subscriptionStatus === 'active'}
-                    class:cancelled={subscriptionStatus === 'cancelled'}
-                  >
-                    {subscriptionStatus === 'active' ? 'Ativo' : 'Cancelado'}
+              <!-- Organization Card -->
+              <div class="organization-card">
+                <div class="organization-header">
+                  <div class="org-icon-wrapper">
+                    <Building2 class="org-icon" />
+                  </div>
+                  <div class="org-info">
+                    <h3 class="org-name">{organizationName}</h3>
+                    <p class="org-subtitle">Sua organização parceira</p>
+                  </div>
+                  <div class="status-badge active">
+                    <CheckCircle class="status-icon" />
+                    Ativo
                   </div>
                 </div>
-
-                <div class="subscription-info">
-                  <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value">{subscriptionStatus === 'active' ? 'Ativa' : 'Cancelada'}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Próxima renovação:</span>
-                    <span class="info-value">{new Date(subscriptionRenewalDate).toLocaleDateString('pt-BR')}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Valor:</span>
-                    <span class="info-value">R$ 49,90/mês</span>
-                  </div>
-                </div>
-
-                {#if subscriptionStatus === 'active'}
-                  <button type="button" class="btn btn-secondary" onclick={cancelSubscription}>
-                    Cancelar Assinatura
-                  </button>
-                {:else}
-                  <button type="button" class="btn btn-primary">
-                    Reativar Assinatura
-                  </button>
-                {/if}
               </div>
 
-              <div class="payment-methods">
-                <h3 class="subsection-title">Métodos de Pagamento</h3>
-                <div class="payment-card">
-                  <CreditCard class="payment-icon" />
-                  <div class="payment-details">
-                    <div class="payment-type">Cartão de Crédito</div>
-                    <div class="payment-number">•••• •••• •••• 4242</div>
+              <!-- Plan Information -->
+              <div class="plan-card">
+                <div class="plan-header">
+                  <div class="plan-icon-wrapper">
+                    <Shield class="plan-icon" />
                   </div>
-                  <button type="button" class="btn btn-small">Alterar</button>
+                  <div>
+                    <h3 class="plan-title">Plano {organizationPlan}</h3>
+                    <p class="plan-description">Acesso fornecido pela sua organização</p>
+                  </div>
+                </div>
+
+                <div class="plan-divider"></div>
+
+                <div class="plan-features">
+                  <h4 class="features-title">Recursos incluídos:</h4>
+                  <ul class="features-list">
+                    {#each planFeatures as feature}
+                      <li class="feature-item">
+                        <CheckCircle class="feature-icon" />
+                        <span>{feature}</span>
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+
+                <div class="plan-notice">
+                  <p>
+                    Sua assinatura é gerenciada pela organização <strong>{organizationName}</strong>.
+                    Para alterações ou dúvidas sobre seu acesso, entre em contato com o administrador da sua organização.
+                  </p>
                 </div>
               </div>
             </div>
@@ -665,7 +667,7 @@
     padding: 1rem;
     background: rgba(239, 68, 68, 0.1);
     border-left: 4px solid var(--color-error);
-    border-radius: 4px;
+    border-radius: 8px;
   }
 
   :global(.warning-icon) {
@@ -822,103 +824,194 @@
     text-decoration: none;
   }
 
-  .subscription-card {
+  /* Organization Card */
+  .organization-card {
     padding: 1.5rem;
-    background: var(--color-glass-light);
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
+    margin-bottom: 1.5rem;
   }
 
-  .subscription-header {
+  .organization-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .plan-badge {
-    padding: 0.5rem 1rem;
-    background: var(--color-primary-500);
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
-
-  .status-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
-
-  .status-badge.active {
-    background: rgba(34, 197, 94, 0.2);
-    color: rgb(34, 197, 94);
-  }
-
-  .status-badge.cancelled {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--color-error);
-  }
-
-  .subscription-info {
-    display: flex;
-    flex-direction: column;
     gap: 1rem;
-    margin-bottom: 1.5rem;
   }
 
-  .info-row {
+  .org-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-500);
+    border-radius: 8px;
   }
 
-  .info-label {
-    color: var(--color-text-secondary);
-  }
-
-  .info-value {
-    font-weight: 600;
+  :global(.org-icon) {
+    width: 28px !important;
+    height: 28px !important;
     color: var(--color-text-primary);
   }
 
-  .payment-methods {
-    margin-top: 2rem;
-  }
-
-  .payment-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--color-glass-light);
-    border: 1px solid var(--color-border-light);
-    border-radius: 12px;
-  }
-
-  :global(.payment-icon) {
-    width: 32px !important;
-    height: 32px !important;
-    color: var(--color-primary-500);
-  }
-
-  .payment-details {
+  .org-info {
     flex: 1;
   }
 
-  .payment-type {
+  .org-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  .org-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
     font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  .status-badge.active {
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(34, 197, 94);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+
+  :global(.status-icon) {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Plan Card */
+  .plan-card {
+    padding: 1.5rem;
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+  }
+
+  .plan-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .plan-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(174, 246, 92, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+  }
+
+  :global(.plan-icon) {
+    width: 24px !important;
+    height: 24px !important;
+    color: var(--color-primary-500);
+  }
+
+  .plan-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  .plan-description {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  .plan-divider {
+    height: 1px;
+    background: var(--color-border-light);
+    margin-bottom: 1.5rem;
+  }
+
+  .plan-features {
+    margin-bottom: 1.5rem;
+  }
+
+  .features-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 1rem;
+  }
+
+  .features-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     color: var(--color-text-primary);
   }
 
-  .payment-number {
+  :global(.feature-icon) {
+    width: 18px !important;
+    height: 18px !important;
+    color: var(--color-primary-500);
+    flex-shrink: 0;
+  }
+
+  .plan-notice {
+    padding: 1rem;
+    background: rgba(159, 246, 59, 0.08);
+    border-left: 3px solid var(--color-primary-500);
+    border-radius: 8px;
+  }
+
+  .plan-notice p {
+    margin: 0;
     font-size: 0.875rem;
+    line-height: 1.6;
     color: var(--color-text-secondary);
+  }
+
+  .plan-notice strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .organization-header {
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      width: 100%;
+      justify-content: center;
+    }
   }
 
   .help-section {
     padding: 1.5rem;
-    background: var(--color-glass-light);
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
   }
@@ -940,7 +1033,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: var(--color-bg-dark);
+    background: var(--color-bg-dark-secondaryk);
     border: 1px solid var(--color-border-light);
     border-radius: 8px;
     text-decoration: none;
