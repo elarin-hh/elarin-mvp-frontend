@@ -5,6 +5,7 @@
   import { telemetry } from '$lib/services/telemetry.service';
   import { featureFlags } from '$lib/config/feature-flags';
   import { ScrollArea } from '$lib/components/common';
+  import ConsentBanner from '$lib/components/ConsentBanner.svelte';
 
   let isReady = $state(false);
 
@@ -21,6 +22,7 @@
   <ScrollArea className="min-h-screen" style="height:100vh;">
     <slot />
   </ScrollArea>
+  <ConsentBanner />
 {:else}
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center">

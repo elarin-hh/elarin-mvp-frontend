@@ -12,6 +12,31 @@
     isValidFullName
   } from '$lib/utils/validation';
 
+  // Validate minimum age (13 years - LGPD Art. 14)
+  function validateAge(birthDate: string): { valid: boolean; error?: string } {
+    if (!birthDate) {
+      return { valid: false, error: 'Data de nascimento é obrigatória' };
+    }
+
+    const birthDateObj = new Date(birthDate);
+    const today = new Date();
+    const age = today.getFullYear() - birthDateObj.getFullYear();
+    const monthDiff = today.getMonth() - birthDateObj.getMonth();
+
+    const actualAge = (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate()))
+      ? age - 1
+      : age;
+
+    if (actualAge < 13) {
+      return {
+        valid: false,
+        error: 'Você deve ter pelo menos 13 anos para criar uma conta (LGPD Art. 14)'
+      };
+    }
+
+    return { valid: true };
+  }
+
   // Organization selection
   let organizations = $state<Organization[]>([]);
   let selectedOrganizationId = $state<number | string>('');
@@ -22,6 +47,8 @@
   let email = $state('');
   let password = $state('');
   let confirmPassword = $state('');
+  let birthDate = $state('');
+  let marketingConsent = $state(false);
   let isLoading = $state(false);
   let error = $state('');
 
@@ -75,6 +102,12 @@
       return;
     }
 
+    const ageValidation = validateAge(birthDate);
+    if (!ageValidation.valid) {
+      error = ageValidation.error || 'Data de nascimento inválida';
+      return;
+    }
+
     if (!selectedOrganizationId) {
       error = 'Organização não selecionada';
       return;
@@ -91,7 +124,10 @@
         email,
         password,
         fullName.trim(),
-        organizationId
+        birthDate,
+        organizationId,
+        'pt-BR',
+        marketingConsent
       );
 
       if (!result.success) {
@@ -197,6 +233,30 @@
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
           style="border-radius: 18px; border-width: 0.8px;"
         />
+
+        <div>
+          <label class="text-white/70 text-sm mb-2 block">Data de Nascimento (mínimo 13 anos)</label>
+          <input
+            type="date"
+            bind:value={birthDate}
+            required
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+            class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+            style="border-radius: 18px; border-width: 0.8px;"
+          />
+        </div>
+
+        <div class="flex items-start space-x-3 px-2">
+          <input
+            type="checkbox"
+            id="marketing-consent"
+            bind:checked={marketingConsent}
+            class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-white focus:ring-white/50"
+          />
+          <label for="marketing-consent" class="text-white/70 text-sm cursor-pointer">
+            Desejo receber comunicações sobre novidades e promoções (opcional)
+          </label>
+        </div>
 
       <button
         type="submit"

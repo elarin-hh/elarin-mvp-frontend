@@ -9,6 +9,7 @@
   import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
+  import BiometricConsent from '$lib/components/BiometricConsent.svelte';
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -53,6 +54,8 @@
   let timerInterval: number | null = null;
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
   let modeIndicator = $state('Híbrido (ML + Heurística)');
+  let showBiometricConsent = $state(false);
+  let hasBiometricConsent = $state(false);
 
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
@@ -128,6 +131,16 @@
     try {
       isLoading = true;
       errorMessage = '';
+
+      // LGPD Art. 11: Check biometric consent before accessing camera
+      const consent = localStorage.getItem('elarin_biometric_consent');
+      if (!consent || consent !== 'true') {
+        showBiometricConsent = true;
+        isLoading = false;
+        return;
+      }
+
+      hasBiometricConsent = true;
 
       if (!scriptsLoaded) {
         throw new Error('Dependências ainda não foram carregadas completamente. Aguarde...');
@@ -451,6 +464,22 @@
     }
   }
 
+  function handleBiometricConsentAccepted() {
+    hasBiometricConsent = true;
+    showBiometricConsent = false;
+    // Restart camera after consent
+    startCamera();
+  }
+
+  function handleBiometricConsentDenied() {
+    showBiometricConsent = false;
+    errorMessage = 'Consentimento biométrico negado. A câmera não pode ser iniciada sem sua autorização.';
+    // Redirect back to exercises
+    setTimeout(() => {
+      goto('/exercises');
+    }, 3000);
+  }
+
   function detectOrientation() {
     orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
   }
@@ -675,6 +704,13 @@
   {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
     <Loading message={loadingStage} />
   {/if}
+
+  <!-- Biometric Consent Modal (LGPD Art. 11) -->
+  <BiometricConsent
+    bind:visible={showBiometricConsent}
+    on:accepted={handleBiometricConsentAccepted}
+    on:denied={handleBiometricConsentDenied}
+  />
 </main>
 
 <style>

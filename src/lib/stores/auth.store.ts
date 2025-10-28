@@ -42,12 +42,26 @@ export const authActions = {
   /**
    * Register a new user
    */
-  async register(email: string, password: string, fullName?: string) {
+  async register(
+    email: string,
+    password: string,
+    fullName: string,
+    birthDate: string,
+    locale?: string,
+    marketingConsent?: boolean
+  ) {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
     const response = await restClient.post<{ user: User; session: AuthSession }>(
       '/auth/register',
-      { email, password, full_name: fullName }
+      {
+        email,
+        password,
+        full_name: fullName,
+        birth_date: birthDate,
+        locale: locale || 'pt-BR',
+        marketing_consent: marketingConsent || false
+      }
     );
 
     if (response.success && response.data) {
@@ -93,7 +107,10 @@ export const authActions = {
     email: string,
     password: string,
     fullName: string,
-    organizationId: number
+    birthDate: string,
+    organizationId: number,
+    locale?: string,
+    marketingConsent?: boolean
   ) {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
@@ -104,7 +121,10 @@ export const authActions = {
         email,
         password,
         full_name: fullName,
-        organization_id: organizationId
+        birth_date: birthDate,
+        organization_id: organizationId,
+        locale: locale || 'pt-BR',
+        marketing_consent: marketingConsent || false
       }
     );
 
