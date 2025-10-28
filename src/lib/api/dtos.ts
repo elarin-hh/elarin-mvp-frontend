@@ -18,20 +18,20 @@ export const registerSchema = z.object({
 export type LoginDto = z.infer<typeof loginSchema>;
 export type RegisterDto = z.infer<typeof registerSchema>;
 
-// Training Session DTOs
-export const trainingSessionSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  exerciseType: z.enum(['squat', 'lunge', 'plank']),
+// Training Metric DTOs
+export const trainingMetricSchema = z.object({
+  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  organizationId: z.number().int().positive().nullable(),
+  exercise: z.enum(['squat', 'lunge', 'plank', 'push_up']),
   reps: z.number().int().nonnegative(),
   sets: z.number().int().nonnegative(),
-  duration: z.number().nonnegative(),
-  startTime: z.number(),
-  endTime: z.number().nullable(),
+  durationMs: z.number().nonnegative(),
+  validRatio: z.number().min(0).max(1),
   createdAt: z.string().datetime()
 });
 
-export type TrainingSessionDto = z.infer<typeof trainingSessionSchema>;
+export type TrainingMetricDto = z.infer<typeof trainingMetricSchema>;
 
 // User DTOs
 export const userSchema = z.object({

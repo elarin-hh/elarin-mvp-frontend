@@ -2,7 +2,6 @@
 // Connects to NestJS backend running on port 3337
 import { writable, derived, get } from 'svelte/store';
 import { trainingApi } from '$lib/api/training.api';
-import type { TrainingSession } from '$lib/api/training.api';
 
 export type ExerciseType = 'squat' | 'plank' | 'push_up';
 export type TrainingStatus = 'idle' | 'ready' | 'training' | 'paused' | 'finished';
@@ -17,10 +16,6 @@ export interface IntegratedTrainingSession {
   startTime: number | null;
   endTime: number | null;
 
-  // Backend session
-  backendSessionId: string | null;
-  backendSession: TrainingSession | null;
-
   // UI state
   isLoading: boolean;
   error: string | null;
@@ -34,8 +29,6 @@ const initialState: IntegratedTrainingSession = {
   duration: 0,
   startTime: null,
   endTime: null,
-  backendSessionId: null,
-  backendSession: null,
   isLoading: false,
   error: null
 };
@@ -52,34 +45,15 @@ export const trainingError = derived(integratedTrainStore, ($state) => $state.er
 // Actions
 export const integratedTrainActions = {
   /**
-   * Select exercise and create backend session
+   * Select exercise
    */
   async selectExercise(exercise: ExerciseType) {
     integratedTrainStore.update((state) => ({
       ...state,
       exerciseType: exercise,
       status: 'ready',
-      isLoading: true,
       error: null
     }));
-
-    // Create backend session
-    const response = await trainingApi.createSession({ exercise_type: exercise });
-
-    if (response.success && response.data) {
-      integratedTrainStore.update((state) => ({
-        ...state,
-        backendSessionId: response.data!.id,
-        backendSession: response.data!,
-        isLoading: false
-      }));
-    } else {
-      integratedTrainStore.update((state) => ({
-        ...state,
-        error: response.error?.message || 'Failed to create session',
-        isLoading: false
-      }));
-    }
   },
 
   /**
@@ -119,7 +93,7 @@ export const integratedTrainActions = {
   async finish() {
     const state = get(integratedTrainStore);
 
-    if (!state.backendSessionId) {
+    if (!state.exerciseType) {
       return;
     }
 
@@ -137,8 +111,8 @@ export const integratedTrainActions = {
       : state.duration;
 
     // Send to backend
-    const response = await trainingApi.completeSession({
-      session_id: state.backendSessionId,
+    const response = await trainingApi.saveTraining({
+      exercise_type: state.exerciseType,
       reps_completed: state.reps,
       sets_completed: state.sets,
       duration_seconds: duration,
@@ -154,7 +128,7 @@ export const integratedTrainActions = {
     } else {
       integratedTrainStore.update((s) => ({
         ...s,
-        error: response.error?.message || 'Failed to complete session',
+        error: response.error?.message || 'Failed to save training',
         isLoading: false
       }));
     }

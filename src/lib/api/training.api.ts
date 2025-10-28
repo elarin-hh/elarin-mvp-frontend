@@ -1,5 +1,5 @@
 // Training API - Elarin NestJS Backend Integration
-// Uses NestJS endpoints: /training/sessions, /training/history
+// Uses NestJS endpoints: /training/save, /training/history
 import { restClient, type ApiResponse } from './rest.client';
 
 export interface Exercise {
@@ -15,25 +15,20 @@ export interface Exercise {
   is_active: boolean;
 }
 
-export interface TrainingSession {
-  id: string;
-  user_id: string;
-  exercise_type: string;
-  status: 'in_progress' | 'completed' | 'cancelled';
-  reps_completed: number;
-  sets_completed: number;
-  duration_seconds: number;
-  avg_confidence?: number;
-  started_at: string;
-  finished_at?: string;
+export interface TrainingMetric {
+  id: number;
+  user_id: number;
+  organization_id?: number;
+  exercise: string;
+  reps: number;
+  sets: number;
+  duration_ms: number;
+  valid_ratio: number;
+  created_at: string;
 }
 
-export interface CreateSessionRequest {
+export interface SaveTrainingRequest {
   exercise_type: string;
-}
-
-export interface CompleteSessionRequest {
-  session_id: string;
   reps_completed: number;
   sets_completed: number;
   duration_seconds: number;
@@ -58,36 +53,28 @@ export const trainingApi = {
   },
 
   /**
-   * Create a new training session
-   * POST /training/sessions
+   * Save completed training session
+   * POST /training/save
    */
-  async createSession(data: CreateSessionRequest): Promise<ApiResponse<TrainingSession>> {
-    return restClient.post<TrainingSession>('/training/sessions', data);
-  },
-
-  /**
-   * Complete a training session
-   * POST /training/sessions/complete
-   */
-  async completeSession(data: CompleteSessionRequest): Promise<ApiResponse<{ session_id: string }>> {
-    return restClient.post<{ session_id: string }>('/training/sessions/complete', data);
+  async saveTraining(data: SaveTrainingRequest): Promise<ApiResponse<TrainingMetric>> {
+    return restClient.post<TrainingMetric>('/training/save', data);
   },
 
   /**
    * Get training history
    * GET /training/history?limit=20&offset=0
    */
-  async getHistory(limit = 20, offset = 0): Promise<ApiResponse<TrainingSession[]>> {
-    return restClient.get<TrainingSession[]>(
+  async getHistory(limit = 20, offset = 0): Promise<ApiResponse<TrainingMetric[]>> {
+    return restClient.get<TrainingMetric[]>(
       `/training/history?limit=${limit}&offset=${offset}`
     );
   },
 
   /**
-   * Get details of a specific session
-   * GET /training/sessions/:id
+   * Get details of a specific training
+   * GET /training/:id
    */
-  async getSessionDetails(sessionId: string): Promise<ApiResponse<TrainingSession>> {
-    return restClient.get<TrainingSession>(`/training/sessions/${sessionId}`);
+  async getTrainingDetails(metricId: number): Promise<ApiResponse<TrainingMetric>> {
+    return restClient.get<TrainingMetric>(`/training/${metricId}`);
   }
 };
