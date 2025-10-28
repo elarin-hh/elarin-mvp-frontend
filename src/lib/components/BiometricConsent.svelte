@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { Lock, Loader2 } from 'lucide-svelte';
+  import { restClient } from '$lib/api/rest.client';
 
   export let visible = false;
 
@@ -19,29 +20,19 @@
     loading = true;
 
     try {
-      const token = localStorage.getItem('access_token');
-
-      const response = await fetch('/api/auth/consent', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          consent_type: 'biometric',
-          consent_given: true,
-          consent_timestamp: new Date().toISOString(),
-        })
+      const response = await restClient.patch('/auth/consent', {
+        consent_type: 'biometric',
+        consent_given: true,
+        consent_timestamp: new Date().toISOString(),
       });
 
-      if (response.ok) {
+      if (response.success) {
         localStorage.setItem('elarin_biometric_consent', 'true');
         localStorage.setItem('elarin_biometric_consent_ts', new Date().toISOString());
         dispatch('accepted');
         visible = false;
       } else {
-        const error = await response.json();
-        throw new Error(error.message || 'Erro ao salvar consentimento');
+        throw new Error(response.error?.message || 'Erro ao salvar consentimento');
       }
     } catch (error) {
       console.error('Erro ao salvar consentimento biométrico:', error);

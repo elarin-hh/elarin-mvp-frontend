@@ -111,6 +111,13 @@ class RestClient {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     return this.fetchWithErrorHandling<T>(endpoint, { method: 'DELETE' });
   }
+
+  async patch<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+    return this.fetchWithErrorHandling<T>(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }
 }
 
 export const restClient = new RestClient();
