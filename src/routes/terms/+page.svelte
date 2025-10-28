@@ -24,7 +24,7 @@
         <h2 class="text-lg font-semibold text-white mb-2">1. Aceitação</h2>
         <p>
           Ao usar o <strong>Elarin</strong>, você concorda com estes Termos e a
-          <a href="{base}/privacy" class="text-blue-400 hover:underline">Política de Privacidade</a>.
+          <a href="{base}/privacy" style="color: var(--color-primary-400);" class="hover:underline">Política de Privacidade</a>.
           Empresa: [SUA EMPRESA] | CNPJ: [CNPJ] | E-mail: contato@elarin.com.br
         </p>
       </section>
@@ -76,8 +76,8 @@
       <section>
         <h2 class="text-lg font-semibold text-white mb-2">7. Privacidade</h2>
         <p>
-          Dados tratados conforme <a href="{base}/privacy" class="text-blue-400 hover:underline">Política de Privacidade</a>
-          e LGPD. <span class="text-green-400">Processamento biométrico 100% local. Vídeo nunca é gravado/transmitido.</span>
+          Dados tratados conforme <a href="{base}/privacy" style="color: var(--color-primary-400);" class="hover:underline">Política de Privacidade</a>
+          e LGPD. <span style="color: var(--color-success);">Processamento biométrico 100% local. Vídeo nunca é gravado/transmitido.</span>
         </p>
       </section>
 
@@ -111,8 +111,8 @@
       <section>
         <h2 class="text-lg font-semibold text-white mb-2">12. Contato</h2>
         <p>
-          📧 <a href="mailto:contato@elarin.com.br" class="text-blue-400 hover:underline">contato@elarin.com.br</a> |
-          Jurídico: <a href="mailto:juridico@elarin.com.br" class="text-blue-400 hover:underline">juridico@elarin.com.br</a>
+          📧 <a href="mailto:contato@elarin.com.br" style="color: var(--color-primary-400);" class="hover:underline">contato@elarin.com.br</a> |
+          Jurídico: <a href="mailto:juridico@elarin.com.br" style="color: var(--color-primary-400);" class="hover:underline">juridico@elarin.com.br</a>
         </p>
       </section>
 

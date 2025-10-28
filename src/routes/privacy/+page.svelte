@@ -33,7 +33,7 @@
         <p class="mb-2"><strong>Dados Pessoais:</strong> Nome, e-mail, data de nascimento (idade mínima 13 anos - LGPD Art. 14).</p>
         <p class="mb-2">
           <strong>Dados Biométricos (LGPD Art. 11):</strong> 33 pontos de pose corporal capturados via câmera.
-          <span class="text-green-400">Processamento 100% local. Vídeo NUNCA é gravado ou transmitido. Dados biométricos NÃO são armazenados.</span>
+          <span style="color: var(--color-success);">Processamento 100% local. Vídeo NUNCA é gravado ou transmitido. Dados biométricos NÃO são armazenados.</span>
         </p>
         <p><strong>Dados de Treino:</strong> Tipo de exercício, repetições, séries, duração, qualidade média, data/hora.</p>
       </section>
@@ -74,8 +74,8 @@
       <section>
         <h2 class="text-lg font-semibold text-white mb-2">9. Contato</h2>
         <p>
-          📧 <a href="mailto:privacidade@elarin.com.br" class="text-blue-400 hover:underline">privacidade@elarin.com.br</a> |
-          DPO: <a href="mailto:dpo@elarin.com.br" class="text-blue-400 hover:underline">dpo@elarin.com.br</a>
+          📧 <a href="mailto:privacidade@elarin.com.br" style="color: var(--color-primary-400);" class="hover:underline">privacidade@elarin.com.br</a> |
+          DPO: <a href="mailto:dpo@elarin.com.br" style="color: var(--color-primary-400);" class="hover:underline">dpo@elarin.com.br</a>
         </p>
       </section>
     </div>

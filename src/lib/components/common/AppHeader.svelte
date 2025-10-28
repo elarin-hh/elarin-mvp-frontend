@@ -60,7 +60,7 @@
           {/if}
 
           <div
-            class="glass-button w-16 h-6 sm:w-16 sm:h-8 flex items-center justify-center rounded-full"
+            class="glass-button w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center rounded-full"
           >
             <span class="text-white text-xs font-semibold whitespace-nowrap">PARTNER</span>
           </div>
