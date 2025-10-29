@@ -10,6 +10,7 @@
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
+  import { playWelcomeAudio } from '$lib/services/welcome-audio.service';
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -214,6 +215,14 @@
       startTimer();
       isCameraRunning = true;
       isLoading = false;
+
+      // Tocar mensagem de boas-vindas (TESTE)
+      try {
+        const exerciseName = selectedExercise === 'squat' ? 'agachamento' : selectedExercise;
+        await playWelcomeAudio(exerciseName, 'pt-BR');
+      } catch (error) {
+        console.warn('Failed to play welcome audio:', error);
+      }
     } catch (error: unknown) {
       errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
       isLoading = false;
