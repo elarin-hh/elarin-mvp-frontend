@@ -128,6 +128,37 @@ function createAudioFeedbackStore() {
     },
 
     /**
+     * Fala um número (contagem de repetições) usando Eleven Labs
+     */
+    speakNumber: async (number: number) => {
+      let isEnabled = true;
+
+      update((state) => {
+        isEnabled = state.isEnabled;
+        return state;
+      });
+
+      if (!isEnabled) return;
+
+      try {
+        await audioFeedbackService.speakNumber(number, 'pt-BR');
+      } catch (error) {
+        console.warn('[AudioFeedbackStore] Erro ao falar número:', error);
+      }
+    },
+
+    /**
+     * Pré-carrega áudios de contagem (1-20) - chame no início do treino
+     */
+    preloadCountAudios: async () => {
+      try {
+        await audioFeedbackService.preloadRepCountAudios('pt-BR');
+      } catch (error) {
+        console.warn('[AudioFeedbackStore] Erro ao pré-carregar áudios:', error);
+      }
+    },
+
+    /**
      * Limpa mensagens de erro
      */
     clearError: () => {

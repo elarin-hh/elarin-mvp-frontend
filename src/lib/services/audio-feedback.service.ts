@@ -8,6 +8,7 @@ import { ttsApi } from '$lib/api/tts.api';
 export class AudioFeedbackService {
   private audioContext: AudioContext | null = null;
   private currentAudio: HTMLAudioElement | null = null;
+  private audioCache: Map<string, ArrayBuffer> = new Map(); // Cache de áudios
 
   constructor() {
     // Inicializar AudioContext para Web Audio API
@@ -80,6 +81,109 @@ export class AudioFeedbackService {
     };
 
     return llmApi.feedbackToSpeech(llmRequest);
+  }
+
+  /**
+   * Fala um número (contagem de repetições) usando Eleven Labs com cache
+   * OTIMIZADO: Pula o LLM, vai direto para o TTS
+   */
+  async speakNumber(
+    number: number,
+    language: string = 'pt-BR'
+  ): Promise<boolean> {
+    try {
+      const cacheKey = `number_${number}_${language}`;
+
+      // Verifica se já tem no cache
+      let audioBuffer = this.audioCache.get(cacheKey);
+
+      if (!audioBuffer) {
+        console.log(`[AudioFeedback] Gerando áudio para número ${number}...`);
+
+        // Gera áudio direto via TTS (SEM passar pelo LLM - mais rápido!)
+        const mockLLMResponse: LLMFeedbackResponse = {
+          text: number.toString(),
+          ssml: `<speak><prosody rate="medium" pitch="+5%">${number}</prosody></speak>`,
+          language,
+          tone_used: 'neutral',
+          micro_tip: null,
+          short_id: `num_${number}`,
+          moderated: false
+        };
+
+        audioBuffer = await ttsApi.synthesizeStream(mockLLMResponse);
+
+        // Salva no cache para reusar
+        if (audioBuffer.byteLength > 0) {
+          this.audioCache.set(cacheKey, audioBuffer);
+          console.log(`[AudioFeedback] Áudio do número ${number} armazenado em cache`);
+        }
+      } else {
+        console.log(`[AudioFeedback] Usando áudio do número ${number} do cache`);
+      }
+
+      // Reproduz o áudio
+      return await this.playAudioBuffer(audioBuffer, number.toString(), language);
+    } catch (error) {
+      console.error(`[AudioFeedback] Erro ao falar número ${number}:`, error);
+      // Fallback para Web Speech API
+      return await this.playTextWithWebSpeech(number.toString(), language);
+    }
+  }
+
+  /**
+   * Gera áudio de um número e armazena no cache (SEM reproduzir)
+   */
+  private async generateNumberAudio(
+    number: number,
+    language: string = 'pt-BR'
+  ): Promise<void> {
+    const cacheKey = `number_${number}_${language}`;
+
+    // Se já está no cache, não precisa gerar novamente
+    if (this.audioCache.has(cacheKey)) {
+      return;
+    }
+
+    try {
+      console.log(`[AudioFeedback] Gerando áudio para número ${number}...`);
+
+      // Gera áudio direto via TTS (SEM passar pelo LLM)
+      const mockLLMResponse: LLMFeedbackResponse = {
+        text: number.toString(),
+        ssml: `<speak><prosody rate="medium" pitch="+5%">${number}</prosody></speak>`,
+        language,
+        tone_used: 'neutral',
+        micro_tip: null,
+        short_id: `num_${number}`,
+        moderated: false
+      };
+
+      const audioBuffer = await ttsApi.synthesizeStream(mockLLMResponse);
+
+      // Salva no cache (mas NÃO reproduz!)
+      if (audioBuffer.byteLength > 0) {
+        this.audioCache.set(cacheKey, audioBuffer);
+        console.log(`[AudioFeedback] ✓ Áudio do número ${number} armazenado em cache`);
+      }
+    } catch (error) {
+      console.warn(`[AudioFeedback] Falha ao gerar áudio do número ${number}:`, error);
+    }
+  }
+
+  /**
+   * Pré-carrega áudios dos números 1-20 no cache (SILENCIOSAMENTE - não reproduz)
+   */
+  async preloadRepCountAudios(language: string = 'pt-BR'): Promise<void> {
+    console.log('[AudioFeedback] 🔊 Pré-carregando áudios de contagem (1-20) em background...');
+
+    const promises = [];
+    for (let i = 1; i <= 20; i++) {
+      promises.push(this.generateNumberAudio(i, language));
+    }
+
+    await Promise.all(promises);
+    console.log('[AudioFeedback] ✅ Pré-carregamento de áudios concluído (20 números em cache)');
   }
 
   /**
