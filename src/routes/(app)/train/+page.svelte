@@ -10,7 +10,6 @@
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
-  import { audioFeedbackStore } from '$lib/stores/audio-feedback.store';
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -66,10 +65,6 @@
   const FRAME_THROTTLE_MS = 60;
   let animationFrameId: number | null = null;
 
-  // Controle de feedback de voz
-  let lastAudioFeedbackTime = 0;
-  let lastSpokenRepCount = 0;
-  const AUDIO_FEEDBACK_COOLDOWN_MS = 4000; // 4 segundos entre feedbacks de erro
 
   function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void {
     let timeout: number | null = null;
@@ -220,15 +215,6 @@
       startTimer();
       isCameraRunning = true;
       isLoading = false;
-
-      // Reseta contadores de feedback de voz
-      lastSpokenRepCount = 0;
-      lastAudioFeedbackTime = 0;
-
-      // Pré-carrega áudios de contagem (1-20) para Eleven Labs - executa em background
-      audioFeedbackStore.preloadCountAudios().catch(err => {
-        console.warn('[Train] Falha ao pré-carregar áudios de contagem:', err);
-      });
     } catch (error: unknown) {
       errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
       isLoading = false;
@@ -294,41 +280,6 @@
 
     if (hasNewMessages) {
       feedbackMessages = newMessages;
-
-      // 🔊 Feedback de voz para mensagens críticas/erros (com cooldown)
-      if (isFeedbackEnabled) {
-        const now = Date.now();
-        const criticalMessages = newMessages.filter(
-          m => (m.severity === 'critical' || m.severity === 'high' || m.type === 'error') &&
-               m.text !== 'Movimento incorreto' && // Ignora feedback genérico
-               !m.text.toLowerCase().includes('movimento incorreto') // Ignora variações
-        );
-
-        if (criticalMessages.length > 0 && (now - lastAudioFeedbackTime) > AUDIO_FEEDBACK_COOLDOWN_MS) {
-          lastAudioFeedbackTime = now;
-
-          // Converte para instrução natural e envia para Eleven Labs via audioFeedbackStore
-          const technicalMessage = criticalMessages[0].text;
-          const naturalInstruction = convertToNaturalInstruction(technicalMessage);
-
-          console.log('[Feedback] Mensagem técnica:', technicalMessage);
-          console.log('[Feedback] Instrução natural:', naturalInstruction);
-
-          // Usa audioFeedbackStore para processar via LLM + Eleven Labs TTS
-          audioFeedbackStore.playFeedback(
-            naturalInstruction, // Envia a instrução natural direta
-            {
-              exercicio: $integratedTrainStore.exerciseType || 'squat',
-              nivel: 'intermediário',
-              language: 'pt-BR'
-            }
-          ).catch(err => {
-            console.warn('[Train] Erro ao reproduzir feedback via Eleven Labs, usando fallback:', err);
-            // Fallback para Web Speech API se Eleven Labs falhar
-            speakInstruction(naturalInstruction);
-          });
-        }
-      }
     }
 
     // Detecta repetições válidas
@@ -339,109 +290,8 @@
 
       if (repResult && (repResult as { isValid?: boolean }).isValid) {
         integratedTrainActions.incrementReps();
-
-        // 🔊 Fala o número da repetição usando Eleven Labs
-        const newRepCount = $integratedTrainStore.reps;
-        if (newRepCount > lastSpokenRepCount && isFeedbackEnabled) {
-          lastSpokenRepCount = newRepCount;
-
-          // Usa Eleven Labs com cache (mais profissional e rápido após primeira geração)
-          audioFeedbackStore.speakNumber(newRepCount);
-        }
       }
     }
-  }
-
-
-  // Função para falar instruções corretivas
-  function speakInstruction(instruction: string) {
-    if (!('speechSynthesis' in window)) return;
-
-    // Cancela qualquer fala em andamento (exceto contagem de reps)
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(instruction);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 1.0; // Velocidade normal para instruções
-    utterance.pitch = 1.0; // Tom normal
-    utterance.volume = 1.0;
-
-    utterance.onstart = () => {
-      console.log('[Speech] Falando instrução:', instruction);
-    };
-
-    utterance.onerror = (event) => {
-      console.error('[Speech] Erro ao falar:', event);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }
-
-  // Converte mensagens técnicas em instruções naturais e diretas
-  function convertToNaturalInstruction(technicalMessage: string): string {
-    const message = technicalMessage.toLowerCase();
-
-    // Mapeamento de mensagens técnicas para instruções naturais e corretivas
-    const instructionMap: Record<string, string> = {
-      // ===== VALIDAÇÕES DIRETAS DO SQUAT VALIDATOR =====
-
-      // Tronco inclinado lateralmente
-      'tronco inclinado para o lado': 'Seu tronco está inclinado para o lado. Desloque o peso para o centro e nivele os ombros',
-      'mantenha ombros nivelados': 'Seus ombros estão desnivelados. Distribua o peso igualmente nos dois lados',
-
-      // Assimetria bilateral
-      'assimetria detectada': 'Movimento assimétrico. Um lado está descendo mais que o outro. Distribua o peso nos dois pés',
-      'um lado está mais baixo': 'Um lado está mais baixo. Mantenha o movimento simétrico nos dois lados',
-
-      // Distância dos pés (stance)
-      'pés muito próximos': 'Seus pés estão muito juntos. Afaste-os na largura dos ombros',
-      'abra mais as pernas': 'Abra mais as pernas. Aumente a distância entre os pés',
-      'pés muito afastados': 'Seus pés estão muito afastados. Aproxime um pouco as pernas',
-      'aproxime as pernas': 'Reduza a abertura das pernas. Seus pés estão longe demais',
-
-      // Profundidade do movimento
-      'profundidade insuficiente': 'Você não está descendo o suficiente. Desça mais, até a coxa ficar paralela ao chão',
-      'desça mais': 'Desça mais. Você precisa atingir maior profundidade',
-      'muito raso': 'Movimento muito raso. Desça mais para completar o agachamento',
-
-      // Posição dos joelhos
-      'joelhos ultrapassando': 'Seus joelhos estão ultrapassando demais os pés. Jogue o quadril mais para trás',
-      'joelho muito à frente': 'Joelhos muito à frente. Empurre o quadril para trás ao descer',
-      'joelhos': 'Atenção à posição dos joelhos. Mantenha-os alinhados com os pés',
-
-      // Inclinação das costas
-      'costas muito inclinadas': 'Suas costas estão muito inclinadas para frente. Mantenha o tronco mais ereto',
-      'tronco para frente': 'Você está inclinando demais o tronco. Olhe para frente e endireite as costas',
-      'mantenha as costas': 'Endireite as costas. Mantenha o peito para cima',
-
-      // Calcanhares levantando
-      'calcanhares levantando': 'Seus calcanhares estão saindo do chão. Mantenha todo o pé apoiado',
-      'calcanhar': 'Calcanhar levantando. Pressione todo o pé contra o chão',
-      'pés no chão': 'Mantenha os pés completamente apoiados no chão',
-
-      // Alinhamento dos joelhos
-      'joelhos desalinhados': 'Seus joelhos estão desalinhados. Mantenha-os na direção dos pés',
-      'joelhos para dentro': 'Joelhos indo para dentro. Empurre-os para fora, alinhados com os pés',
-      'joelhos para fora': 'Joelhos abrindo demais. Mantenha-os alinhados com os pés',
-
-      // Velocidade do movimento
-      'muito rápido': 'Você está indo muito rápido. Controle melhor o movimento',
-      'movimento brusco': 'Movimento brusco. Desça e suba de forma mais controlada',
-
-      // Postura geral
-      'postura': 'Corrija sua postura. Mantenha o corpo alinhado',
-      'equilíbrio': 'Você está perdendo o equilíbrio. Distribua melhor o peso'
-    };
-
-    // Procura por palavras-chave e retorna instrução correspondente
-    for (const [keyword, instruction] of Object.entries(instructionMap)) {
-      if (message.includes(keyword)) {
-        return instruction;
-      }
-    }
-
-    // Se não encontrar mapeamento específico, remove emojis e retorna mensagem limpa
-    return technicalMessage.replace(/[🔴🟠🟡🟢]/g, '').trim();
   }
 
   function handleMetricsUpdate(metrics: {
@@ -490,12 +340,6 @@
       cancelAnimationFrame(animationFrameId);
       animationFrameId = null;
     }
-
-    // Para feedback de voz e reseta contadores
-    audioFeedbackStore.stopAudio();
-    window.speechSynthesis?.cancel();
-    lastSpokenRepCount = 0;
-    lastAudioFeedbackTime = 0;
   }
 
   async function finishTraining() {
@@ -515,10 +359,6 @@
         animationFrameId = null;
       }
 
-      // Para feedback de voz e reseta contadores
-      audioFeedbackStore.stopAudio();
-      window.speechSynthesis?.cancel();
-
       setTimeout(() => {
         analyzer = null;
         pose = null;
@@ -528,8 +368,6 @@
         feedbackMessages = [];
         currentFeedback = null;
         elapsedTime = 0;
-        lastSpokenRepCount = 0;
-        lastAudioFeedbackTime = 0;
       }, 2000);
 
       isLoading = false;
