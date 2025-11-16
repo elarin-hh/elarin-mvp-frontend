@@ -128,16 +128,26 @@
 </div>
 
 <style>
+  :global(:root) {
+    --app-header-offset: 0px;
+    --app-footer-offset: 0px;
+  }
+
   :global(.sa-root) {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    min-height: 100vh;
   }
 
   :global(.sa-viewport) {
     width: 100%;
     height: 100%;
+    min-height: 100%;
     overflow: auto;
+    padding-top: calc(var(--app-header-offset, 72px) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--app-footer-offset, 0px) + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
     scrollbar-width: none;
   }
 

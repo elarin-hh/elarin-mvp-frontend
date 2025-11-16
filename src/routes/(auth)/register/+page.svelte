@@ -169,7 +169,7 @@
 <div class="min-h-screen bg-black flex flex-col items-center justify-center px-4 py-8">
   <div class="mb-8 text-center">
     <img
-      src={asset('/logo-elarin.png')}
+      src={asset('/logo-elarin-white.png')}
       alt="Elarin"
       class="h-16 md:h-20 mx-auto"
     />

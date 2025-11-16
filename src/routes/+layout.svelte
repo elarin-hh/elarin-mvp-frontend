@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { onMount } from 'svelte';
+  import { afterNavigate } from '$app/navigation';
   import { initI18n } from '$lib/config/i18n';
   import { telemetry } from '$lib/services/telemetry.service';
   import { featureFlags } from '$lib/config/feature-flags';
@@ -15,6 +16,15 @@
     telemetry.init(featureFlags.enableTelemetry);
     telemetry.emit('app_started');
     isReady = true;
+  });
+
+  afterNavigate(() => {
+    const viewport = document.querySelector('.sa-viewport') as HTMLElement | null;
+    if (viewport) {
+      viewport.scrollTo({ top: 0 });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
   });
 </script>
 

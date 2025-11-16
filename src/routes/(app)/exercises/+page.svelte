@@ -144,7 +144,7 @@
     onClickOutside={handleClickOutside}
   />
 
-  <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
+  <main class="w-full px-4 pb-4 pt-4">
     {#if error}
       <div class="flex items-center justify-center py-20">
         <div class="text-center text-red-400">
