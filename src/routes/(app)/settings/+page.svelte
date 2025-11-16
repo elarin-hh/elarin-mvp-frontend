@@ -414,7 +414,6 @@
 
   .content {
     padding: 1rem;
-    padding-top: 5rem;
     width: 100%;
   }
 
