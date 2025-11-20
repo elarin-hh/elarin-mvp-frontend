@@ -13,19 +13,19 @@ export default defineConfig(({ mode }) => ({
         name: 'Elarin - AI Fitness Trainer',
         short_name: 'Elarin',
         description: 'Personal AI-powered fitness trainer with real-time exercise detection',
-        theme_color: '#0ea5e9',
-        background_color: '#ffffff',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         start_url: '.',
         scope: '.',
         icons: [
           {
-            src: 'icons/icon-192.png',
+            src: 'icons/icon-192-rounded.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icons/icon-512.png',
+            src: 'icons/icon-512-rounded.png',
             sizes: '512x512',
             type: 'image/png'
           }

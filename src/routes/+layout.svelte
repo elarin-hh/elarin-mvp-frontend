@@ -5,7 +5,6 @@
   import { initI18n } from '$lib/config/i18n';
   import { telemetry } from '$lib/services/telemetry.service';
   import { featureFlags } from '$lib/config/feature-flags';
-  import { ScrollArea } from '$lib/components/common';
   import ConsentBanner from '$lib/components/ConsentBanner.svelte';
 
   let isReady = $state(false);
@@ -19,19 +18,12 @@
   });
 
   afterNavigate(() => {
-    const viewport = document.querySelector('.sa-viewport') as HTMLElement | null;
-    if (viewport) {
-      viewport.scrollTo({ top: 0 });
-    } else {
-      window.scrollTo({ top: 0 });
-    }
+    window.scrollTo({ top: 0 });
   });
 </script>
 
 {#if isReady}
-  <ScrollArea className="min-h-screen" style="height:100vh;">
-    <slot />
-  </ScrollArea>
+  <slot />
   <ConsentBanner />
 {:else}
   <div class="min-h-screen flex items-center justify-center">

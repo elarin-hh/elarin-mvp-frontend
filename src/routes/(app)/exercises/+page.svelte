@@ -18,35 +18,11 @@
   let showAvatarMenu = $state(false);
 
   const exerciseImages: Record<string, string> = {
-    plank: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
-    squat: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&h=600&fit=crop',
-    legPress: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?w=800&h=600&fit=crop',
-    abdominal: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop',
-    crossOver: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=600&fit=crop',
-    biceps: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
-    triceps: 'https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&h=600&fit=crop',
-    glutes: 'https://images.unsplash.com/photo-1550345332-09e3ac987658?w=800&h=600&fit=crop',
-    shoulderPress:
-      'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&h=600&fit=crop',
-    deadlift: 'https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=800&h=600&fit=crop',
-    benchPress: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop',
-    pullUp: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=600&fit=crop',
-    dip: 'https://images.unsplash.com/photo-1623874514711-0f321325f318?w=800&h=600&fit=crop',
-    latPulldown:
-      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop',
-    cableRow: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
-    lunges: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=600&fit=crop',
-    calfRaise: 'https://images.unsplash.com/photo-1558017487-06bf9f82613a?w=800&h=600&fit=crop',
-    hamstringCurl:
-      'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=800&h=600&fit=crop',
-    chestFly: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&h=600&fit=crop',
-    lateralRaise:
-      'https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=800&h=600&fit=crop',
-    frontRaise: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop',
-    shrugs: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=800&h=600&fit=crop',
-    arnoldPress:
-      'https://images.unsplash.com/photo-1593476087123-36d1de271f08?w=800&h=600&fit=crop',
-    push_up: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop'
+    squat: asset('/exercisesImages/squat.webp'),
+    // pushup: asset('/exercisesImages/pushup.webp'),
+    // legPress: asset('/exercisesImages/leg-press.webp'),
+    // plank: asset('/exercisesImages/plank.webp'),
+    // lunge: asset('/exercisesImages/lunge.webp')
   };
 
   onMount(async () => {

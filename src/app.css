@@ -6,6 +6,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --app-header-height: 72px;
+    --app-mobile-footer-height: 72px;
+  }
+
   html,
   body {
     height: 100%;
@@ -15,7 +20,18 @@
 
   body {
     font-family: 'Nunito Sans', sans-serif;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--color-bg-dark);
+    color: var(--color-text-primary);
+    padding-top: var(--app-header-offset, var(--app-header-height, 72px));
+    padding-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      padding-bottom: var(--app-footer-offset, var(--app-mobile-footer-height, 72px));
+    }
   }
 
   /* Global input styles */
