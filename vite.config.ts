@@ -20,12 +20,12 @@ export default defineConfig(({ mode }) => ({
         scope: '.',
         icons: [
           {
-            src: 'icons/icon-192-rounded.png',
+            src: 'icons/icon-192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icons/icon-512-rounded.png',
+            src: 'icons/icon-512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -55,6 +55,13 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   server: {
     host: true,
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      host: 'localhost',
+      protocol: 'ws',
+      port: 5173
+    },
     allowedHosts: [
       'sharron-pokable-kaylee.ngrok-free.dev',
       '.ngrok-free.dev'

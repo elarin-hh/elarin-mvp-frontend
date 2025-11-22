@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import { tokenStorage } from '$lib/services/token-storage';
+import { env } from '$lib/config/env.config';
+
+const API_BASE_URL = env.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -16,23 +19,16 @@ class RestClient {
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
-    if (typeof window !== 'undefined') {
-      this.accessToken = localStorage.getItem('access_token');
-    }
+    this.accessToken = tokenStorage.getAccessToken();
   }
 
-  setToken(token: string | null) {
+  setToken(token: string | null, refreshToken?: string | null) {
     this.accessToken = token;
-    if (typeof window !== 'undefined') {
-      if (token) {
-        localStorage.setItem('access_token', token);
-      } else {
-        localStorage.removeItem('access_token');
-      }
-    }
+    tokenStorage.setTokens(token, refreshToken);
   }
 
   getToken(): string | null {
+    this.accessToken = this.accessToken || tokenStorage.getAccessToken();
     return this.accessToken;
   }
 
@@ -46,13 +42,15 @@ class RestClient {
         ...(options?.headers as Record<string, string>)
       };
 
-      if (this.accessToken) {
-        headers['Authorization'] = `Bearer ${this.accessToken}`;
+      const token = this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers
+        headers,
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -60,10 +58,6 @@ class RestClient {
       if (!response.ok) {
         if (response.status === 401) {
           this.setToken(null);
-
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
         }
 
         return {

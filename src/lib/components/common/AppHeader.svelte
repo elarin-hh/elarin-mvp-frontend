@@ -326,7 +326,7 @@
   }
 
   .header-container.scrolled {
-    padding: 8px;
+    padding: 0;
   }
 
   .header-glass {

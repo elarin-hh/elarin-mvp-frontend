@@ -2,9 +2,10 @@
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
+  import { tokenStorage } from '$lib/services/token-storage';
 
   onMount(() => {
-    const token = localStorage.getItem('access_token');
+    const token = tokenStorage.getAccessToken();
 
     if (token) {
       goto(`${base}/exercises`, { replaceState: true });

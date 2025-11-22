@@ -56,6 +56,10 @@
   let modeIndicator = $state('Híbrido (ML + Heurística)');
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
+  let hasSyncedCanvas = $state(false);
+  // Use stable minor versions to avoid 404/MIME issues
+  const MEDIAPIPE_POSE_VERSION = '0.5';
+  const MEDIAPIPE_UTILS_VERSION = '0.3';
 
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
@@ -105,26 +109,56 @@
 
   async function loadAllDependencies() {
     try {
-      loadingStage = 'Carregando MediaPipe Camera Utils...';
-      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', 'MediaPipe Camera Utils');
-      await waitForGlobal('Camera');
+      loadingStage = "Carregando dependencias...";
+      await Promise.all([
+        loadScript(
+          `https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@${MEDIAPIPE_UTILS_VERSION}/camera_utils.js`,
+          "MediaPipe Camera Utils"
+        ),
+        loadScript(
+          `https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@${MEDIAPIPE_UTILS_VERSION}/drawing_utils.js`,
+          "MediaPipe Drawing Utils"
+        ),
+        loadScript(
+          `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/pose.js`,
+          "MediaPipe Pose"
+        )
+      ]);
 
-      loadingStage = 'Carregando MediaPipe Drawing Utils...';
-      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js', 'MediaPipe Drawing Utils');
-      await waitForGlobal('drawConnectors');
-      await waitForGlobal('drawLandmarks');
+      await Promise.all([
+        waitForGlobal("Camera"),
+        waitForGlobal("drawConnectors"),
+        waitForGlobal("drawLandmarks"),
+        waitForGlobal("Pose"),
+        waitForGlobal("POSE_CONNECTIONS")
+      ]);
 
-      loadingStage = 'Carregando MediaPipe Pose...';
-      await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js', 'MediaPipe Pose');
-      await waitForGlobal('Pose');
-      await waitForGlobal('POSE_CONNECTIONS');
-
-      loadingStage = 'Preparando tudo...';
+      loadingStage = "Dependencias carregadas";
       scriptsLoaded = true;
-    } catch (error: unknown) {
-      loadingStage = 'Erro ao carregar';
-      errorMessage = `Falha ao carregar dependências: ${(error as Error).message}. Por favor, recarregue a página.`;
+    } catch (error) {
+      loadingStage = "Erro ao carregar";
+      errorMessage = "Falha ao carregar dependencias: ${error}. Recarregue a pagina ou verifique a conexao.";
       scriptsLoaded = false;
+    }
+  }
+
+  function syncCanvasSize(force = false) {
+    if (!videoElement || !canvasElement || !videoContainerElement) return;
+
+    // Usa o tamanho atual do container para evitar esticar/zoomer o layout
+    const rect = videoContainerElement.getBoundingClientRect();
+    const containerWidth = Math.round(rect.width);
+    const containerHeight = Math.round(rect.height);
+
+    const width = containerWidth || videoElement.clientWidth || videoElement.videoWidth;
+    const height = containerHeight || videoElement.clientHeight || videoElement.videoHeight;
+    if (!width || !height) return;
+
+    const needsResize = force || canvasElement.width !== width || canvasElement.height !== height;
+    if (needsResize) {
+      canvasElement.width = width;
+      canvasElement.height = height;
+      hasSyncedCanvas = true;
     }
   }
 
@@ -132,6 +166,7 @@
     try {
       isLoading = true;
       errorMessage = '';
+      hasSyncedCanvas = false;
 
       // LGPD Art. 11: Check biometric consent before accessing camera
       const consent = localStorage.getItem('elarin_biometric_consent');
@@ -177,7 +212,8 @@
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-        locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        locateFile: (file: string) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/${file}`
       });
 
       pose.setOptions({
@@ -212,6 +248,7 @@
       await camera.start();
       trainActions.start();
       integratedTrainActions.start();
+      syncCanvasSize();
       startTimer();
       isCameraRunning = true;
       isLoading = false;
@@ -229,6 +266,10 @@
       return;
     }
     lastFrameTime = now;
+
+    if (!hasSyncedCanvas) {
+      syncCanvasSize(true);
+    }
 
     const ctx = canvasElement.getContext('2d');
     if (!ctx) return;
@@ -336,6 +377,7 @@
     pauseTimer();
     isCameraRunning = false;
     hasStartedCamera = false;
+    hasSyncedCanvas = false;
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId);
       animationFrameId = null;
@@ -486,6 +528,7 @@
 
   function detectOrientation() {
     orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
+    syncCanvasSize(true);
   }
 
   const debouncedDetectOrientation = debounce(detectOrientation, 150);
