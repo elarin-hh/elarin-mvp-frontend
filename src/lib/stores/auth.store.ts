@@ -10,9 +10,10 @@ export interface User {
 }
 
 export interface AuthSession {
-  access_token: string;
-  refresh_token?: string;
-  user: User;
+  access_token?: string | null;
+  refresh_token?: string | null;
+  expires_in?: number | null;
+  token_type?: string | null;
 }
 
 interface AuthState {
@@ -66,11 +67,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       const { user, session } = response.data;
-
-      // Save token
-      if (session?.access_token) {
-        restClient.setToken(session.access_token);
-      }
+      const sessionInfo = session ? { expires_in: session.expires_in ?? null } : { expires_in: null };
 
       // Save is_dev flag in localStorage
       if (typeof window !== 'undefined') {
@@ -83,7 +80,7 @@ export const authActions = {
 
       authStore.update(() => ({
         user,
-        session,
+        session: sessionInfo,
         loading: false,
         error: null
       }));
@@ -130,11 +127,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       const { user, session } = response.data;
-
-      // Save token
-      if (session?.access_token) {
-        restClient.setToken(session.access_token);
-      }
+      const sessionInfo = session ? { expires_in: session.expires_in ?? null } : { expires_in: null };
 
       // Save is_dev flag in localStorage
       if (typeof window !== 'undefined') {
@@ -147,7 +140,7 @@ export const authActions = {
 
       authStore.update(() => ({
         user,
-        session,
+        session: sessionInfo,
         loading: false,
         error: null
       }));
@@ -177,11 +170,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       const { user, session } = response.data;
-
-      // Save token
-      if (session?.access_token) {
-        restClient.setToken(session.access_token);
-      }
+      const sessionInfo = session ? { expires_in: session.expires_in ?? null } : { expires_in: null };
 
       // Save is_dev flag in localStorage
       if (typeof window !== 'undefined') {
@@ -194,7 +183,7 @@ export const authActions = {
 
       authStore.update(() => ({
         user,
-        session,
+        session: sessionInfo,
         loading: false,
         error: null
       }));
@@ -217,8 +206,8 @@ export const authActions = {
   async logout() {
     authStore.update((state) => ({ ...state, loading: true }));
 
-    // Clear token, is_dev flag and state (no backend call needed for JWT logout)
-    restClient.setToken(null);
+    // Clear server HttpOnly cookies and local state
+    await restClient.post('/auth/logout');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('is_dev');
     }
@@ -231,18 +220,32 @@ export const authActions = {
    * Check if user has a valid session (on app load)
    */
   async checkSession() {
-    const token = restClient.getToken();
+    const response = await restClient.get<{ user: User }>('/auth/me');
 
-    if (!token) {
-      authStore.set(initialState);
-      return { success: false };
+    if (response.success && response.data?.user) {
+      const user = response.data.user;
+      const sessionInfo: AuthSession = { expires_in: null };
+
+      if (typeof window !== 'undefined') {
+        if (user.is_dev) {
+          localStorage.setItem('is_dev', 'true');
+        } else {
+          localStorage.removeItem('is_dev');
+        }
+      }
+
+      authStore.update(() => ({
+        user,
+        session: sessionInfo,
+        loading: false,
+        error: null
+      }));
+
+      return { success: true };
     }
 
-    // Token exists, assume valid for now
-    // In a production app, you'd validate it with the backend
-    authStore.update((state) => ({ ...state, loading: false }));
-
-    return { success: true };
+    authStore.set(initialState);
+    return { success: false };
   },
 
   /**

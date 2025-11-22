@@ -2,15 +2,11 @@
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
-  import { tokenStorage } from '$lib/services/token-storage';
+  import { authActions } from '$lib/stores/auth.store';
 
-  onMount(() => {
-    const token = tokenStorage.getAccessToken();
-
-    if (token) {
-      goto(`${base}/exercises`, { replaceState: true });
-    } else {
-      goto(`${base}/login`, { replaceState: true });
-    }
+  onMount(async () => {
+    const result = await authActions.checkSession();
+    const destination = result.success ? 'exercises' : 'login';
+    goto(`${base}/${destination}`, { replaceState: true });
   });
 </script>

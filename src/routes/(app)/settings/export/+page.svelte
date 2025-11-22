@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { tokenStorage } from '$lib/services/token-storage';
+  import { env } from '$lib/config/env.config';
 
   let loading = false;
   let error = '';
   let success = false;
+  const apiBaseUrl = env.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
   async function exportData() {
     loading = true;
@@ -11,16 +12,8 @@
     success = false;
 
     try {
-      const token = tokenStorage.getAccessToken();
-
-      if (!token) {
-        throw new Error('Voce precisa estar logado para exportar dados');
-      }
-
-      const response = await fetch('/api/users/me/export', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await fetch(`${apiBaseUrl}/auth/me/export`, {
+        credentials: 'include'
       });
 
       if (!response.ok) {

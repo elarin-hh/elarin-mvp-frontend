@@ -60,6 +60,28 @@
   // Use stable minor versions to avoid 404/MIME issues
   const MEDIAPIPE_POSE_VERSION = '0.5';
   const MEDIAPIPE_UTILS_VERSION = '0.3';
+  type ScriptDefinition = {
+    name: string;
+    src: string;
+    integrity: string;
+  };
+  const MEDIAPIPE_SCRIPTS: ScriptDefinition[] = [
+    {
+      name: 'MediaPipe Camera Utils',
+      src: `https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@${MEDIAPIPE_UTILS_VERSION}/camera_utils.js`,
+      integrity: 'sha384-q1KhAZhJcJXr3zfC3Tz07pBqQSabwFIZhXlmlUAB8s0zk4ETWERkIKGBCFQ5Jc3e'
+    },
+    {
+      name: 'MediaPipe Drawing Utils',
+      src: `https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@${MEDIAPIPE_UTILS_VERSION}/drawing_utils.js`,
+      integrity: 'sha384-W/7NVG2tfN12ld8faSFVOZ/W4UHFHze98GqEUPTl8EjY9QDwCKQIzoCHp8/IlIIr'
+    },
+    {
+      name: 'MediaPipe Pose',
+      src: `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/pose.js`,
+      integrity: 'sha384-qcJQ+n/ZcF15Xu2EoRupB4Av+GEAGeW0Td1mp2A90u0NdNLzLYQVMUq1Ax1YAHqk'
+    }
+  ];
 
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
@@ -78,11 +100,21 @@
     };
   }
 
-  function loadScript(src: string, name: string): Promise<void> {
+  function loadScript({ src, name, integrity }: ScriptDefinition): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!integrity) {
+        reject(new Error(`Integridade ausente para ${name}`));
+        return;
+      }
+
       const existingScript = document.querySelector(`script[src="${src}"]`);
       if (existingScript) {
-        resolve();
+        const existingIntegrity = (existingScript as HTMLScriptElement).integrity;
+        if (existingIntegrity && existingIntegrity === integrity) {
+          resolve();
+        } else {
+          reject(new Error(`Integridade invalida ou ausente para ${name}`));
+        }
         return;
       }
 
@@ -90,6 +122,8 @@
       script.src = src;
       script.async = true;
       script.crossOrigin = 'anonymous';
+      script.integrity = integrity;
+      script.referrerPolicy = 'no-referrer';
       script.onload = () => resolve();
       script.onerror = () => reject(new Error(`Falha ao carregar ${name}: ${src}`));
       document.head.appendChild(script);
@@ -110,20 +144,7 @@
   async function loadAllDependencies() {
     try {
       loadingStage = "Carregando dependencias...";
-      await Promise.all([
-        loadScript(
-          `https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@${MEDIAPIPE_UTILS_VERSION}/camera_utils.js`,
-          "MediaPipe Camera Utils"
-        ),
-        loadScript(
-          `https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@${MEDIAPIPE_UTILS_VERSION}/drawing_utils.js`,
-          "MediaPipe Drawing Utils"
-        ),
-        loadScript(
-          `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/pose.js`,
-          "MediaPipe Pose"
-        )
-      ]);
+      await Promise.all(MEDIAPIPE_SCRIPTS.map((scriptDef) => loadScript(scriptDef)));
 
       await Promise.all([
         waitForGlobal("Camera"),
@@ -137,7 +158,7 @@
       scriptsLoaded = true;
     } catch (error) {
       loadingStage = "Erro ao carregar";
-      errorMessage = "Falha ao carregar dependencias: ${error}. Recarregue a pagina ou verifique a conexao.";
+      errorMessage = `Falha ao carregar dependencias: ${error}. Recarregue a pagina ou verifique a conexao.`;
       scriptsLoaded = false;
     }
   }

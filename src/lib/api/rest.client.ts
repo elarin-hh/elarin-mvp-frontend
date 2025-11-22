@@ -1,4 +1,3 @@
-import { tokenStorage } from '$lib/services/token-storage';
 import { env } from '$lib/config/env.config';
 
 const API_BASE_URL = env.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
@@ -19,16 +18,13 @@ class RestClient {
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
-    this.accessToken = tokenStorage.getAccessToken();
   }
 
   setToken(token: string | null, refreshToken?: string | null) {
     this.accessToken = token;
-    tokenStorage.setTokens(token, refreshToken);
   }
 
   getToken(): string | null {
-    this.accessToken = this.accessToken || tokenStorage.getAccessToken();
     return this.accessToken;
   }
 
