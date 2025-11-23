@@ -7,6 +7,7 @@
   import { featureFlags } from '$lib/config/feature-flags';
   import ConsentBanner from '$lib/components/ConsentBanner.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
+  import { registerSW } from 'virtual:pwa-register';
 
   let isReady = $state(false);
 
@@ -15,6 +16,12 @@
   onMount(() => {
     telemetry.init(featureFlags.enableTelemetry);
     telemetry.emit('app_started');
+    registerSW({
+      immediate: true,
+      onOfflineReady() {
+        console.info('Aplicacao pronta para uso offline');
+      }
+    });
     isReady = true;
   });
 

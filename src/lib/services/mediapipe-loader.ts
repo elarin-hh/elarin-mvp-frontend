@@ -20,6 +20,7 @@ export const MEDIAPIPE_VERSIONS = {
 
 const MEDIAPIPE_CDN_BASE = 'https://cdn.jsdelivr.net/npm';
 const MEDIAPIPE_POSE_BASE = `${MEDIAPIPE_CDN_BASE}/@mediapipe/pose@${MEDIAPIPE_VERSIONS.pose}`;
+const SCRIPT_LOAD_TIMEOUT_MS = 12000;
 
 const MEDIAPIPE_SCRIPTS: ScriptDefinition[] = [
   {
@@ -85,6 +86,13 @@ function loadScript({ src, name, integrity }: ScriptDefinition): Promise<void> {
   });
 }
 
+async function loadScriptWithTimeout(def: ScriptDefinition): Promise<void> {
+  const timeoutError = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`Timeout ao carregar ${def.name}`)), SCRIPT_LOAD_TIMEOUT_MS)
+  );
+  return Promise.race([loadScript(def), timeoutError]);
+}
+
 async function waitForGlobal(globalName: string, timeout = 10000): Promise<unknown> {
   const startTime = Date.now();
   while (!(window as Record<string, unknown>)[globalName]) {
@@ -97,7 +105,7 @@ async function waitForGlobal(globalName: string, timeout = 10000): Promise<unkno
 }
 
 export async function loadPoseModules(): Promise<MediaPipePoseModules> {
-  await Promise.all(MEDIAPIPE_SCRIPTS.map((scriptDef) => loadScript(scriptDef)));
+  await Promise.all(MEDIAPIPE_SCRIPTS.map((scriptDef) => loadScriptWithTimeout(scriptDef)));
 
   const [Camera, drawConnectors, drawLandmarks, Pose, POSE_CONNECTIONS] = (await Promise.all([
     waitForGlobal('Camera'),

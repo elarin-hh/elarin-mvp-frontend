@@ -7,6 +7,8 @@
 
   const dispatch = createEventDispatcher();
 
+  const BIOMETRIC_CONSENT_TTL_DAYS = 180;
+
   let checkbox1 = false;
   let checkbox2 = false;
   let loading = false;
@@ -27,8 +29,14 @@
       });
 
       if (response.success) {
+        const now = new Date();
+        const expiresAt = new Date(
+          now.getTime() + BIOMETRIC_CONSENT_TTL_DAYS * 24 * 60 * 60 * 1000
+        );
+
         localStorage.setItem('elarin_biometric_consent', 'true');
-        localStorage.setItem('elarin_biometric_consent_ts', new Date().toISOString());
+        localStorage.setItem('elarin_biometric_consent_ts', now.toISOString());
+        localStorage.setItem('elarin_biometric_consent_exp', expiresAt.toISOString());
         dispatch('accepted');
         visible = false;
       } else {

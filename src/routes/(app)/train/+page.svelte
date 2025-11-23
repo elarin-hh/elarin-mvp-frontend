@@ -11,6 +11,10 @@
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
 
+  const BIOMETRIC_CONSENT_KEY = 'elarin_biometric_consent';
+  const BIOMETRIC_CONSENT_TS_KEY = 'elarin_biometric_consent_ts';
+  const BIOMETRIC_CONSENT_EXP_KEY = 'elarin_biometric_consent_exp';
+
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
     onResults: (callback: (results: PoseResults) => void) => void;
@@ -115,6 +119,40 @@
     }
   }
 
+  function clearBiometricConsentFlags() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(BIOMETRIC_CONSENT_KEY);
+    localStorage.removeItem(BIOMETRIC_CONSENT_TS_KEY);
+    localStorage.removeItem(BIOMETRIC_CONSENT_EXP_KEY);
+  }
+
+  function hasValidBiometricConsent(): boolean {
+    if (typeof window === 'undefined') return false;
+    const consent = localStorage.getItem(BIOMETRIC_CONSENT_KEY);
+    if (consent !== 'true') return false;
+
+    const expiresAt = localStorage.getItem(BIOMETRIC_CONSENT_EXP_KEY);
+    if (!expiresAt) return false;
+
+    const expDate = new Date(expiresAt);
+    if (Number.isNaN(expDate.getTime())) return false;
+
+    return expDate.getTime() > Date.now();
+  }
+
+  function ensureBiometricConsent(): boolean {
+    const valid = hasValidBiometricConsent();
+    if (!valid) {
+      clearBiometricConsentFlags();
+      showBiometricConsent = true;
+      isLoading = false;
+      return false;
+    }
+
+    hasBiometricConsent = true;
+    return true;
+  }
+
   async function startCamera() {
     try {
       isLoading = true;
@@ -122,14 +160,9 @@
       hasSyncedCanvas = false;
 
       // LGPD Art. 11: Check biometric consent before accessing camera
-      const consent = localStorage.getItem('elarin_biometric_consent');
-      if (!consent || consent !== 'true') {
-        showBiometricConsent = true;
-        isLoading = false;
+      if (!ensureBiometricConsent()) {
         return;
       }
-
-      hasBiometricConsent = true;
 
       if (!scriptsLoaded) {
         throw new Error('Dependências ainda não foram carregadas completamente. Aguarde...');
@@ -467,6 +500,7 @@
   }
 
   function handleBiometricConsentDenied() {
+    clearBiometricConsentFlags();
     showBiometricConsent = false;
     errorMessage = 'Consentimento biométrico negado. A câmera não pode ser iniciada sem sua autorização.';
     // Redirect back to exercises
