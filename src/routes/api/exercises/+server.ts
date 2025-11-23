@@ -20,15 +20,15 @@ function createAuthorizedFetch(fetchFn: typeof fetch, cookieHeader: string | nul
 
 export const GET: RequestHandler = async ({ fetch, request, cookies }) => {
   const cookieHeader = request.headers.get('cookie');
-  const token = cookies.get('access_token');
+  const token = cookies.get('access_token') ?? null;
 
   const authorizedFetch = createAuthorizedFetch(fetch, cookieHeader, token);
   const response = await exercisesApi.getAll(authorizedFetch);
 
-  if (response.success && response.data) {
-    return json(response.data);
+  if (!response.success) {
+    const status = response.status || 500;
+    return json({ message: response.error?.message || 'Falha ao carregar exercicios' }, { status });
   }
 
-  const status = response.status || 500;
-  return json({ message: response.error?.message || 'Falha ao carregar exercicios' }, { status });
+  return json(response.data);
 };

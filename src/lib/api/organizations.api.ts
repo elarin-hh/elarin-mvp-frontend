@@ -18,14 +18,14 @@ export const organizationsApi = {
   async getActiveOrganizations() {
     const response = await restClient.get<Organization[]>('/organizations/active');
 
-    if (response.success && response.data) {
-      return { success: true, data: response.data };
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error?.message || 'Failed to fetch active organizations'
+      };
     }
 
-    return {
-      success: false,
-      error: response.error?.message || 'Failed to fetch active organizations'
-    };
+    return { success: true, data: response.data };
   },
 
   /**
@@ -37,13 +37,13 @@ export const organizationsApi = {
       { user_id: userId, organization_id: organizationId }
     );
 
-    if (response.success && response.data) {
-      return { success: true, data: response.data };
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error?.message || 'Failed to link user to organization'
+      };
     }
 
-    return {
-      success: false,
-      error: response.error?.message || 'Failed to link user to organization'
-    };
+    return { success: true, data: response.data };
   }
 };

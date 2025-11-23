@@ -1,8 +1,12 @@
 /**
  * Exports centralizados de todas as APIs
+ * Evita conflitos de tipos com nomes iguais (Exercise)
  */
-export * from './rest.client';
-export * from './auth.api';
-export * from './exercises.api';
-export * from './training.api';
-export * from './organizations.api';
+export { restClient, createRestClient } from './rest.client';
+export type { ApiResponse } from './http-client';
+export { authApi } from './auth.api';
+export { exercisesApi } from './exercises.api';
+export type { Exercise as ExerciseDto } from './exercises.api';
+export { trainingApi } from './training.api';
+export type { Exercise as TrainingExercise } from './training.api';
+export { organizationsApi } from './organizations.api';

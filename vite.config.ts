@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         navigateFallback: '/offline.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === 'document',

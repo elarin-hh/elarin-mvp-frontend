@@ -48,14 +48,15 @@ export const authActions = {
 
     setAuthLoading(false);
 
-    if (response.success && response.data) {
-      applyAuthPayload(response.data);
-      telemetry.emit('login', { method: 'register' });
-      return { success: true };
+    if (!response.success) {
+      const message = response.error?.message || 'Registration failed';
+      setAuthError(message);
+      return { success: false, error: message };
     }
 
-    setAuthError(response.error?.message || 'Registration failed');
-    return { success: false, error: response.error?.message };
+    applyAuthPayload(response.data);
+    telemetry.emit('login', { method: 'register' });
+    return { success: true };
   },
 
   async registerWithOrganization(
@@ -82,14 +83,15 @@ export const authActions = {
 
     setAuthLoading(false);
 
-    if (response.success && response.data) {
-      applyAuthPayload(response.data);
-      telemetry.emit('login', { method: 'register_with_org' });
-      return { success: true };
+    if (!response.success) {
+      const message = response.error?.message || 'Registration failed';
+      setAuthError(message);
+      return { success: false, error: message };
     }
 
-    setAuthError(response.error?.message || 'Registration failed');
-    return { success: false, error: response.error?.message };
+    applyAuthPayload(response.data);
+    telemetry.emit('login', { method: 'register_with_org' });
+    return { success: true };
   },
 
   async login(email: string, password: string) {
@@ -99,14 +101,15 @@ export const authActions = {
     const response = await authService.login(email, password);
     setAuthLoading(false);
 
-    if (response.success && response.data) {
-      applyAuthPayload(response.data);
-      telemetry.emit('login', { method: 'password' });
-      return { success: true };
+    if (!response.success) {
+      const message = response.error?.message || 'Login failed';
+      setAuthError(message);
+      return { success: false, error: message };
     }
 
-    setAuthError(response.error?.message || 'Login failed');
-    return { success: false, error: response.error?.message };
+    applyAuthPayload(response.data);
+    telemetry.emit('login', { method: 'password' });
+    return { success: true };
   },
 
   async logout() {

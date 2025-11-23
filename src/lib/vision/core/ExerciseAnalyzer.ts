@@ -134,20 +134,19 @@ export class ExerciseAnalyzer {
    * Inicializa ML Classifier
    */
   private async initializeMLClassifier(): Promise<void> {
-    this.mlClassifier = new GenericExerciseClassifier(
-      (this.config.mlConfig as Record<string, unknown>) || {}
-    );
+    this.mlClassifier = new GenericExerciseClassifier(this.config.mlConfig || {});
 
     const rawModelPath =
-      this.config.modelPath ||
-      `./models/${(this.config as Record<string, unknown>).modelFile as string}`;
+      this.config.modelPath || (this.config.modelFile ? `./models/${this.config.modelFile}` : null);
+    if (!rawModelPath) {
+      throw new Error('Modelo do exercicio nao configurado');
+    }
     const modelPath = rawModelPath.startsWith('http')
       ? rawModelPath
       : rawModelPath.startsWith('/')
         ? rawModelPath
         : `${base}${rawModelPath.replace(/^\./, '')}`;
-    const metadataFile =
-      ((this.config as Record<string, unknown>).metadataFile as string | null) || null;
+    const metadataFile = this.config.metadataFile || null;
 
     await this.mlClassifier.loadModel(modelPath, metadataFile);
   }
@@ -167,10 +166,7 @@ export class ExerciseAnalyzer {
       }
 
       // Cria instância do validator usando o registry
-      this.heuristicValidator = createValidator(
-        exerciseId,
-        (this.config.heuristicConfig as Record<string, unknown>) || {}
-      );
+      this.heuristicValidator = createValidator(exerciseId, this.config.heuristicConfig || {});
     } catch (error) {
       this.heuristicValidator = null;
     }
@@ -180,9 +176,7 @@ export class ExerciseAnalyzer {
    * Inicializa Feedback System
    */
   private initializeFeedbackSystem(): void {
-    this.feedbackSystem = new FeedbackSystem(
-      (this.config.feedbackConfig as Record<string, unknown>) || {}
-    );
+    this.feedbackSystem = new FeedbackSystem(this.config.feedbackConfig || {});
   }
 
   /**
@@ -404,16 +398,15 @@ export class ExerciseAnalyzer {
    * Obtém configuração atual
    */
   getConfig(): AnalyzerConfig {
+    const feedbackConfig = this.feedbackSystem?.getConfig();
     return {
       exercise: this.config.exerciseName,
-      feedbackMode: (this.feedbackSystem as { config?: { feedbackMode?: string } })?.config
-        ?.feedbackMode,
-      mlWeight: (this.feedbackSystem as { config?: { mlWeight?: number } })?.config?.mlWeight,
-      heuristicWeight: (this.feedbackSystem as { config?: { heuristicWeight?: number } })?.config
-        ?.heuristicWeight,
+      feedbackMode: feedbackConfig?.feedbackMode,
+      mlWeight: feedbackConfig?.mlWeight,
+      heuristicWeight: feedbackConfig?.heuristicWeight,
       analysisInterval: this.analysisInterval,
-      mlConfig: this.config.mlConfig as Record<string, unknown>,
-      heuristicConfig: this.config.heuristicConfig as Record<string, unknown>
+      mlConfig: this.config.mlConfig as Record<string, unknown> | undefined,
+      heuristicConfig: this.config.heuristicConfig as Record<string, unknown> | undefined
     };
   }
 

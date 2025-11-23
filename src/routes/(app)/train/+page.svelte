@@ -6,7 +6,7 @@
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
   import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff } from 'lucide-svelte';
-  import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
+  import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
@@ -51,7 +51,7 @@
   let orientation = $state<'portrait' | 'landscape'>('landscape');
   let currentFeedback: FeedbackRecord | null = $state(null);
   let skeletonColor = $state('var(--color-success)');
-  let feedbackMessages: Array<{ type: string; text: string; severity: string; priority: number }> = $state([]);
+  let feedbackMessages: FeedbackMessage[] = $state([]);
   let isFeedbackEnabled = $state(true);
   let accuracy = $state(0);
   let confidence = $state(0);
@@ -71,7 +71,7 @@
   let animationFrameId: number | null = null;
 
 
-  function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void {
+  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
     let timeout: number | null = null;
     return (...args: Parameters<T>) => {
       if (timeout) clearTimeout(timeout);
@@ -195,7 +195,7 @@
         throw new Error('Falha ao inicializar analyzer');
       }
 
-      const Pose = (window as Record<string, unknown>).Pose as new (config: {
+      const Pose = (window as unknown as Record<string, unknown>).Pose as new (config: {
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
@@ -213,11 +213,12 @@
 
       pose.onResults(onPoseResults);
 
-      drawConnectors = (window as Record<string, unknown>).drawConnectors as typeof drawConnectors;
-      drawLandmarks = (window as Record<string, unknown>).drawLandmarks as typeof drawLandmarks;
-      POSE_CONNECTIONS = (window as Record<string, unknown>).POSE_CONNECTIONS;
+      const globalScope = window as unknown as Record<string, unknown>;
+      drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
+      drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
+      POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
 
-      const Camera = (window as Record<string, unknown>).Camera as new (
+      const Camera = globalScope.Camera as new (
         video: HTMLVideoElement,
         config: { onFrame: () => Promise<void>; width: number; height: number }
       ) => MediaPipeCamera;
@@ -246,6 +247,7 @@
 
   async function onPoseResults(results: PoseResults) {
     if (!canvasElement || !results.poseLandmarks) return;
+    const landmarks = results.poseLandmarks;
 
     const now = Date.now();
     if (now - lastFrameTime < FRAME_THROTTLE_MS) {
@@ -272,12 +274,12 @@
       ctx.scale(-1, 1);
       ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-      if (results.poseLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS) {
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+      if (landmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS) {
+        drawConnectors(ctx, landmarks, POSE_CONNECTIONS, {
           color: skeletonColor,
           lineWidth: 4
         });
-        drawLandmarks(ctx, results.poseLandmarks, {
+        drawLandmarks(ctx, landmarks, {
           color: skeletonColor,
           lineWidth: 2,
           radius: 6
@@ -287,9 +289,9 @@
       ctx.restore();
     });
 
-    if (analyzer && results.poseLandmarks) {
+    if (analyzer && landmarks) {
       queueMicrotask(() => {
-        analyzer?.analyzeFrame(results.poseLandmarks);
+        analyzer?.analyzeFrame(landmarks);
       });
     }
   }
@@ -415,9 +417,7 @@
       modeIndicator = 'Híbrido (ML + Heurística)';
     }
 
-    if (analyzer?.feedbackSystem) {
-      analyzer.feedbackSystem.setMode(mode);
-    }
+    analyzer?.setFeedbackMode(mode);
   }
 
   async function toggleFullscreen() {
@@ -532,10 +532,12 @@
     }
   });
 
-  onMount(async () => {
-    isDevMode = isDeveloper();
-    await loadAllDependencies();
-    detectOrientation();
+  onMount(() => {
+    (async () => {
+      isDevMode = isDeveloper();
+      await loadAllDependencies();
+      detectOrientation();
+    })();
 
     window.addEventListener('orientationchange', debouncedDetectOrientation);
     window.addEventListener('resize', debouncedDetectOrientation);
@@ -561,6 +563,8 @@
       window.removeEventListener('resize', debouncedDetectOrientation);
       if (viewport) {
         viewport.removeEventListener('scroll', handleScroll);
+      } else {
+        window.removeEventListener('scroll', handleWindowScroll);
       }
     };
   });

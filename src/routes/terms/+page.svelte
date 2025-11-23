@@ -3,7 +3,7 @@
   import { base } from '$app/paths';
 
   function goBack() {
-    goto(`${base}/`);
+    goto(`${base}/settings`);
   }
 </script>
 

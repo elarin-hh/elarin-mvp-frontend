@@ -17,10 +17,15 @@ export interface HeuristicConfig {
 
 export interface ExerciseConfig {
   exerciseName: string;
-  modelPath: string;
-  mlConfig: MLConfig;
-  heuristicConfig: HeuristicConfig;
-  feedbackConfig: FeedbackConfig;
+  modelPath?: string;
+  modelFile?: string;
+  exercisePath?: string | null;
+  validatorPath?: string | null;
+  metadataFile?: string | null;
+  analysisInterval?: number;
+  mlConfig?: MLConfig;
+  heuristicConfig?: HeuristicConfig;
+  feedbackConfig?: FeedbackConfig;
 }
 
 export interface Exercise {

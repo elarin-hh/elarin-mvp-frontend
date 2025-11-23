@@ -21,7 +21,7 @@ class TelemetryService {
   private consentTtlMs = 180 * 24 * 60 * 60 * 1000; // 180 days
 
   private readConsent(): { enabled: boolean; grantedAt?: string; expiresAt?: string } {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') return { enabled: false };
     const stored = localStorage.getItem(this.consentKey);
     if (!stored) return { enabled: false };
     try {

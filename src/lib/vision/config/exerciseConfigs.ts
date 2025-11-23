@@ -30,9 +30,9 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 			if (!path) return path ?? undefined;
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
 		};
-		config.modelPath = normalizePath(config.modelPath || `./exercises/${exerciseId}/${config.modelFile}`);
+		config.modelPath = normalizePath(config.modelPath || (config.modelFile ? `./exercises/${exerciseId}/${config.modelFile}` : undefined));
 		config.exercisePath = normalizePath(config.exercisePath);
-		config.validatorPath = normalizePath((config as Record<string, unknown>).validatorPath as string | undefined);
+		config.validatorPath = normalizePath(config.validatorPath || undefined);
 		config.metadataFile = config.metadataFile || null;
 		configCache[exerciseId] = config;
 		return config;

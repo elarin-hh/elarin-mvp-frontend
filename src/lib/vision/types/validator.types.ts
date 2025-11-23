@@ -11,6 +11,7 @@ export interface ValidationIssue {
   details?: Record<string, any>;
   timestamp?: number;
   affectedLandmarks?: number[];
+  isValid?: boolean;
 }
 
 export interface ValidationSummary {

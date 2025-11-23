@@ -95,13 +95,15 @@ async function loadScriptWithTimeout(def: ScriptDefinition): Promise<void> {
 
 async function waitForGlobal(globalName: string, timeout = 10000): Promise<unknown> {
   const startTime = Date.now();
-  while (!(window as Record<string, unknown>)[globalName]) {
+  type WindowGlobals = typeof window & Record<string, unknown>;
+  const globalScope = window as WindowGlobals;
+  while (!globalScope[globalName]) {
     if (Date.now() - startTime > timeout) {
       throw new Error(`Timeout aguardando ${globalName}`);
     }
     await waitFor(100);
   }
-  return (window as Record<string, unknown>)[globalName];
+  return globalScope[globalName];
 }
 
 export async function loadPoseModules(): Promise<MediaPipePoseModules> {

@@ -601,6 +601,13 @@ export class FeedbackSystem {
   }
 
   /**
+   * Retorna configuracao atual (copia)
+   */
+  getConfig(): FeedbackSystemConfig {
+    return { ...this.config };
+  }
+
+  /**
    * Reset
    */
   reset(): void {

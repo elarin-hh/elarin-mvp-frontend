@@ -124,7 +124,7 @@
     // Load user data
     const user = $authStore.user;
     if (user) {
-      userName = user.full_name || user.name || '';
+      userName = user.full_name || '';
       userEmail = user.email || '';
     }
 
@@ -275,7 +275,11 @@
                     </p>
                   </div>
                   <label class="switch">
-                    <input type="checkbox" checked={telemetryEnabled} on:change={toggleTelemetryConsent} />
+                    <input
+                      type="checkbox"
+                      bind:checked={telemetryEnabled}
+                      onchange={toggleTelemetryConsent}
+                    />
                     <span class="slider"></span>
                   </label>
                 </div>
@@ -400,8 +404,7 @@
                 <h3 class="subsection-title">Recursos Úteis</h3>
                 <ul class="resources-list">
                   <li><a href="/faq" class="resource-link">Perguntas Frequentes (FAQ)</a></li>
-                  <li><a href="/docs" class="resource-link">Documentação</a></li>
-                  <li><a href="/tutorials" class="resource-link">Tutoriais em Vídeo</a></li>
+                  <!-- <li><a href="/docs" class="resource-link">Documentação</a></li> -->
                   <li><a href="/privacy" class="resource-link">Política de Privacidade</a></li>
                   <li><a href="/terms" class="resource-link">Termos de Uso</a></li>
                 </ul>

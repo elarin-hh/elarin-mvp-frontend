@@ -29,8 +29,11 @@ export interface Feedback {
 }
 
 export interface FeedbackConfig {
-  feedbackMode: FeedbackMode;
-  mlWeight: number;
-  heuristicWeight: number;
-  maxFeedbackItems: number;
+  feedbackMode?: FeedbackMode;
+  mlWeight?: number;
+  heuristicWeight?: number;
+  maxFeedbackItems?: number;
+  minConfidenceThreshold?: number;
+  prioritizeCritical?: boolean;
+  [key: string]: unknown;
 }
