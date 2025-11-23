@@ -8,6 +8,7 @@
   import Modal from '$lib/components/common/Modal.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
   import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert, Building2, Shield, CheckCircle } from 'lucide-svelte';
+  import { telemetry } from '$lib/services/telemetry.service';
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
@@ -30,6 +31,12 @@
     'Análises avançadas',
     'Integrações personalizadas'
   ]);
+
+  // Privacy/consent
+  let telemetryEnabled = $state(false);
+  let telemetryExpiresAt = $state<string | null>(null);
+  let generalConsentExp = $state<string | null>(null);
+  let biometricConsentExp = $state<string | null>(null);
 
   function toggleAvatarMenu() {
     showAvatarMenu = !showAvatarMenu;
@@ -89,6 +96,29 @@
     }
   }
 
+  function loadConsentStatus() {
+    if (typeof window === 'undefined') return;
+
+    const telemetryStatus = telemetry.getStatus();
+    telemetryEnabled = telemetryStatus.enabled;
+    telemetryExpiresAt = telemetryStatus.expiresAt || null;
+
+    const consentExp = localStorage.getItem('elarin_consent_exp');
+    generalConsentExp = consentExp || null;
+
+    const biometricExp = localStorage.getItem('elarin_biometric_consent_exp');
+    biometricConsentExp = biometricExp || null;
+  }
+
+  function toggleTelemetryConsent() {
+    if (telemetryEnabled) {
+      telemetry.disable();
+    } else {
+      telemetry.enable();
+    }
+    loadConsentStatus();
+  }
+
 
   onMount(() => {
     // Load user data
@@ -120,6 +150,8 @@
         window.removeEventListener('scroll', handleWindowScroll);
       };
     }
+
+    loadConsentStatus();
   });
 </script>
 
@@ -226,6 +258,49 @@
                   placeholder="seu@email.com"
                   disabled
                 />
+              </div>
+
+
+              <div class="privacy-card">
+                <div class="privacy-header">
+                  <h3 class="section-subtitle">Privacidade e Consentimentos</h3>
+                  <p class="privacy-hint">Gerencie telemetria e visualize consentimentos ativos.</p>
+                </div>
+
+                <div class="consent-row">
+                  <div>
+                    <p class="consent-label">Telemetria (opt-in)</p>
+                    <p class="consent-meta">
+                      {telemetryEnabled ? `Ativo at? ${telemetryExpiresAt ?? 'indefinido'}` : 'Desativado'}
+                    </p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" checked={telemetryEnabled} on:change={toggleTelemetryConsent} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="consent-row static">
+                  <div>
+                    <p class="consent-label">Cookies essenciais</p>
+                    <p class="consent-meta">
+                      {generalConsentExp ? `V?lido at? ${generalConsentExp}` : 'Pendente/expirado'}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="consent-row static">
+                  <div>
+                    <p class="consent-label">Consentimento biom?trico</p>
+                    <p class="consent-meta">
+                      {biometricConsentExp ? `V?lido at? ${biometricConsentExp}` : 'Solicitado ao iniciar c?mera'}
+                    </p>
+                  </div>
+                </div>
+
+                <p class="privacy-note">
+                  Telemetria ? opcional e anonimiz?vel (eventos: login, erros de vis?o/rede/UI). Revogue a qualquer momento.
+                </p>
               </div>
 
               <div class="danger-zone">
@@ -525,6 +600,13 @@
     margin-bottom: 1rem;
   }
 
+  .section-subtitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
   .subsection-title {
     font-size: 1.2rem;
     font-weight: 600;
@@ -795,6 +877,104 @@
   :global(.btn-icon) {
     width: 18px !important;
     height: 18px !important;
+  }
+
+  .privacy-card {
+    padding: 1.25rem;
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    background: var(--color-bg-dark-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .privacy-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .privacy-hint {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .consent-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .consent-row:last-child {
+    border-bottom: none;
+  }
+
+  .consent-label {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .consent-meta {
+    margin: 2px 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: '';
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .switch input:checked + .slider {
+    background-color: var(--color-primary-500);
+  }
+
+  .switch input:checked + .slider:before {
+    transform: translateX(22px);
+  }
+
+  .privacy-note {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
   }
 
   .danger-zone {

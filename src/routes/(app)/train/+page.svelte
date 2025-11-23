@@ -10,6 +10,7 @@
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
+  import { telemetry } from '$lib/services/telemetry.service';
 
   const BIOMETRIC_CONSENT_KEY = 'elarin_biometric_consent';
   const BIOMETRIC_CONSENT_TS_KEY = 'elarin_biometric_consent_ts';
@@ -239,6 +240,7 @@
     } catch (error: unknown) {
       errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
       isLoading = false;
+      telemetry.emit('vision_error', { stage: 'start_camera', message: (error as Error).message });
     }
   }
 
@@ -330,6 +332,7 @@
 
   function handleError(error: Error) {
     errorMessage = error.message || 'Erro desconhecido';
+    telemetry.emit('vision_error', { stage: 'processing', message: error.message });
   }
 
   function startTimer() {

@@ -10,8 +10,7 @@ export const featureFlags = {
   enableExerciseDetection: false,
   
   // Telemetry and analytics (currently stub only)
-  enableTelemetry: false
+  enableTelemetry: true
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;
-

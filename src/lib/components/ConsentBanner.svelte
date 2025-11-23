@@ -4,9 +4,20 @@
 
   let showBanner = false;
   let isVisible = false;
+  const CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 ano
 
   onMount(() => {
     const consent = localStorage.getItem('elarin_consent');
+    const expiresAt = localStorage.getItem('elarin_consent_exp');
+
+    if (expiresAt) {
+      const expDate = new Date(expiresAt);
+      if (Number.isNaN(expDate.getTime()) || expDate.getTime() <= Date.now()) {
+        localStorage.removeItem('elarin_consent');
+        localStorage.removeItem('elarin_consent_timestamp');
+        localStorage.removeItem('elarin_consent_exp');
+      }
+    }
 
     if (!consent) {
       showBanner = true;
@@ -18,8 +29,10 @@
 
   function acceptConsent() {
     const timestamp = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + CONSENT_TTL_MS).toISOString();
     localStorage.setItem('elarin_consent', 'true');
     localStorage.setItem('elarin_consent_timestamp', timestamp);
+    localStorage.setItem('elarin_consent_exp', expiresAt);
 
     isVisible = false;
     setTimeout(() => {

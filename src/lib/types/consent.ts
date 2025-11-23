@@ -4,6 +4,7 @@ export interface ConsentFlags {
   telemetry: boolean;
   marketing?: boolean;
   updatedAt?: string;
+  expiresAt?: string;
 }
 
 export interface TelemetryConsent {

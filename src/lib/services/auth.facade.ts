@@ -6,6 +6,7 @@ import {
   resetAuthState,
   type User
 } from '$lib/stores/auth.store';
+import { telemetry } from '$lib/services/telemetry.service';
 
 function persistDevFlag(user?: User | null) {
   if (typeof window === 'undefined') return;
@@ -49,6 +50,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       applyAuthPayload(response.data);
+      telemetry.emit('login', { method: 'register' });
       return { success: true };
     }
 
@@ -82,6 +84,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       applyAuthPayload(response.data);
+      telemetry.emit('login', { method: 'register_with_org' });
       return { success: true };
     }
 
@@ -98,6 +101,7 @@ export const authActions = {
 
     if (response.success && response.data) {
       applyAuthPayload(response.data);
+      telemetry.emit('login', { method: 'password' });
       return { success: true };
     }
 
