@@ -563,13 +563,13 @@ export class FeedbackSystem {
    * Determina cor baseado em status e confiança
    */
   private getStatusColor(verdict: CombinedDecision['verdict'], confidence: number): string {
-    if (verdict === 'unknown') return '#888888';
+    if (verdict === 'unknown') return 'var(--color-skeleton-neutral)';
 
     if (verdict === 'correct') {
-      return confidence > 0.8 ? '#00ff88' : '#88ff88';
-    } else {
-      return confidence > 0.8 ? '#ff4444' : '#ff8844';
+      return 'var(--color-skeleton-correct)';
     }
+
+    return 'var(--color-skeleton-incorrect)';
   }
 
   /**

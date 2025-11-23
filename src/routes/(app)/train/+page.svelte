@@ -50,7 +50,20 @@
   let isDevMode = $state(false);
   let orientation = $state<'portrait' | 'landscape'>('landscape');
   let currentFeedback: FeedbackRecord | null = $state(null);
-  let skeletonColor = $state('var(--color-success)');
+  const SKELETON_COLORS = {
+    correct: 'var(--color-skeleton-correct)',
+    incorrect: 'var(--color-skeleton-incorrect)',
+    neutral: 'var(--color-skeleton-neutral)'
+  };
+
+  const resolveCssColor = (value: string): string => {
+    if (!value.startsWith('var(') || typeof document === 'undefined') return value;
+    const varName = value.slice(4, -1);
+    const resolved = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return resolved || value;
+  };
+
+  let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
   let isFeedbackEnabled = $state(true);
   let accuracy = $state(0);
@@ -299,8 +312,12 @@
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
-    if (feedback.visualization) {
-      skeletonColor = feedback.visualization.color;
+    if (feedback.combined.verdict === 'correct') {
+      skeletonColor = resolveCssColor(SKELETON_COLORS.correct);
+    } else if (feedback.combined.verdict === 'incorrect') {
+      skeletonColor = resolveCssColor(SKELETON_COLORS.incorrect);
+    } else {
+      skeletonColor = resolveCssColor(SKELETON_COLORS.neutral);
     }
 
     // Memoização: só atualiza se as mensagens mudaram

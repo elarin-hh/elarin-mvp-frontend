@@ -115,6 +115,11 @@ export const authActions = {
   async logout() {
     setAuthLoading(true);
     await authService.logout();
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch (e) {
+      console.error('Failed to clear local session cookies', e);
+    }
     persistDevFlag(null);
     resetAuthState();
     setAuthLoading(false);

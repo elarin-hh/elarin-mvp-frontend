@@ -134,7 +134,7 @@
       <div class="header-content px-4">
         <div class="desktop-header flex items-center justify-between">
           <button type="button" class="flex items-center logo-button" onclick={handleLogoClick}>
-            <img src={asset('/logo-elarin-white.png')} alt="Elarin" class="h-12 sm:h-14" />
+            <img src={asset('/logo-elarin-white.png')} alt="Elarin" class="h-10 sm:h-12" />
           </button>
 
           <div class="flex items-center gap-2 sm:gap-4">
