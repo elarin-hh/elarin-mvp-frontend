@@ -704,44 +704,42 @@
       <div class="mode-selector-panel">
         <h3>
           <Settings class="mode-panel-icon" />
-          Modo de Análise (Dev Only)
+          Modo de Análise
+          <span class="dev-pill">Dev only</span>
         </h3>
         <div class="mode-buttons">
           <button class="mode-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>
             <Microscope class="mode-btn-icon" />
-            Híbrido
-            <span class="mode-desc">ML + Heurística</span>
+            <div class="mode-labels">
+              <span class="mode-title">Híbrido</span>
+              <span class="mode-desc">ML + Heurística</span>
+            </div>
           </button>
 
           <button class="mode-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>
             <Bot class="mode-btn-icon" />
-            ML Only
-            <span class="mode-desc">Autoencoder</span>
+            <div class="mode-labels">
+              <span class="mode-title">ML only</span>
+              <span class="mode-desc">Autoencoder</span>
+            </div>
           </button>
 
           <button class="mode-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>
             <Ruler class="mode-btn-icon" />
-            Heurística Only
-            <span class="mode-desc">Biomecânica</span>
+            <div class="mode-labels">
+              <span class="mode-title">Heurística</span>
+              <span class="mode-desc">Biomecânica</span>
+            </div>
           </button>
         </div>
 
         <div class="mode-info">
           {#if feedbackMode === 'hybrid'}
-            <p>
-              <strong>Híbrido:</strong> Combina ML (detecção de anomalias) + Heurísticas (regras biomecânicas).
-              Mais preciso e com feedback específico.
-            </p>
+            <p><strong>Híbrido:</strong> ML + heurísticas biomecânicas.</p>
           {:else if feedbackMode === 'ml_only'}
-            <p>
-              <strong>ML Only:</strong> Apenas o modelo de Machine Learning (autoencoder). Detecta padrões
-              anômalos mas feedback é genérico.
-            </p>
+            <p><strong>ML only:</strong> Apenas autoencoder.</p>
           {:else}
-            <p>
-              <strong>Heurística Only:</strong> Apenas regras biomecânicas. Feedback muito específico
-              mas pode perder anomalias desconhecidas.
-            </p>
+            <p><strong>Heurística:</strong> Regras biomecânicas dedicadas.</p>
           {/if}
         </div>
       </div>
@@ -1191,50 +1189,77 @@
   }
 
   .mode-selector-panel {
-    max-width: 1280px;
-    margin: clamp(12px, 2.5vh, 20px) auto;
-    padding: clamp(15px, 3vw, 25px);
-    background: var(--color-bg-dark-secondary);
+    max-width: 980px;
+    margin: clamp(10px, 2vh, 16px) auto;
+    padding: clamp(12px, 3vw, 16px);
+    background: var(--color-glass-dark);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border-light);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.5vh, 12px);
   }
 
   .mode-selector-panel h3 {
-    color: var(--color-primary-500);
-    margin-bottom: clamp(12px, 2.5vh, 20px);
-    font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+    color: var(--color-text-primary);
+    margin: 0;
+    font-size: clamp(1rem, 2vw, 1.15rem);
     display: flex;
     align-items: center;
-    gap: clamp(6px, 1.5vw, 10px);
+    gap: clamp(6px, 1vw, 10px);
+    font-weight: 600;
+  }
+
+  .dev-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: var(--color-border-light);
+    color: var(--color-text-secondary);
+    border-radius: 999px;
+    font-size: clamp(10px, 1.6vw, 12px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   :global(.mode-panel-icon) {
-    width: clamp(16px, 2.5vw, 20px) !important;
-    height: clamp(16px, 2.5vw, 20px) !important;
+    width: clamp(16px, 2.5vw, 18px) !important;
+    height: clamp(16px, 2.5vw, 18px) !important;
     flex-shrink: 0;
   }
 
   .mode-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(10px, 2vw, 15px);
-    margin-bottom: clamp(12px, 2.5vh, 20px);
+    display: flex;
+    gap: clamp(8px, 1.5vw, 12px);
+    flex-wrap: wrap;
+    margin: 0;
   }
 
   .mode-btn {
     display: flex;
-    flex-direction: column;
+    flex: 1 1 180px;
     align-items: center;
-    gap: clamp(4px, 1vh, 8px);
-    padding: clamp(12px, 2.5vw, 20px);
+    gap: clamp(8px, 1vw, 10px);
+    padding: clamp(8px, 2vw, 12px);
     background: var(--color-glass-light);
-    border: 2px solid var(--color-border-light);
+    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
     color: var(--color-text-primary);
-    font-size: clamp(14px, 2vw, 16px);
+    font-size: clamp(13px, 1.8vw, 14px);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+  }
+
+  .mode-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+  }
+
+  .mode-title {
+    line-height: 1.2;
   }
 
   :global(.mode-btn-icon) {
@@ -1246,37 +1271,40 @@
   .mode-btn:hover {
     background: var(--color-border-light);
     border-color: var(--color-primary-600);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 
   .mode-btn.active {
-    background: rgba(142, 180, 40, 0.2);
+    background: rgba(142, 180, 40, 0.14);
     border-color: var(--color-primary-500);
-    box-shadow: 0 0 20px rgba(142, 180, 40, 0.3);
+    box-shadow: none;
   }
 
   .mode-desc {
-    font-size: clamp(10px, 1.5vw, 12px);
+    font-size: clamp(11px, 1.6vw, 12px);
     color: var(--color-text-secondary);
-    font-weight: 400;
+    font-weight: 500;
   }
 
   .mode-info {
-    background: rgba(0, 180, 255, 0.1);
-    border-left: clamp(3px, 0.5vw, 4px) solid var(--color-info);
-    padding: clamp(10px, 2vw, 15px);
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.2vw, 12px);
+    background: var(--color-glass-light);
+    border: 1px dashed var(--color-border-light);
+    padding: clamp(8px, 2vw, 12px);
     border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: clamp(12px, 1.8vw, 13px);
   }
 
   .mode-info p {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: clamp(12px, 1.8vw, 14px);
-    line-height: 1.6;
   }
 
   .mode-info strong {
-    color: var(--color-primary-500);
+    color: var(--color-text-primary);
   }
 
   @media (max-width: 768px) {
@@ -1318,8 +1346,12 @@
     }
 
     .mode-buttons {
-      grid-template-columns: 1fr;
-      gap: clamp(8px, 2vw, 10px);
+      flex-direction: column;
+      gap: clamp(8px, 2vw, 12px);
+    }
+
+    .mode-btn {
+      flex: 1 1 auto;
     }
 
     .mode-selector-panel {
@@ -1327,7 +1359,7 @@
     }
 
     .mode-selector-panel h3 {
-      font-size: clamp(1.1rem, 3vw, 1.3rem);
+      font-size: clamp(1.05rem, 3vw, 1.2rem);
     }
   }
 
