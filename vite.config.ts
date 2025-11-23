@@ -94,7 +94,8 @@ export default defineConfig(({ mode }) => ({
     },
     allowedHosts: [
       'sharron-pokable-kaylee.ngrok-free.dev',
-      '.ngrok-free.dev'
+      '.ngrok-free.dev',
+      '.ngrok-free.app'
     ],
     fs: {
       // Allow serving files from static folder
