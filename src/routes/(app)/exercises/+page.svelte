@@ -1,13 +1,11 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import type { ExerciseType } from '$lib/stores/train.store';
-  import { trainActions } from '$lib/stores/train.store';
-  import { integratedTrainActions } from '$lib/stores/integrated-train.store';
+  import { trainingActions, type ExerciseType } from '$lib/stores/training.store';
   import { telemetry } from '$lib/services/telemetry.service';
   import { onMount } from 'svelte';
   import { asset } from '$lib/utils/assets';
   import { exercisesApi, type Exercise } from '$lib/api/exercises.api';
-  import { authActions } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
 
@@ -73,8 +71,7 @@
       return;
     }
 
-    trainActions.selectExercise(exercise.type as ExerciseType);
-    await integratedTrainActions.selectExercise(exercise.type as ExerciseType);
+    trainingActions.selectExercise(exercise.type as ExerciseType);
     telemetry.emit('exercise_selected', { exercise: exercise.type });
     goto('/framer');
   }

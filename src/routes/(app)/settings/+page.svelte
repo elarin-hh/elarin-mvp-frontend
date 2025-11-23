@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { authActions, authStore } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
+  import { authStore } from '$lib/stores/auth.store';
   import { authApi } from '$lib/api/auth.api';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import Modal from '$lib/components/common/Modal.svelte';

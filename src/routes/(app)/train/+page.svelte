@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { trainActions } from '$lib/stores/train.store';
-  import { integratedTrainStore, integratedTrainActions } from '$lib/stores/integrated-train.store';
-  import { authActions } from '$lib/stores/auth.store';
+  import { trainingStore, trainingActions } from '$lib/stores/training.store';
+  import { authActions } from '$lib/services/auth.facade';
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
@@ -222,13 +221,13 @@
         throw new Error('Dependências ainda não foram carregadas completamente. Aguarde...');
       }
 
-      const selectedExercise = $integratedTrainStore.exerciseType;
+      const selectedExercise = $trainingStore.exerciseType;
       if (!selectedExercise) {
         throw new Error('Nenhum exercício selecionado. Por favor, volte e selecione um exercício.');
       }
 
-      if (!$integratedTrainStore.backendSessionId) {
-        await integratedTrainActions.selectExercise(selectedExercise);
+      if (!$trainingStore.backendSessionId) {
+        trainingActions.selectExercise(selectedExercise);
       }
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
@@ -290,8 +289,7 @@
       });
 
       await camera.start();
-      trainActions.start();
-      integratedTrainActions.start();
+      trainingActions.start();
       syncCanvasSize();
       startTimer();
       isCameraRunning = true;
@@ -374,7 +372,7 @@
       );
 
       if (repResult && (repResult as { isValid?: boolean }).isValid) {
-        integratedTrainActions.incrementReps();
+        trainingActions.incrementReps();
       }
     }
   }
@@ -416,8 +414,7 @@
   async function stopCamera() {
     if (camera) camera.stop();
     if (analyzer) analyzer.reset();
-    trainActions.pause();
-    integratedTrainActions.pause();
+    trainingActions.pause();
     pauseTimer();
     isCameraRunning = false;
     hasStartedCamera = false;
@@ -433,7 +430,7 @@
 
     try {
       isLoading = true;
-      await integratedTrainActions.finish();
+      await trainingActions.finish();
 
       if (camera) camera.stop();
       pauseTimer();
@@ -449,8 +446,7 @@
         analyzer = null;
         pose = null;
         camera = null;
-        integratedTrainActions.reset();
-        trainActions.reset();
+        trainingActions.reset();
         feedbackMessages = [];
         currentFeedback = null;
         elapsedTime = 0;
@@ -584,7 +580,7 @@
   let hasStartedCamera = $state(false);
 
   $effect(() => {
-    if (scriptsLoaded && $integratedTrainStore.exerciseType && !isCameraRunning && !isLoading && !analyzer && !hasStartedCamera) {
+    if (scriptsLoaded && $trainingStore.exerciseType && !isCameraRunning && !isLoading && !analyzer && !hasStartedCamera) {
       hasStartedCamera = true;
       setTimeout(() => startCamera(), 500);
     }
@@ -690,7 +686,7 @@
         <div class="metrics-overlay">
           <div class="metric">
             <span class="metric-label">Repetições</span>
-            <span class="metric-value">{$integratedTrainStore.reps}</span>
+            <span class="metric-value">{$trainingStore.reps}</span>
           </div>
           <div class="metric">
             <span class="metric-label">Tempo</span>

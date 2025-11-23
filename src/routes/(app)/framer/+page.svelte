@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import { authActions } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);

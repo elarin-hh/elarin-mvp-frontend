@@ -1,7 +1,7 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { authActions } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
   import { asset } from '$lib/utils/assets';
 
   let email = $state('');

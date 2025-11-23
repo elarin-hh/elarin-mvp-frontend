@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { authActions } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
   import { organizationsApi, type Organization } from '$lib/api/organizations.api';
   import { asset } from '$lib/utils/assets';
   import Select from '$lib/components/common/Select.svelte';

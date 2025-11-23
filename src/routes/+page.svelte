@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
-  import { authActions } from '$lib/stores/auth.store';
+  import { authActions } from '$lib/services/auth.facade';
 
   onMount(async () => {
     const result = await authActions.checkSession();
