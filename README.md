@@ -111,8 +111,8 @@ pnpm clean        # Limpa node_modules e build artifacts
 - **i18n**: svelte-i18n
 
 ### Computer Vision & ML
-- **Pose Detection**: MediaPipe Pose (33 landmarks)
-- **ML Runtime**: ONNX Runtime Web 1.23
+- **Pose Detection**: MediaPipe Pose (33 landmarks) via CDN (jsDelivr, versões pinadas com SRI)
+- **ML Runtime**: ONNX Runtime Web 1.23 via CDN (jsDelivr, versão pinada)
 - **Model**: Autoencoder (One-Class Learning)
 - **Processing**: 100% client-side (privacidade garantida)
 - **Validators**: Heurísticas biomecânicas customizadas

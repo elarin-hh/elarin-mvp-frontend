@@ -4,7 +4,7 @@
   let loading = false;
   let error = '';
   let success = false;
-  const apiBaseUrl = env.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  const apiBaseUrl = env.apiBaseUrl;
 
   async function exportData() {
     loading = true;

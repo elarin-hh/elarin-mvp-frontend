@@ -18,6 +18,7 @@ import { GenericExerciseClassifier } from '../ml/GenericClassifier';
 import { FeedbackSystem } from './FeedbackSystem';
 import type { BaseValidator } from '../validators/BaseValidator';
 import { createValidator, hasValidator } from '../validators';
+import { base } from '$app/paths';
 
 export interface AnalyzerMetrics {
   totalFrames: number;
@@ -137,17 +138,18 @@ export class ExerciseAnalyzer {
       (this.config.mlConfig as Record<string, unknown>) || {}
     );
 
-    const modelPath =
+    const rawModelPath =
       this.config.modelPath ||
       `./models/${(this.config as Record<string, unknown>).modelFile as string}`;
+    const modelPath = rawModelPath.startsWith('http')
+      ? rawModelPath
+      : rawModelPath.startsWith('/')
+        ? rawModelPath
+        : `${base}${rawModelPath.replace(/^\./, '')}`;
     const metadataFile =
       ((this.config as Record<string, unknown>).metadataFile as string | null) || null;
 
-    const success = await this.mlClassifier.loadModel(modelPath, metadataFile);
-
-    if (!success) {
-      throw new Error('Failed to load ML model');
-    }
+    await this.mlClassifier.loadModel(modelPath, metadataFile);
   }
 
   /**

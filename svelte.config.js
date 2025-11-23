@@ -10,18 +10,16 @@ const config = {
       mode: 'nonce',
       directives: {
         'default-src': ["'self'"],
-        'script-src': ["'self'", 'https://cdn.jsdelivr.net', "'wasm-unsafe-eval'"],
-        'style-src': ["'self'", 'https://fonts.googleapis.com'],
+        'script-src': ["'self'", 'https://cdn.jsdelivr.net'],
+        'style-src': ["'self'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
-        'font-src': ["'self'", 'https://fonts.gstatic.com', 'https://fonts.googleapis.com'],
+        'font-src': ["'self'"],
         'connect-src': [
           "'self'",
-          'https://cdn.jsdelivr.net',
-          'https://fonts.googleapis.com',
-          'https://fonts.gstatic.com',
           'http://localhost:3001',
           'http://localhost:3337',
           'https://*.ngrok-free.dev',
+          'https://cdn.jsdelivr.net',
           'ws:',
           'wss:'
         ],

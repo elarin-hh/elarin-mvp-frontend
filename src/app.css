@@ -1,5 +1,10 @@
 /* Import Design Tokens */
 @import './lib/styles/tokens.css';
+@import '@fontsource/nunito-sans/300.css';
+@import '@fontsource/nunito-sans/400.css';
+@import '@fontsource/nunito-sans/600.css';
+@import '@fontsource/nunito-sans/700.css';
+@import '@fontsource/nunito-sans/800.css';
 
 @tailwind base;
 @tailwind components;
@@ -26,6 +31,10 @@
     color: var(--color-text-primary);
     padding-top: var(--app-header-offset, var(--app-header-height, 72px));
     padding-bottom: 0;
+  }
+
+  .app-shell {
+    display: contents;
   }
 
   @media (max-width: 768px) {

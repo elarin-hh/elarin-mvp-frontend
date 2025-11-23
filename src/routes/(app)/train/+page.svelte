@@ -57,9 +57,28 @@
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
-  // Use stable minor versions to avoid 404/MIME issues
-  const MEDIAPIPE_POSE_VERSION = '0.5';
-  const MEDIAPIPE_UTILS_VERSION = '0.3';
+  // CDN, pinned MediaPipe assets
+  const MEDIAPIPE_VERSIONS = {
+    pose: '0.5.1675469404',
+    camera: '0.3.1675466862',
+    drawing: '0.3.1675466124'
+  };
+  const MEDIAPIPE_CDN_BASE = 'https://cdn.jsdelivr.net/npm';
+  const MEDIAPIPE_POSE_BASE = `${MEDIAPIPE_CDN_BASE}/@mediapipe/pose@${MEDIAPIPE_VERSIONS.pose}`;
+  const ALLOWED_POSE_ASSETS = new Set([
+    'pose_solution_packed_assets_loader.js',
+    'pose_solution_packed_assets.data',
+    'pose_solution_simd_wasm_bin.data',
+    'pose_solution_simd_wasm_bin.js',
+    'pose_solution_simd_wasm_bin.wasm',
+    'pose_solution_wasm_bin.js',
+    'pose_solution_wasm_bin.wasm',
+    'pose_landmark_full.tflite',
+    'pose_landmark_heavy.tflite',
+    'pose_landmark_lite.tflite',
+    'pose_web.binarypb',
+    'pose.js'
+  ]);
   type ScriptDefinition = {
     name: string;
     src: string;
@@ -67,18 +86,18 @@
   };
   const MEDIAPIPE_SCRIPTS: ScriptDefinition[] = [
     {
-      name: 'MediaPipe Camera Utils',
-      src: `https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@${MEDIAPIPE_UTILS_VERSION}/camera_utils.js`,
+      name: `MediaPipe Camera Utils v${MEDIAPIPE_VERSIONS.camera}`,
+      src: `${MEDIAPIPE_CDN_BASE}/@mediapipe/camera_utils@${MEDIAPIPE_VERSIONS.camera}/camera_utils.js`,
       integrity: 'sha384-q1KhAZhJcJXr3zfC3Tz07pBqQSabwFIZhXlmlUAB8s0zk4ETWERkIKGBCFQ5Jc3e'
     },
     {
-      name: 'MediaPipe Drawing Utils',
-      src: `https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@${MEDIAPIPE_UTILS_VERSION}/drawing_utils.js`,
+      name: `MediaPipe Drawing Utils v${MEDIAPIPE_VERSIONS.drawing}`,
+      src: `${MEDIAPIPE_CDN_BASE}/@mediapipe/drawing_utils@${MEDIAPIPE_VERSIONS.drawing}/drawing_utils.js`,
       integrity: 'sha384-W/7NVG2tfN12ld8faSFVOZ/W4UHFHze98GqEUPTl8EjY9QDwCKQIzoCHp8/IlIIr'
     },
     {
-      name: 'MediaPipe Pose',
-      src: `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/pose.js`,
+      name: `MediaPipe Pose v${MEDIAPIPE_VERSIONS.pose}`,
+      src: `${MEDIAPIPE_POSE_BASE}/pose.js`,
       integrity: 'sha384-qcJQ+n/ZcF15Xu2EoRupB4Av+GEAGeW0Td1mp2A90u0NdNLzLYQVMUq1Ax1YAHqk'
     }
   ];
@@ -233,8 +252,12 @@
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-        locateFile: (file: string) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${MEDIAPIPE_POSE_VERSION}/${file}`
+        locateFile: (file: string) => {
+          if (!ALLOWED_POSE_ASSETS.has(file)) {
+            throw new Error(`Asset MediaPipe nao permitido: ${file}`);
+          }
+          return `${MEDIAPIPE_POSE_BASE}/${file}`;
+        }
       });
 
       pose.setOptions({

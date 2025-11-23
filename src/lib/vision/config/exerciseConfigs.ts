@@ -5,6 +5,7 @@
  * Carrega configurações de exercícios de arquivos JSON em static/exercises/
  */
 
+import { base } from '$app/paths';
 import type { ExerciseConfig } from '../types/exercise.types';
 
 // Cache de configurações
@@ -19,12 +20,20 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 	}
 
 	try {
-		const response = await fetch(`/exercises/${exerciseId}/config.json`);
+		const response = await fetch(`${base}/exercises/${exerciseId}/config.json`);
 		if (!response.ok) {
 			return null;
 		}
 
 		const config: ExerciseConfig = await response.json();
+		const normalizePath = (path?: string | null) => {
+			if (!path) return path ?? undefined;
+			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
+		};
+		config.modelPath = normalizePath(config.modelPath || `./exercises/${exerciseId}/${config.modelFile}`);
+		config.exercisePath = normalizePath(config.exercisePath);
+		config.validatorPath = normalizePath((config as Record<string, unknown>).validatorPath as string | undefined);
+		config.metadataFile = config.metadataFile || null;
 		configCache[exerciseId] = config;
 		return config;
 	} catch (error) {
@@ -44,7 +53,7 @@ export function getExerciseConfig(exerciseId: string): ExerciseConfig | null {
  */
 export async function getAvailableExercises(): Promise<string[]> {
 	try {
-		const response = await fetch('/exercises.json');
+		const response = await fetch(`${base}/exercises.json`);
 		if (!response.ok) {
 			return ['squat']; // fallback
 		}

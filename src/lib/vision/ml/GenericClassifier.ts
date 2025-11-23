@@ -14,11 +14,15 @@
 
 import type { PoseLandmarks } from '../types';
 import type { MLResult } from '../core/FeedbackSystem';
+import { assets } from '$app/paths';
 import * as ort from 'onnxruntime-web';
 
-// Configure ONNX Runtime Web to use WASM from CDN
+// Configure ONNX Runtime Web to load WASM from self-hosted static assets
 if (typeof window !== 'undefined') {
   ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0/dist/';
+  ort.env.wasm.numThreads = 1; // evita requisito de COOP/COEP para threads
+  ort.env.wasm.proxy = false; // executa no main thread para reduzir dependências de worker
+  ort.env.wasm.simd = false; // força build single-thread sem SIMD para maximizar compatibilidade/CSP
 }
 
 export interface ClassifierConfig {
@@ -95,7 +99,7 @@ export class GenericExerciseClassifier {
   async loadModel(
     modelPath: string = './models/autoencoder.onnx',
     metadataFile: string | null = null
-  ): Promise<boolean> {
+  ): Promise<void> {
     try {
       // Load model
       this.session = await ort.InferenceSession.create(modelPath);
@@ -123,9 +127,9 @@ export class GenericExerciseClassifier {
       }
 
       this.isLoaded = true;
-      return true;
     } catch (error) {
-      return false;
+      console.error('ONNX model load failed', error);
+      throw error instanceof Error ? error : new Error('Failed to load ML model');
     }
   }
 
