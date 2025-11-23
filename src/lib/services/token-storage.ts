@@ -1,13 +1,14 @@
-// Tokens are now stored in HttpOnly cookies set exclusively by the backend.
-// Frontend code should never read or write them directly.
-export const tokenStorage = {
+import type { TokenStorage } from '$lib/api/http-client';
+
+/**
+ * Tokens are stored in HttpOnly cookies set by the backend.
+ * We keep a no-op implementation to satisfy the client interface and tests.
+ */
+export const tokenStorage: TokenStorage = {
   getAccessToken(): string | null {
     return null;
   },
-  getRefreshToken(): string | null {
-    return null;
-  },
-  setTokens() {
+  setAccessToken() {
     // no-op: cookies are managed server-side
   },
   clear() {

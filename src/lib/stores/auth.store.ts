@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
-import { restClient } from '$lib/api/rest.client';
 import { organizationsApi } from '$lib/api/organizations.api';
+import { authService } from '$lib/services/auth.service';
 
 export interface User {
   id: string;
@@ -53,16 +53,13 @@ export const authActions = {
   ) {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
-    const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/auth/register',
-      {
-        email,
-        password,
-        full_name: fullName,
-        birth_date: birthDate,
-        locale: locale || 'pt-BR',
-        marketing_consent: marketingConsent || false
-      }
+    const response = await authService.register(
+      email,
+      password,
+      fullName,
+      birthDate,
+      locale,
+      marketingConsent
     );
 
     if (response.success && response.data) {
@@ -112,17 +109,14 @@ export const authActions = {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
     // Register user with organization in a single request
-    const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/auth/register-with-organization',
-      {
-        email,
-        password,
-        full_name: fullName,
-        birth_date: birthDate,
-        organization_id: organizationId,
-        locale: locale || 'pt-BR',
-        marketing_consent: marketingConsent || false
-      }
+    const response = await authService.registerWithOrganization(
+      email,
+      password,
+      fullName,
+      birthDate,
+      organizationId,
+      locale,
+      marketingConsent
     );
 
     if (response.success && response.data) {
@@ -163,10 +157,7 @@ export const authActions = {
   async login(email: string, password: string) {
     authStore.update((state) => ({ ...state, loading: true, error: null }));
 
-    const response = await restClient.post<{ user: User; session: AuthSession }>(
-      '/auth/login',
-      { email, password }
-    );
+    const response = await authService.login(email, password);
 
     if (response.success && response.data) {
       const { user, session } = response.data;
@@ -207,7 +198,7 @@ export const authActions = {
     authStore.update((state) => ({ ...state, loading: true }));
 
     // Clear server HttpOnly cookies and local state
-    await restClient.post('/auth/logout');
+    await authService.logout();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('is_dev');
     }
@@ -220,10 +211,10 @@ export const authActions = {
    * Check if user has a valid session (on app load)
    */
   async checkSession() {
-    const response = await restClient.get<{ user: User }>('/auth/me');
+    const response = await authService.me();
 
     if (response.success && response.data?.user) {
-      const user = response.data.user;
+      const user = response.data.user as User;
       const sessionInfo: AuthSession = { expires_in: null };
 
       if (typeof window !== 'undefined') {

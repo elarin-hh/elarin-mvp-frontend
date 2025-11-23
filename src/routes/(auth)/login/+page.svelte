@@ -1,8 +1,7 @@
-<script lang="ts">
-  import { _ } from 'svelte-i18n';
+﻿<script lang="ts">
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { authService } from '$lib/services/supabase.client';
+  import { authActions } from '$lib/stores/auth.store';
   import { asset } from '$lib/utils/assets';
 
   let email = $state('');
@@ -15,14 +14,15 @@
     isLoading = true;
 
     try {
-      const result = await authService.signIn(email, password);
+      const result = await authActions.login(email, password);
 
-      if (result.error) {
-        error = result.error.message || 'Credenciais inválidas';
+      if (!result.success) {
+        error = result.error || 'Credenciais invalidas';
         isLoading = false;
-      } else {
-        goto(`${base}/exercises`);
+        return;
       }
+
+      goto(`${base}/exercises`);
     } catch (e: any) {
       error = e.message || 'Erro ao fazer login';
       isLoading = false;
@@ -47,9 +47,9 @@
 
 <div class="min-h-screen bg-black flex flex-col items-center justify-center px-4">
   <div class="mb-16 text-center">
-    <img 
-      src={asset('/logo-elarin-white.png')} 
-      alt="Elarin" 
+    <img
+      src={asset('/logo-elarin-white.png')}
+      alt="Elarin"
       class="h-20 mx-auto"
     />
   </div>
@@ -94,13 +94,13 @@
       onclick={goToRegister}
       class="text-white/70 hover:text-white text-sm transition-colors"
     >
-      Não tem uma conta? Clique aqui
+      Nao tem uma conta? Clique aqui
     </button>
   </div>
 
   <div class="absolute bottom-8 text-center">
     <p class="text-white/50 text-sm">
-      Política de Privacidade e Termos de Uso
+      Politica de Privacidade e Termos de Uso
     </p>
   </div>
 </div>
