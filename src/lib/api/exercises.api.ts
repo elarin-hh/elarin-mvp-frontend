@@ -1,6 +1,6 @@
 // Exercises API - Elarin NestJS Backend Integration
 // Uses NestJS endpoints: /exercises
-import { restClient, type ApiResponse } from './rest.client';
+import { createRestClient, restClient, type ApiResponse } from './rest.client';
 
 /**
  * Exercise model from backend (user-specific, auto-created on registration)
@@ -14,6 +14,9 @@ export interface Exercise {
   created_at: string;
 }
 
+const getClient = (fetchFn?: typeof fetch) =>
+  fetchFn ? createRestClient(fetchFn) : restClient;
+
 /**
  * Exercises API client
  * All endpoints require authentication (Bearer token)
@@ -26,7 +29,7 @@ export const exercisesApi = {
    * GET /exercises
    * @returns List of all user exercises
    */
-  async getAll(): Promise<ApiResponse<Exercise[]>> {
-    return restClient.get<Exercise[]>('/exercises');
-  },
+  async getAll(fetchFn?: typeof fetch): Promise<ApiResponse<Exercise[]>> {
+    return getClient(fetchFn).get<Exercise[]>('/exercises');
+  }
 };

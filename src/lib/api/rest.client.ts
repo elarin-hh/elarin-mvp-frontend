@@ -4,10 +4,14 @@ import { tokenStorage } from '$lib/services/token-storage';
 
 const API_BASE_URL = env.apiBaseUrl;
 
-export const restClient = createHttpClient({
-  baseUrl: API_BASE_URL,
-  tokenStorage
-});
+export const createRestClient = (fetchFn?: typeof fetch) =>
+  createHttpClient({
+    baseUrl: API_BASE_URL,
+    tokenStorage,
+    fetchFn
+  });
+
+export const restClient = createRestClient();
 
 export type { ApiResponse };
 export { createHttpClient };

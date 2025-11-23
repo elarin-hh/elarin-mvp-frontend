@@ -1,30 +1,35 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
+  import type { PageData } from './$types';
   import { trainingActions, type ExerciseType } from '$lib/stores/training.store';
   import { telemetry } from '$lib/services/telemetry.service';
   import { onMount } from 'svelte';
   import { asset } from '$lib/utils/assets';
-  import { exercisesApi, type Exercise } from '$lib/api/exercises.api';
+  import type { Exercise } from '$lib/api/exercises.api';
   import { authActions } from '$lib/services/auth.facade';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
+  import ErrorState from '$lib/components/common/ErrorState.svelte';
+  import EmptyState from '$lib/components/common/EmptyState.svelte';
+
+  let { data }: { data: PageData } = $props();
 
   let isScrolled = $state(false);
-  let exercises = $state<Exercise[]>([]);
-  let isLoading = $state(true);
-  let error = $state('');
+  let exercises = $state<Exercise[]>(data.exercises ?? []);
+  let errorMessage = $state(data.errorMessage ?? '');
   let showAvatarMenu = $state(false);
+  let isRefreshing = $state(false);
 
   const exerciseImages: Record<string, string> = {
-    squat: asset('/exercisesImages/squat.webp'),
-    // pushup: asset('/exercisesImages/pushup.webp'),
-    // legPress: asset('/exercisesImages/leg-press.webp'),
-    // plank: asset('/exercisesImages/plank.webp'),
-    // lunge: asset('/exercisesImages/lunge.webp')
+    squat: asset('/exercisesImages/squat.webp')
   };
 
-  onMount(async () => {
-    await loadExercises();
+  $effect(() => {
+    exercises = data.exercises ?? [];
+    errorMessage = data.errorMessage ?? '';
+  });
+
+  onMount(() => {
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       isScrolled = target.scrollTop > 50;
@@ -37,32 +42,25 @@
       return () => {
         viewport.removeEventListener('scroll', handleScroll);
       };
-    } else {
-      const handleWindowScroll = () => {
-        isScrolled = window.scrollY > 50;
-      };
-      window.addEventListener('scroll', handleWindowScroll, { passive: true });
-      return () => {
-        window.removeEventListener('scroll', handleWindowScroll);
-      };
     }
+
+    const handleWindowScroll = () => {
+      isScrolled = window.scrollY > 50;
+    };
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll);
+    };
   });
 
-  async function loadExercises() {
+  async function handleRefresh() {
+    isRefreshing = true;
     try {
-      isLoading = true;
-      error = '';
-      const response = await exercisesApi.getAll();
-
-      if (response.success && response.data) {
-        exercises = response.data;
-      } else {
-        error = response.error?.message || 'Falha ao carregar exercícios';
-      }
-    } catch (e: unknown) {
-      error = (e as Error).message || 'Falha ao carregar exercícios';
+      await invalidateAll();
+    } catch (err) {
+      errorMessage = (err as Error)?.message || 'Falha ao recarregar exercicios';
     } finally {
-      isLoading = false;
+      isRefreshing = false;
     }
   }
 
@@ -118,32 +116,21 @@
   />
 
   <main class="w-full px-4 pb-4 pt-4">
-    {#if error}
-      <div class="flex items-center justify-center py-20">
-        <div class="text-center text-red-400">
-          <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <p class="font-semibold mb-2">Erro ao carregar exercícios</p>
-          <p class="text-sm text-white/50">{error}</p>
-          <button onclick={() => loadExercises()} class="button-primary px-6 py-2 mt-4 text-white">
-            Tentar novamente
-          </button>
-        </div>
-      </div>
-    {:else if !isLoading && exercises.length === 0}
-      <div class="flex items-center justify-center py-20">
-        <div class="text-center text-white/70">
-          <p class="font-semibold mb-2">Nenhum exercício disponível</p>
-          <p class="text-sm">Entre em contato com o suporte</p>
-        </div>
-      </div>
-    {:else if exercises.length > 0}
+    {#if errorMessage}
+      <ErrorState
+        fullHeight={true}
+        title="Erro ao carregar exercicios"
+        description={errorMessage}
+        actionLabel="Tentar novamente"
+        onAction={handleRefresh}
+      />
+    {:else if exercises.length === 0}
+      <EmptyState
+        fullHeight={true}
+        title="Nenhum exercicio disponivel"
+        description="Entre em contato com o suporte."
+      />
+    {:else}
       <div
         class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
@@ -206,9 +193,10 @@
     {/if}
   </main>
 
-  {#if isLoading}
-    <Loading message="Carregando exercícios..." />
+  {#if isRefreshing}
+    <Loading message="Recarregando exercicios..." />
   {/if}
+
 </div>
 
 <style>

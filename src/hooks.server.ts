@@ -31,7 +31,7 @@ const CSP = [
   "default-src 'self'",
   scriptSrc,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://cdn.jsdelivr.net",
+  "img-src 'self' data: blob: https://cdn.jsdelivr.net https://images.unsplash.com",
   "font-src 'self' data:",
   connectSrc,
   "frame-src 'none'",

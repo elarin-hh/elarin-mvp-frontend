@@ -9,6 +9,7 @@
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
+  import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -56,51 +57,6 @@
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
-  // CDN, pinned MediaPipe assets
-  const MEDIAPIPE_VERSIONS = {
-    pose: '0.5.1675469404',
-    camera: '0.3.1675466862',
-    drawing: '0.3.1675466124'
-  };
-  const MEDIAPIPE_CDN_BASE = 'https://cdn.jsdelivr.net/npm';
-  const MEDIAPIPE_POSE_BASE = `${MEDIAPIPE_CDN_BASE}/@mediapipe/pose@${MEDIAPIPE_VERSIONS.pose}`;
-  const ALLOWED_POSE_ASSETS = new Set([
-    'pose_solution_packed_assets_loader.js',
-    'pose_solution_packed_assets.data',
-    'pose_solution_simd_wasm_bin.data',
-    'pose_solution_simd_wasm_bin.js',
-    'pose_solution_simd_wasm_bin.wasm',
-    'pose_solution_wasm_bin.js',
-    'pose_solution_wasm_bin.wasm',
-    'pose_landmark_full.tflite',
-    'pose_landmark_heavy.tflite',
-    'pose_landmark_lite.tflite',
-    'pose_web.binarypb',
-    'pose.js'
-  ]);
-  type ScriptDefinition = {
-    name: string;
-    src: string;
-    integrity: string;
-  };
-  const MEDIAPIPE_SCRIPTS: ScriptDefinition[] = [
-    {
-      name: `MediaPipe Camera Utils v${MEDIAPIPE_VERSIONS.camera}`,
-      src: `${MEDIAPIPE_CDN_BASE}/@mediapipe/camera_utils@${MEDIAPIPE_VERSIONS.camera}/camera_utils.js`,
-      integrity: 'sha384-q1KhAZhJcJXr3zfC3Tz07pBqQSabwFIZhXlmlUAB8s0zk4ETWERkIKGBCFQ5Jc3e'
-    },
-    {
-      name: `MediaPipe Drawing Utils v${MEDIAPIPE_VERSIONS.drawing}`,
-      src: `${MEDIAPIPE_CDN_BASE}/@mediapipe/drawing_utils@${MEDIAPIPE_VERSIONS.drawing}/drawing_utils.js`,
-      integrity: 'sha384-W/7NVG2tfN12ld8faSFVOZ/W4UHFHze98GqEUPTl8EjY9QDwCKQIzoCHp8/IlIIr'
-    },
-    {
-      name: `MediaPipe Pose v${MEDIAPIPE_VERSIONS.pose}`,
-      src: `${MEDIAPIPE_POSE_BASE}/pose.js`,
-      integrity: 'sha384-qcJQ+n/ZcF15Xu2EoRupB4Av+GEAGeW0Td1mp2A90u0NdNLzLYQVMUq1Ax1YAHqk'
-    }
-  ];
-
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
   let POSE_CONNECTIONS: unknown = null;
@@ -118,60 +74,18 @@
     };
   }
 
-  function loadScript({ src, name, integrity }: ScriptDefinition): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!integrity) {
-        reject(new Error(`Integridade ausente para ${name}`));
-        return;
-      }
-
-      const existingScript = document.querySelector(`script[src="${src}"]`);
-      if (existingScript) {
-        const existingIntegrity = (existingScript as HTMLScriptElement).integrity;
-        if (existingIntegrity && existingIntegrity === integrity) {
-          resolve();
-        } else {
-          reject(new Error(`Integridade invalida ou ausente para ${name}`));
-        }
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.integrity = integrity;
-      script.referrerPolicy = 'no-referrer';
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Falha ao carregar ${name}: ${src}`));
-      document.head.appendChild(script);
-    });
-  }
-
-  async function waitForGlobal(globalName: string, timeout = 10000): Promise<unknown> {
-    const startTime = Date.now();
-    while (!(window as Record<string, unknown>)[globalName]) {
-      if (Date.now() - startTime > timeout) {
-        throw new Error(`Timeout aguardando ${globalName}`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    return (window as Record<string, unknown>)[globalName];
-  }
-
   async function loadAllDependencies() {
     try {
       loadingStage = "Carregando dependencias...";
-      await Promise.all(MEDIAPIPE_SCRIPTS.map((scriptDef) => loadScript(scriptDef)));
-
-      await Promise.all([
-        waitForGlobal("Camera"),
-        waitForGlobal("drawConnectors"),
-        waitForGlobal("drawLandmarks"),
-        waitForGlobal("Pose"),
-        waitForGlobal("POSE_CONNECTIONS")
-      ]);
-
+      const modules = await loadPoseModules();
+      drawConnectors = modules.drawConnectors;
+      drawLandmarks = modules.drawLandmarks;
+      POSE_CONNECTIONS = modules.POSE_CONNECTIONS;
+      pose = new modules.Pose({
+        locateFile: (file: string) => {
+          return getPoseAssetUrl(file);
+        }
+      });
       loadingStage = "Dependencias carregadas";
       scriptsLoaded = true;
     } catch (error) {
@@ -251,13 +165,8 @@
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-        locateFile: (file: string) => {
-          if (!ALLOWED_POSE_ASSETS.has(file)) {
-            throw new Error(`Asset MediaPipe nao permitido: ${file}`);
-          }
-          return `${MEDIAPIPE_POSE_BASE}/${file}`;
-        }
-      });
+            locateFile: getPoseAssetUrl
+          });
 
       pose.setOptions({
         modelComplexity: 1,
