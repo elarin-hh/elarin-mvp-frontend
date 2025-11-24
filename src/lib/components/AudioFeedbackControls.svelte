@@ -1,67 +1,53 @@
 <script lang="ts">
-  import { audioFeedbackStore } from '$lib/stores/audio-feedback.store';
-  import { Volume2, VolumeX, Mic, MicOff } from 'lucide-svelte';
+  import { onDestroy } from 'svelte';
+  import { Volume2, VolumeX } from 'lucide-svelte';
+  import { audioFeedbackActions, audioFeedbackStore } from '$lib/stores/audio-feedback.store';
 
-  let { isEnabled, isPlaying, volume, tone, errorMessage } = $derived($audioFeedbackStore);
+  let isEnabled = true;
+  let isPlaying = false;
+  let volume = 75;
+  let errorMessage: string | null = null;
 
-  const toneOptions: Array<{ value: string; label: string }> = [
-    { value: 'encouraging', label: 'Encorajador' },
-    { value: 'motivational', label: 'Motivacional' },
-    { value: 'neutral', label: 'Neutro' },
-    { value: 'professional', label: 'Profissional' },
-  ];
+  const unsubscribe = audioFeedbackStore.subscribe((state) => {
+    isEnabled = state.isEnabled;
+    isPlaying = state.isPlaying;
+    volume = state.volume;
+    errorMessage = state.errorMessage;
+  });
+
+  onDestroy(unsubscribe);
 
   function toggleAudio() {
-    audioFeedbackStore.toggleEnabled();
+    audioFeedbackActions.toggleEnabled();
   }
 
   function handleVolumeChange(event: Event) {
     const target = event.target as HTMLInputElement;
-    audioFeedbackStore.setVolume(parseInt(target.value, 10));
-  }
-
-  function handleToneChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    audioFeedbackStore.setTone(
-      target.value as 'encouraging' | 'neutral' | 'motivational' | 'professional',
-    );
+    audioFeedbackActions.setVolume(parseInt(target.value, 10));
   }
 </script>
 
 <div class="audio-feedback-controls">
-  <!-- Toggle de Áudio -->
+  <!-- Toggle de Audio -->
   <button
     onclick={toggleAudio}
     class="toggle-btn"
     class:enabled={isEnabled}
     disabled={isPlaying}
-    aria-label={isEnabled ? 'Desativar feedback por áudio' : 'Ativar feedback por áudio'}
+    aria-label={isEnabled ? 'Desativar feedback por audio' : 'Ativar feedback por audio'}
   >
     {#if isEnabled}
       <Volume2 size={20} />
-      <span>Áudio Ativado</span>
+      <span>Audio ativado</span>
     {:else}
       <VolumeX size={20} />
-      <span>Áudio Desativado</span>
+      <span>Audio desativado</span>
     {/if}
   </button>
 
-  <!-- Controles Expandidos (apenas se habilitado) -->
+  <!-- Controles (apenas se habilitado) -->
   {#if isEnabled}
     <div class="expanded-controls">
-      <!-- Seletor de Tom -->
-      <div class="control-group">
-        <label for="tone-select">
-          <Mic size={16} />
-          Tom:
-        </label>
-        <select id="tone-select" bind:value={tone} onchange={handleToneChange} disabled={isPlaying}>
-          {#each toneOptions as option}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
-      </div>
-
       <!-- Controle de Volume -->
       <div class="control-group">
         <label for="volume-slider">
@@ -86,7 +72,7 @@
     </div>
   {/if}
 
-  <!-- Status de Reprodução -->
+  <!-- Status de Reproducao -->
   {#if isPlaying}
     <div class="status playing">
       <div class="spinner"></div>
@@ -97,8 +83,8 @@
   <!-- Mensagem de Erro -->
   {#if errorMessage}
     <div class="status error">
-      ⚠️ {errorMessage}
-      <button onclick={() => audioFeedbackStore.clearError()} class="close-btn">×</button>
+      Ops, {errorMessage}
+      <button onclick={() => audioFeedbackActions.clearError()} class="close-btn">×</button>
     </div>
   {/if}
 </div>
@@ -164,21 +150,6 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
-  }
-
-  .control-group select {
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    color: #fff;
-    font-size: 0.875rem;
-    cursor: pointer;
-  }
-
-  .control-group select:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .control-group input[type='range'] {

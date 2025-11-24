@@ -4,6 +4,7 @@
   import { authActions } from '$lib/services/auth.facade';
   import { goto } from '$app/navigation';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
+  import AudioFeedbackControls from '$lib/components/AudioFeedbackControls.svelte';
   import { isDeveloper } from '$lib/config/env.config';
   import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
@@ -11,6 +12,7 @@
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
   import { telemetry } from '$lib/services/telemetry.service';
+  import { audioFeedbackActions } from '$lib/stores/audio-feedback.store';
 
   const BIOMETRIC_CONSENT_KEY = 'elarin_biometric_consent';
   const BIOMETRIC_CONSENT_TS_KEY = 'elarin_biometric_consent_ts';
@@ -326,6 +328,12 @@
 
     if (hasNewMessages) {
       feedbackMessages = newMessages;
+      if (isFeedbackEnabled) {
+        audioFeedbackActions.playFeedback(newMessages, {
+          mode: feedbackMode,
+          exercise: $trainingStore.exerciseType
+        });
+      }
     }
 
     // Detecta repetições válidas
@@ -538,6 +546,9 @@
 
   function toggleFeedback() {
     isFeedbackEnabled = !isFeedbackEnabled;
+    if (!isFeedbackEnabled) {
+      audioFeedbackActions.stop();
+    }
   }
 
   let hasStartedCamera = $state(false);
@@ -699,6 +710,10 @@
         <p>{errorMessage}</p>
       </div>
     {/if}
+
+    <div class="audio-controls-card">
+      <AudioFeedbackControls />
+    </div>
 
     {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
@@ -1305,6 +1320,16 @@
 
   .mode-info strong {
     color: var(--color-text-primary);
+  }
+
+  .audio-controls-card {
+    max-width: 980px;
+    margin: clamp(10px, 2vh, 16px) auto;
+  }
+
+  .audio-controls-card :global(.audio-feedback-controls) {
+    background: var(--color-glass-dark);
+    border-color: var(--color-border-light);
   }
 
   @media (max-width: 768px) {
