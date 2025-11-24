@@ -7,7 +7,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-black text-white px-4 py-8">
+<div class="bg-black text-white px-4 py-8">
   <div class="max-w-3xl mx-auto">
     <button
       onclick={goBack}

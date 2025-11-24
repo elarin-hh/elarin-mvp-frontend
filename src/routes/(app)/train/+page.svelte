@@ -963,7 +963,7 @@
 
   .overlay-scale-controls {
     position: absolute;
-    bottom: clamp(10px, 2vh, 16px);
+    bottom: clamp(12px, 2.5vh, 20px);
     right: clamp(10px, 2vw, 16px);
     display: flex;
     flex-direction: column;

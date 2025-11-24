@@ -278,9 +278,9 @@
     </div>
   </div>
 
-  <div class="absolute bottom-4 md:bottom-8 text-center">
+  <!-- <div class="absolute bottom-4 md:bottom-8 text-center">
     <p class="text-white/50 text-xs md:text-sm">
       Política de Privacidade e Termos de Uso
     </p>
-  </div>
+  </div> -->
 </div>

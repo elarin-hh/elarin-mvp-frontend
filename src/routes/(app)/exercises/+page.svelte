@@ -104,7 +104,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-black">
+<div class="bg-black">
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu

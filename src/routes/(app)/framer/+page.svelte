@@ -78,7 +78,7 @@
   }
 </style>
 
-<div class="min-h-screen bg-black">
+<div class="bg-black">
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -89,7 +89,7 @@
     onClickOutside={handleClickOutside}
   />
   
-  <main class="w-full px-4 pb-4 pt-20 sm:pt-24">
+  <main class="w-full">
     <div class="max-w-2xl mx-auto">
       <!-- Icon -->
       <div class="flex justify-center mb-8">
