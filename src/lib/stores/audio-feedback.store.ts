@@ -23,7 +23,7 @@ export interface AudioFeedbackState {
 const initialState: AudioFeedbackState = {
   isEnabled: true,
   isPlaying: false,
-  volume: 75,
+  volume: 100,
   tone: 'neutral',
   queue: [],
   current: null,

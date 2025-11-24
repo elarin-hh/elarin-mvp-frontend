@@ -58,7 +58,7 @@ export class AudioFeedbackService {
   private queue: AudioFeedbackItem[] = [];
   private current: AudioFeedbackItem | null = null;
   private isPlaying = false;
-  private volume = 0.75;
+  private volume = 1;
   private tone: AudioFeedbackTone = 'neutral';
   private audioEl: HTMLAudioElement | null = null;
   private changeListeners = new Set<(snapshot: PlaybackSnapshot) => void>();

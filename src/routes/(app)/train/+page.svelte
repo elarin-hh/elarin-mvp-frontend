@@ -1276,10 +1276,10 @@
   .mode-selector-panel {
     max-width: 980px;
     margin: clamp(10px, 2vh, 16px) auto;
-    padding: clamp(12px, 3vw, 16px);
-    background: var(--color-glass-dark);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
+    padding: clamp(10px, 2.5vw, 14px);
+    background: var(--color-bg-dark-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     gap: clamp(8px, 1.5vh, 12px);
@@ -1326,9 +1326,9 @@
     align-items: center;
     gap: clamp(8px, 1vw, 10px);
     padding: clamp(8px, 2vw, 12px);
-    background: var(--color-glass-light);
-    border: 1px solid var(--color-border-light);
-    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: clamp(13px, 1.8vw, 14px);
     font-weight: 600;
@@ -1354,13 +1354,13 @@
   }
 
   .mode-btn:hover {
-    background: var(--color-border-light);
-    border-color: var(--color-primary-600);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
   }
 
   .mode-btn.active {
-    background: rgba(142, 180, 40, 0.14);
+    background: transparent;
     border-color: var(--color-primary-500);
     box-shadow: none;
   }
@@ -1375,10 +1375,10 @@
     display: flex;
     align-items: center;
     gap: clamp(8px, 1.2vw, 12px);
-    background: var(--color-glass-light);
-    border: 1px dashed var(--color-border-light);
+    background: var(--color-bg-dark-secondary);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
     padding: clamp(8px, 2vw, 12px);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     color: var(--color-text-secondary);
     font-size: clamp(12px, 1.8vw, 13px);
   }
@@ -1398,8 +1398,8 @@
   }
 
   .audio-controls-card :global(.audio-feedback-controls) {
-    background: var(--color-glass-dark);
-    border-color: var(--color-border-light);
+    background: var(--color-bg-dark-secondary);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   @media (max-width: 768px) {
