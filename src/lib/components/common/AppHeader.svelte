@@ -5,7 +5,7 @@
   import { page } from '$app/stores';
   import { onMount, onDestroy } from 'svelte';
   import type { ComponentType } from 'svelte';
-  import { Home, Dumbbell, User as UserIcon } from 'lucide-svelte';
+  import { Home, User as UserIcon, LayoutDashboard } from 'lucide-svelte';
 
   interface Props {
     isScrolled?: boolean;
@@ -53,7 +53,10 @@
     goto('/');
   }
 
-  const footerNavItems: FooterNavItem[] = [{ id: 'home', label: 'Home', icon: Home, href: '/' }];
+  const footerNavItems: FooterNavItem[] = [
+    { id: 'home', label: 'Home', icon: Home, href: '/' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }
+  ];
 
   function handleFooterNav(item: FooterNavItem) {
     if (item.action) {
@@ -151,6 +154,15 @@
                 <span>DEV</span>
               </div>
             {/if}
+
+            <button
+              type="button"
+              class="w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center p-0"
+              aria-label="Ir para o dashboard"
+              onclick={() => goto('/dashboard')}
+            >
+              <LayoutDashboard class="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            </button>
 
             <div
               class="glass-button w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center rounded-full"
