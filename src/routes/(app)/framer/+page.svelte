@@ -89,7 +89,7 @@
     onClickOutside={handleClickOutside}
   />
   
-  <main class="w-full">
+  <main class="min-h-screen w-full px-4 pt-8">
     <div class="max-w-2xl mx-auto">
       <!-- Icon -->
       <div class="flex justify-center mb-8">
