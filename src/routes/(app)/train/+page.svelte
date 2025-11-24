@@ -6,7 +6,7 @@
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import AudioFeedbackControls from '$lib/components/AudioFeedbackControls.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff } from 'lucide-svelte';
+  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
@@ -68,6 +68,9 @@
   let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
   let isFeedbackEnabled = $state(true);
+  const OVERLAY_MIN_SCALE = 0.8;
+  const OVERLAY_MAX_SCALE = 1.4;
+  let overlayScale = $state(1);
   let accuracy = $state(0);
   let confidence = $state(0);
   let elapsedTime = $state(0);
@@ -77,6 +80,7 @@
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
+  let fps = $state(0);
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
   let POSE_CONNECTIONS: unknown = null;
@@ -265,10 +269,14 @@
     const landmarks = results.poseLandmarks;
 
     const now = Date.now();
-    if (now - lastFrameTime < FRAME_THROTTLE_MS) {
+    const delta = lastFrameTime ? now - lastFrameTime : 0;
+    if (delta > 0 && delta < FRAME_THROTTLE_MS) {
       return;
     }
     lastFrameTime = now;
+    if (delta > 0) {
+      fps = Math.round(1000 / delta);
+    }
 
     if (!hasSyncedCanvas) {
       syncCanvasSize(true);
@@ -634,9 +642,9 @@
 
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
-      <div class="overlays-container">
+      <div class="overlays-container" style={`--overlay-scale:${overlayScale};`}>
         {#if isCameraRunning && isDevMode && isFeedbackEnabled}
-          <div class="mode-indicator">
+          <div class="mode-indicator" style={`--overlay-scale:${overlayScale};`}>
             {#if feedbackMode === 'hybrid'}
               <Microscope />
             {:else if feedbackMode === 'ml_only'}
@@ -649,7 +657,7 @@
         {/if}
 
         {#if isCameraRunning && feedbackMessages.length > 0 && isFeedbackEnabled}
-          <div class="feedback-overlay">
+          <div class="feedback-overlay" style={`--overlay-scale:${overlayScale};`}>
             {#each feedbackMessages.slice(0, 3) as message}
               <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
                 <span>{message.text}</span>
@@ -659,9 +667,27 @@
         {/if}
 
       </div>
+      <div class="overlay-scale-controls" style={`--overlay-scale:${overlayScale};`}>
+        <button
+          class="scale-btn"
+          onclick={() => (overlayScale = Math.min(OVERLAY_MAX_SCALE, parseFloat((overlayScale + 0.1).toFixed(2))))}
+          aria-label="Aumentar tamanho do overlay"
+          disabled={overlayScale >= OVERLAY_MAX_SCALE}
+        >
+          <Plus size={18} />
+        </button>
+        <button
+          class="scale-btn"
+          onclick={() => (overlayScale = Math.max(OVERLAY_MIN_SCALE, parseFloat((overlayScale - 0.1).toFixed(2))))}
+          aria-label="Diminuir tamanho do overlay"
+          disabled={overlayScale <= OVERLAY_MIN_SCALE}
+        >
+          <Minus size={18} />
+        </button>
+      </div>
 
       {#if isCameraRunning}
-        <div class="metrics-overlay">
+        <div class="metrics-overlay" style={`--overlay-scale:${overlayScale};`}>
           <div class="metric">
             <span class="metric-label">Repetições</span>
             <span class="metric-value">{$trainingStore.reps}</span>
@@ -678,6 +704,10 @@
             <div class="metric">
               <span class="metric-label">Confiança</span>
               <span class="metric-value">{confidence.toFixed(0)}%</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">FPS</span>
+              <span class="metric-value">{fps}</span>
             </div>
           {/if}
         </div>
@@ -927,6 +957,43 @@
     padding: clamp(10px, 2vh, 20px) clamp(8px, 1.5vw, 10px);
     pointer-events: none;
     z-index: 50;
+    transform: scale(var(--overlay-scale, 1));
+    transform-origin: top right;
+  }
+
+  .overlay-scale-controls {
+    position: absolute;
+    bottom: clamp(10px, 2vh, 16px);
+    right: clamp(10px, 2vw, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: auto;
+    z-index: 90;
+  }
+
+  .scale-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+    background: var(--color-glass-dark);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-base);
+  }
+
+  .scale-btn:hover:not(:disabled) {
+    background: var(--color-glass-dark-strong);
+    border-color: var(--color-border-light-hover);
+  }
+
+  .scale-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .feedback-overlay {
@@ -996,7 +1063,7 @@
     position: absolute;
     top: 50%;
     left: 0;
-    transform: translateY(-50%);
+    transform: translateY(-50%) scale(var(--overlay-scale, 1));
     display: flex;
     flex-direction: column;
     pointer-events: none;
@@ -1011,6 +1078,7 @@
     max-height: 90vh;
     overflow: hidden;
     z-index: 10;
+    transform-origin: center left;
   }
 
   .metric {
@@ -1189,6 +1257,8 @@
     color: var(--color-text-primary);
     max-width: clamp(180px, 50vw, 500px);
     width: fit-content;
+    transform: scale(var(--overlay-scale, 1));
+    transform-origin: top right;
   }
 
   .mode-indicator :global(svg) {
