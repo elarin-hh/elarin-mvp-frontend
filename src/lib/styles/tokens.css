@@ -7,16 +7,16 @@
   /* ========================================
      PRIMARY COLORS (Lime Green - Marca Elarin)
      ======================================== */
-  --color-primary-50: #f7fce8;
-  --color-primary-100: #edf8c8;
-  --color-primary-200: #ddf293;
-  --color-primary-300: #c7e75e;
-  --color-primary-400: #afd635;
-  --color-primary-500: #8eb428;
-  --color-primary-600: #7a9922;
-  --color-primary-700: #6d9120;
-  --color-primary-800: #5a771a;
-  --color-primary-900: #4a6116;
+  --color-primary-50: #f1f9e7;
+  --color-primary-100: #e3f4cf;
+  --color-primary-200: #c7e8a0;
+  --color-primary-300: #bae388;
+  --color-primary-400: #a5da64;
+  --color-primary-500: #74c611;
+  --color-primary-600: #68b20f;
+  --color-primary-700: #5d9e0e;
+  --color-primary-800: #518b0c;
+  --color-primary-900: #406d09;
 
   /* ========================================
      SEMANTIC COLORS
@@ -112,7 +112,7 @@
   /* ========================================
      SKELETON/POSE COLORS
      ======================================== */
-  --color-skeleton-correct: var(--color-success-light);
+  --color-skeleton-correct: var(--color-primary-500);
   --color-skeleton-incorrect: var(--color-error);
   --color-skeleton-neutral: #00bfff;
 
