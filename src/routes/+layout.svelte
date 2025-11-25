@@ -2,6 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { afterNavigate } from '$app/navigation';
+  import { navigating } from '$app/stores';
   import { initI18n } from '$lib/config/i18n';
   import { telemetry } from '$lib/services/telemetry.service';
   import { featureFlags } from '$lib/config/feature-flags';
@@ -10,8 +11,14 @@
   import { registerSW } from 'virtual:pwa-register';
 
   let isReady = $state(false);
+  let isExercisesLoading = $state(false);
 
   initI18n();
+
+  $effect(() => {
+    const targetPath = $navigating?.to?.url?.pathname ?? '';
+    isExercisesLoading = Boolean($navigating && targetPath.startsWith('/exercises'));
+  });
 
   onMount(() => {
     telemetry.init(featureFlags.enableTelemetry);
@@ -52,6 +59,9 @@
 </script>
 
 {#if isReady}
+  {#if isExercisesLoading}
+    <Loading message="Carregando exercicios..." />
+  {/if}
   <slot />
   <ConsentBanner />
 {:else}

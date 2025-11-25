@@ -50,11 +50,11 @@
   });
 
   function handleLogoClick() {
-    goto('/');
+    goto('/exercises');
   }
 
   const footerNavItems: FooterNavItem[] = [
-    { id: 'home', label: 'Home', icon: Home, href: '/' },
+    { id: 'home', label: 'Home', icon: Home, href: '/exercises' },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }
   ];
 
