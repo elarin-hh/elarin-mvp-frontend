@@ -1,5 +1,4 @@
 import type { ZodSchema } from 'zod';
-import { telemetry } from '$lib/services/telemetry.service';
 
 export interface TokenStorage {
   getAccessToken(): string | null;
@@ -174,7 +173,6 @@ export class HttpClient {
       return this.parseResponse<T>(response, schema);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      telemetry.emit('network_error', { path, method, message });
       return {
         success: false,
         status: 0,

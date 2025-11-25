@@ -2,7 +2,6 @@
   import { goto, invalidateAll } from '$app/navigation';
   import type { PageData } from './$types';
   import { trainingActions, type ExerciseType } from '$lib/stores/training.store';
-  import { telemetry } from '$lib/services/telemetry.service';
   import { onMount } from 'svelte';
   import { asset } from '$lib/utils/assets';
   import type { Exercise } from '$lib/api/exercises.api';
@@ -70,7 +69,6 @@
     }
 
     trainingActions.selectExercise(exercise.type as ExerciseType);
-    telemetry.emit('exercise_selected', { exercise: exercise.type });
     goto('/framer');
   }
 

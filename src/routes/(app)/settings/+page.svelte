@@ -8,7 +8,6 @@
   import Modal from '$lib/components/common/Modal.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
   import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert, Building2, Shield, CheckCircle } from 'lucide-svelte';
-  import { telemetry } from '$lib/services/telemetry.service';
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
@@ -25,16 +24,7 @@
   // Subscription tab - B2B Model
   let organizationName = $state('Academia FitLife');
   let organizationPlan = $state('Partner');
-  let planFeatures = $state([
-    'Acesso completo à plataforma',
-    'Suporte prioritário',
-    'Análises avançadas',
-    'Integrações personalizadas'
-  ]);
-
   // Privacy/consent
-  let telemetryEnabled = $state(false);
-  let telemetryExpiresAt = $state<string | null>(null);
   let generalConsentExp = $state<string | null>(null);
   let biometricConsentExp = $state<string | null>(null);
 
@@ -99,24 +89,11 @@
   function loadConsentStatus() {
     if (typeof window === 'undefined') return;
 
-    const telemetryStatus = telemetry.getStatus();
-    telemetryEnabled = telemetryStatus.enabled;
-    telemetryExpiresAt = telemetryStatus.expiresAt || null;
-
     const consentExp = localStorage.getItem('elarin_consent_exp');
     generalConsentExp = consentExp || null;
 
     const biometricExp = localStorage.getItem('elarin_biometric_consent_exp');
     biometricConsentExp = biometricExp || null;
-  }
-
-  function toggleTelemetryConsent() {
-    if (telemetryEnabled) {
-      telemetry.disable();
-    } else {
-      telemetry.enable();
-    }
-    loadConsentStatus();
   }
 
 
@@ -264,46 +241,29 @@
               <div class="privacy-card">
                 <div class="privacy-header">
                   <h3 class="section-subtitle">Privacidade e Consentimentos</h3>
-                  <p class="privacy-hint">Gerencie telemetria e visualize consentimentos ativos.</p>
-                </div>
-
-                <div class="consent-row">
-                  <div>
-                    <p class="consent-label">Telemetria (opt-in)</p>
-                    <p class="consent-meta">
-                      {telemetryEnabled ? `Ativo at? ${telemetryExpiresAt ?? 'indefinido'}` : 'Desativado'}
-                    </p>
-                  </div>
-                  <label class="switch">
-                    <input
-                      type="checkbox"
-                      bind:checked={telemetryEnabled}
-                      onchange={toggleTelemetryConsent}
-                    />
-                    <span class="slider"></span>
-                  </label>
+                  <p class="privacy-hint">Visualize consentimentos ativos para cookies essenciais e biometria.</p>
                 </div>
 
                 <div class="consent-row static">
                   <div>
                     <p class="consent-label">Cookies essenciais</p>
                     <p class="consent-meta">
-                      {generalConsentExp ? `V?lido at? ${generalConsentExp}` : 'Pendente/expirado'}
+                      {generalConsentExp ? `Valido ate ${generalConsentExp}` : 'Pendente/expirado'}
                     </p>
                   </div>
                 </div>
 
                 <div class="consent-row static">
                   <div>
-                    <p class="consent-label">Consentimento biom?trico</p>
+                    <p class="consent-label">Consentimento biometrico</p>
                     <p class="consent-meta">
-                      {biometricConsentExp ? `V?lido at? ${biometricConsentExp}` : 'Solicitado ao iniciar c?mera'}
+                      {biometricConsentExp ? `Valido ate ${biometricConsentExp}` : 'Solicitado ao iniciar camera'}
                     </p>
                   </div>
                 </div>
 
                 <p class="privacy-note">
-                  Telemetria ? opcional e anonimiz?vel (eventos: login, erros de vis?o/rede/UI). Revogue a qualquer momento.
+                  Consentimentos sao armazenados localmente e podem expirar conforme as politicas aplicaveis.
                 </p>
               </div>
 
@@ -348,19 +308,6 @@
                 </div>
 
                 <div class="plan-divider"></div>
-
-                <div class="plan-features">
-                  <h4 class="features-title">Recursos incluídos:</h4>
-                  <ul class="features-list">
-                    {#each planFeatures as feature}
-                      <li class="feature-item">
-                        <CheckCircle class="feature-icon" />
-                        <span>{feature}</span>
-                      </li>
-                    {/each}
-                  </ul>
-                </div>
-
                 <div class="plan-notice">
                   <p>
                     Sua assinatura é gerenciada pela organização <strong>{organizationName}</strong>.
@@ -381,11 +328,11 @@
                 </p>
 
                 <div class="contact-options">
-                  <a href="mailto:suporte@elarin.com" class="contact-card">
+                  <a href="mailto:elarinfit@gmail.com" class="contact-card">
                     <div class="contact-icon">📧</div>
                     <div class="contact-info">
                       <div class="contact-title">Email</div>
-                      <div class="contact-detail">suporte@elarin.com</div>
+                      <div class="contact-detail">elarinfit@gmail.com</div>
                     </div>
                   </a>
 
@@ -393,7 +340,7 @@
                     <div class="contact-icon">💬</div>
                     <div class="contact-info">
                       <div class="contact-title">WhatsApp</div>
-                      <div class="contact-detail">+55 11 99999-9999</div>
+                      <div class="contact-detail">+55 41 97890787</div>
                     </div>
                   </a>
                 </div>
@@ -1141,41 +1088,7 @@
     background: var(--color-border-light);
     margin-bottom: 1.5rem;
   }
-
-  .plan-features {
-    margin-bottom: 1.5rem;
-  }
-
-  .features-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin-bottom: 1rem;
-  }
-
-  .features-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--color-text-primary);
-  }
-
-  :global(.feature-icon) {
-    width: 18px !important;
-    height: 18px !important;
-    color: var(--color-primary-500);
-    flex-shrink: 0;
-  }
-
-  .plan-notice {
+.plan-notice {
     padding: 1rem;
     background: rgba(159, 246, 59, 0.08);
     border-left: 3px solid var(--color-primary-500);

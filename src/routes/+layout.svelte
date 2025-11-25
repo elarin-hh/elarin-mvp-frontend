@@ -4,8 +4,6 @@
   import { afterNavigate } from '$app/navigation';
   import { navigating } from '$app/stores';
   import { initI18n } from '$lib/config/i18n';
-  import { telemetry } from '$lib/services/telemetry.service';
-  import { featureFlags } from '$lib/config/feature-flags';
   import ConsentBanner from '$lib/components/ConsentBanner.svelte';
   import Loading from '$lib/components/common/Loading.svelte';
   import { registerSW } from 'virtual:pwa-register';
@@ -21,8 +19,6 @@
   });
 
   onMount(() => {
-    telemetry.init(featureFlags.enableTelemetry);
-    telemetry.emit('app_started');
     registerSW({
       immediate: true,
       onOfflineReady() {
@@ -30,27 +26,6 @@
       }
     });
     isReady = true;
-
-    const handleError = (event: ErrorEvent) => {
-      telemetry.error(event.error || new Error(event.message), {
-        source: event.filename,
-        line: event.lineno,
-        column: event.colno
-      });
-    };
-
-    const handleRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-      telemetry.emit('ui_error', { message: reason.message, reason: String(event.reason) });
-    };
-
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleRejection);
-
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleRejection);
-    };
   });
 
   afterNavigate(() => {
