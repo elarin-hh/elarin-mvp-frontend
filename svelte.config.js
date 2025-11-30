@@ -38,6 +38,7 @@ const config = {
           'https://*.supabase.co',
           'http://localhost:3001',
           'http://localhost:3337',
+          'http://ec2-52-67-155-167.sa-east-1.compute.amazonaws.com:3001',
           'ws:',
           'wss:',
           ...(apiOrigin ? [apiOrigin] : [])
