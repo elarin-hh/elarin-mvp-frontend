@@ -89,7 +89,7 @@
   let POSE_CONNECTIONS_NO_FACE: unknown = null;
 
   let lastFrameTime = 0;
-  const FRAME_THROTTLE_MS = 60;
+  const FRAME_THROTTLE_MS = 0; // no throttle, process every frame
   let animationFrameId: number | null = null;
 
 
@@ -227,7 +227,7 @@
           });
 
       pose.setOptions({
-        modelComplexity: 1,
+        modelComplexity: 2,
         smoothLandmarks: true,
         enableSegmentation: false,
         smoothSegmentation: false,
@@ -253,8 +253,8 @@
             await pose.send({ image: videoElement });
           }
         },
-        width: 1280,
-        height: 720
+        width: 640,
+        height: 360
       });
 
       await camera.start();
@@ -276,7 +276,7 @@
 
     const now = Date.now();
     const delta = lastFrameTime ? now - lastFrameTime : 0;
-    if (delta > 0 && delta < FRAME_THROTTLE_MS) {
+    if (FRAME_THROTTLE_MS > 0 && delta > 0 && delta < FRAME_THROTTLE_MS) {
       return;
     }
     lastFrameTime = now;
