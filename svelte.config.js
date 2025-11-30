@@ -3,6 +3,8 @@ import adapter from '@sveltejs/adapter-static';
 const dev = process.env.NODE_ENV === 'development';
 const basePath = dev ? '' : process.env.BASE_PATH || '';
 const apiBase = process.env.VITE_API_BASE_URL || '';
+// Allow disabling HTTPS upgrade for plain HTTP/static hosting (e.g., S3 website endpoint)
+const forceHttps = process.env.FORCE_HTTPS === 'true';
 
 const apiOrigin = (() => {
   try {
@@ -46,7 +48,7 @@ const config = {
         'object-src': ["'none'"],
         'base-uri': ["'self'"],
         'form-action': ["'self'"],
-        'upgrade-insecure-requests': true
+        'upgrade-insecure-requests': forceHttps
       }
     },
     paths: {
