@@ -34,7 +34,7 @@ const config = {
       mode: 'hash',
       directives: {
         'default-src': ["'self'"],
-        'script-src': ["'self'", 'https://cdn.jsdelivr.net'],
+        'script-src': ["'self'", 'https://cdn.jsdelivr.net', "'wasm-unsafe-eval'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
         'font-src': ["'self'", 'data:'],

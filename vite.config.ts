@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     SvelteKitPWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Elarin - AI Fitness Trainer',
+        name: 'Elarin',
         short_name: 'Elarin',
         description: 'Personal AI-powered fitness trainer with real-time exercise detection',
         theme_color: '#000000',
