@@ -1,6 +1,15 @@
+import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import type { LayoutLoad } from './$types';
+import { authActions } from '$lib/services/auth.facade';
+
+export const ssr = false;
+export const prerender = false;
 
 export const load: LayoutLoad = async () => {
-  // Guard moved to +layout.server.ts (HttpOnly cookies)
+  const session = await authActions.checkSession();
+  if (session.success) {
+    throw redirect(302, `${base}/exercises`);
+  }
   return {};
 };

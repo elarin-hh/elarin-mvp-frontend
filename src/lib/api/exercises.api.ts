@@ -10,6 +10,7 @@ export interface Exercise {
   user_id: number;
   type: string;
   name: string;
+  name_pt?: string | null;
   is_active: boolean;
   created_at: string;
 }

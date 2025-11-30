@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
 
   let isScrolled = $state(false);
@@ -11,12 +12,12 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-    goto('/settings');
+    goto(`${base}/settings`);
   }
 
   async function handleLogout() {
     showAvatarMenu = false;
-    goto('/login');
+    goto(`${base}/login`);
   }
 
   function handleClickOutside(event: MouseEvent) {

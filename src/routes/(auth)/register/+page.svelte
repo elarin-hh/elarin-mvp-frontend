@@ -235,11 +235,12 @@
         />
 
         <div>
-          <label class="text-white/70 text-sm mb-2 block">Data de Nascimento (mínimo 13 anos)</label>
+          <label for="birth-date" class="text-white/70 text-sm mb-2 block">Data de Nascimento (mínimo 13 anos)</label>
           <input
             type="date"
             bind:value={birthDate}
             required
+            id="birth-date"
             max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
             class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
             style="border-radius: 18px; border-width: 0.8px;"

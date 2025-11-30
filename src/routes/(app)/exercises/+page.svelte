@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
+  import { base } from '$app/paths';
   import type { PageData } from './$types';
   import { trainingActions, type ExerciseType } from '$lib/stores/training.store';
   import { onMount } from 'svelte';
@@ -69,7 +70,7 @@
     }
 
     trainingActions.selectExercise(exercise.type as ExerciseType);
-    goto('/framer');
+    goto(`${base}/framer`);
   }
 
   function getExerciseImage(type: string): string {
@@ -85,13 +86,13 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-    goto('/settings');
+    goto(`${base}/settings`);
   }
 
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
-    goto('/login');
+    goto(`${base}/login`);
   }
 
   function handleClickOutside(event: MouseEvent) {

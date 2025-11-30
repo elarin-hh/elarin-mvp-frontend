@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { authActions } from '$lib/services/auth.facade';
 
@@ -13,13 +14,13 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-    goto('/settings');
+    goto(`${base}/settings`);
   }
 
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
-    goto('/login');
+    goto(`${base}/login`);
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -140,7 +141,7 @@
         <button
           type="button"
           class="button-primary px-8 py-3 text-white font-semibold text-lg"
-          onclick={() => goto('/train')}
+          onclick={() => goto(`${base}/train`)}
         >
           Começar
         </button>

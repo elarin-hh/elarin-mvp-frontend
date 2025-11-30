@@ -110,11 +110,9 @@ export const authActions = {
 
   async logout() {
     setAuthLoading(true);
-    await authService.logout();
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-    } catch (e) {
-      console.error('Failed to clear local session cookies', e);
+    const response = await authService.logout();
+    if (!response.success) {
+      console.error('Failed to call backend logout endpoint', response.error);
     }
     persistDevFlag(null);
     resetAuthState();

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { authActions } from '$lib/services/auth.facade';
   import { authStore } from '$lib/stores/auth.store';
   import { authApi } from '$lib/api/auth.api';
@@ -35,7 +36,7 @@
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
-    goto('/login');
+    goto(`${base}/login`);
   }
 
   function handleSettings() {
@@ -78,7 +79,7 @@
 
       // Logout and redirect to home
       await authActions.logout();
-      goto('/');
+      goto(`${base}/`);
     } catch (error) {
       deleteError = error instanceof Error ? error.message : 'Erro desconhecido';
     } finally {

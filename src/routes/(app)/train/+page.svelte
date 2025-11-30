@@ -3,6 +3,7 @@
   import { trainingStore, trainingActions } from '$lib/stores/training.store';
   import { authActions } from '$lib/services/auth.facade';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import AudioFeedbackControls from '$lib/components/AudioFeedbackControls.svelte';
   import { isDeveloper } from '$lib/config/env.config';
@@ -511,13 +512,13 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-    goto('/settings');
+    goto(`${base}/settings`);
   }
 
   async function handleLogout() {
     showAvatarMenu = false;
     await authActions.logout();
-    goto('/login');
+    goto(`${base}/login`);
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -540,7 +541,7 @@
     errorMessage = 'Consentimento biométrico negado. A câmera não pode ser iniciada sem sua autorização.';
     // Redirect back to exercises
     setTimeout(() => {
-      goto('/exercises');
+      goto(`${base}/exercises`);
     }, 3000);
   }
 
