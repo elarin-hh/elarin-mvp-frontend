@@ -53,6 +53,7 @@
   let isDevMode = $state(false);
   let orientation = $state<'portrait' | 'landscape'>('landscape');
   let currentFeedback: FeedbackRecord | null = $state(null);
+  let isPaused = $state(false);
   const SKELETON_COLORS = {
     correct: 'var(--color-skeleton-correct)',
     incorrect: 'var(--color-skeleton-incorrect)',
@@ -181,6 +182,7 @@
       isLoading = true;
       errorMessage = '';
       hasSyncedCanvas = false;
+      isPaused = false;
 
       // LGPD Art. 11: Check biometric consent before accessing camera
       if (!ensureBiometricConsent()) {
@@ -294,12 +296,12 @@
       cancelAnimationFrame(animationFrameId);
     }
 
-      animationFrameId = requestAnimationFrame(() => {
-        ctx.save();
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-        ctx.translate(canvasElement.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+  animationFrameId = requestAnimationFrame(() => {
+      ctx.save();
+      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      ctx.translate(canvasElement.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
         const renderLandmarks = hideFaceLandmarks(landmarks);
 
@@ -318,7 +320,7 @@
       ctx.restore();
     });
 
-    if (analyzer && landmarks) {
+    if (analyzer && landmarks && !isPaused) {
       queueMicrotask(() => {
         analyzer?.analyzeFrame(landmarks);
       });
@@ -393,8 +395,10 @@
     console.error('vision_error:processing', error);
   }
 
-  function startTimer() {
-    elapsedTime = 0;
+  function startTimer(reset = true) {
+    if (reset) {
+      elapsedTime = 0;
+    }
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = window.setInterval(() => {
       elapsedTime += 1;
@@ -412,20 +416,6 @@
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  async function stopCamera() {
-    if (camera) camera.stop();
-    if (analyzer) analyzer.reset();
-    trainingActions.pause();
-    pauseTimer();
-    isCameraRunning = false;
-    hasStartedCamera = false;
-    hasSyncedCanvas = false;
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
   }
 
   async function finishTraining() {
@@ -459,6 +449,24 @@
     } catch (error: unknown) {
       errorMessage = `Erro ao finalizar treino: ${(error as Error).message}`;
       isLoading = false;
+    }
+  }
+
+  function pauseTraining() {
+    trainingActions.pause();
+    pauseTimer();
+    isPaused = true;
+  }
+
+  async function resumeTraining() {
+    try {
+      isPaused = false;
+      trainingActions.resume();
+      startTimer(false);
+      isCameraRunning = true;
+    } catch (error) {
+      errorMessage = `Erro ao retomar: ${(error as Error).message}`;
+      isPaused = true;
     }
   }
 
@@ -709,7 +717,7 @@
         </button>
       </div>
 
-      {#if isCameraRunning}
+      {#if isCameraRunning || isPaused}
         <div class="metrics-overlay" style={`--overlay-scale:${overlayScale};`}>
           <div class="metric">
             <span class="metric-label">Repetições</span>
@@ -736,10 +744,15 @@
         </div>
       {/if}
 
-      {#if isCameraRunning}
+      {#if isCameraRunning || isPaused}
         <div class="video-controls">
-          <button class="btn btn-glass" onclick={stopCamera}>Pausar</button>
-          <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
+          {#if isPaused}
+            <button class="btn btn-primary" onclick={resumeTraining}>Retomar</button>
+            <button class="btn btn-glass" onclick={finishTraining}>Finalizar</button>
+          {:else}
+            <button class="btn btn-glass" onclick={pauseTraining}>Pausar</button>
+            <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
+          {/if}
           <button
             class="btn btn-glass-icon"
             onclick={toggleFeedback}
