@@ -1,10 +1,17 @@
 import adapter from '@sveltejs/adapter-static';
+import 'dotenv/config';
 
 const dev = process.env.NODE_ENV === 'development';
-const basePath = dev ? '' : process.env.BASE_PATH || '';
-const apiBase = process.env.VITE_API_BASE_URL || '';
 // Allow disabling HTTPS upgrade for plain HTTP/static hosting (e.g., S3 website endpoint)
 const forceHttps = process.env.FORCE_HTTPS === 'true';
+const apiBase = (() => {
+  const raw = process.env.VITE_API_BASE_URL || '';
+  if (forceHttps && raw.startsWith('http://')) {
+    return raw.replace(/^http:\/\//i, 'https://');
+  }
+  return raw;
+})();
+const basePath = dev ? '' : process.env.BASE_PATH || '';
 
 const apiOrigin = (() => {
   try {
@@ -38,7 +45,7 @@ const config = {
           'https://*.supabase.co',
           'http://localhost:3001',
           'http://localhost:3337',
-          'http://ec2-52-67-155-167.sa-east-1.compute.amazonaws.com:3001',
+          'https://api.elarin.com.br',
           'ws:',
           'wss:',
           ...(apiOrigin ? [apiOrigin] : [])
