@@ -9,6 +9,7 @@
   import { isDeveloper } from '$lib/config/env.config';
   import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
+  import { LANDMARK_GROUPS } from '$lib/vision/constants/mediapipe.constants';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
@@ -84,6 +85,7 @@
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
   let POSE_CONNECTIONS: unknown = null;
+  let POSE_CONNECTIONS_NO_FACE: unknown = null;
 
   let lastFrameTime = 0;
   const FRAME_THROTTLE_MS = 60;
@@ -105,6 +107,7 @@
       drawConnectors = modules.drawConnectors;
       drawLandmarks = modules.drawLandmarks;
       POSE_CONNECTIONS = modules.POSE_CONNECTIONS;
+      POSE_CONNECTIONS_NO_FACE = filterFaceConnections(POSE_CONNECTIONS);
       pose = new modules.Pose({
         locateFile: (file: string) => {
           return getPoseAssetUrl(file);
@@ -236,6 +239,7 @@
       drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
       drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
+      POSE_CONNECTIONS_NO_FACE = filterFaceConnections(POSE_CONNECTIONS);
 
       const Camera = globalScope.Camera as new (
         video: HTMLVideoElement,
@@ -290,24 +294,26 @@
       cancelAnimationFrame(animationFrameId);
     }
 
-    animationFrameId = requestAnimationFrame(() => {
-      ctx.save();
-      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      ctx.translate(canvasElement.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      animationFrameId = requestAnimationFrame(() => {
+        ctx.save();
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        ctx.translate(canvasElement.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-      if (landmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS) {
-        drawConnectors(ctx, landmarks, POSE_CONNECTIONS, {
-          color: skeletonColor,
-          lineWidth: 4
-        });
-        drawLandmarks(ctx, landmarks, {
-          color: skeletonColor,
-          lineWidth: 2,
-          radius: 6
-        });
-      }
+        const renderLandmarks = hideFaceLandmarks(landmarks);
+
+        if (renderLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS_NO_FACE) {
+          drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
+            color: skeletonColor,
+            lineWidth: 4
+          });
+          drawLandmarks(ctx, renderLandmarks, {
+            color: skeletonColor,
+            lineWidth: 2,
+            radius: 6
+          });
+        }
 
       ctx.restore();
     });
@@ -317,6 +323,23 @@
         analyzer?.analyzeFrame(landmarks);
       });
     }
+  }
+
+  function hideFaceLandmarks(landmarks: PoseResults['poseLandmarks']) {
+    if (!landmarks) return landmarks;
+    const clone = landmarks.map((lm) => ({ ...lm }));
+    for (const idx of LANDMARK_GROUPS.FACE) {
+      clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+    }
+    return clone;
+  }
+
+  function filterFaceConnections(connections: unknown) {
+    if (!connections || !Array.isArray(connections)) return connections;
+    const face = new Set(LANDMARK_GROUPS.FACE);
+    return (connections as Array<[number, number]>).filter(
+      ([a, b]) => !face.has(a as number) && !face.has(b as number)
+    );
   }
 
   function handleFeedback(feedback: FeedbackRecord) {
@@ -614,7 +637,7 @@
 </script>
 
 <svelte:head>
-  <title>Treinar - Elarin</title>
+  <title>Elarin</title>
 </svelte:head>
 
 <main class="train-page">

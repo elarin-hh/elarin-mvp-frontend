@@ -14,22 +14,15 @@
   },
   "heuristicConfig": {
     "minConfidence": 0.7,
-    "minDepthAngle": 85,
-    "maxDepthAngle": 120,
-    "maxKneeOverToe": 0.05,
-    "minBackAngle": 45,
-    "maxBackAngle": 90,
-    "maxHeelLift": 0.03,
-    "minKneeAlignmentRatio": 0.85,
-    "maxTrunkInclination": 20,
-    "maxLateralInclination": 8,
     "kneeDownAngle": 120,
     "kneeUpAngle": 160,
+    "maxTrunkInclination": 20,
+    "maxLateralInclination": 8,
     "maxAngleDifference": 10,
     "minFramesInState": 3,
-    "footDistanceTolerance": 0.10,
     "minFootDistance": 0.10,
-    "maxFootDistance": 0.20
+    "maxFootDistance": 0.20,
+    "feedbackCooldownMs": 350
   },
   "feedbackConfig": {
     "feedbackMode": "hybrid",

@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
         short_name: 'Elarin',
         description: 'Personal AI-powered fitness trainer with real-time exercise detection',
         theme_color: '#000000',
-        background_color: '#000000',
+        background_color: '#74c611',
         display: 'standalone',
         start_url: '.',
         scope: '.',

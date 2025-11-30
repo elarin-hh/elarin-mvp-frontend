@@ -350,7 +350,6 @@
     background: var(--color-glass-dark);
     backdrop-filter: blur(var(--blur-md));
     -webkit-backdrop-filter: blur(var(--blur-md));
-    border-radius: 16px;
   }
 
   .header-content {
