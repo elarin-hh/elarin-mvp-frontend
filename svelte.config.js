@@ -1,5 +1,4 @@
 import adapter from '@sveltejs/adapter-static';
-import 'dotenv/config';
 
 const dev = process.env.NODE_ENV === 'development';
 // Allow disabling HTTPS upgrade for plain HTTP/static hosting (e.g., S3 website endpoint)
