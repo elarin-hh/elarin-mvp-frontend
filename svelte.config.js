@@ -18,10 +18,12 @@ const apiOrigin = (() => {
 const config = {
   kit: {
     adapter: adapter({
-      strict: false
+      strict: false,
+      fallback: 'index.html'
     }),
     csp: {
-      mode: 'nonce',
+      // Use hash mode so prerender/fallback generation works on static hosting
+      mode: 'hash',
       directives: {
         'default-src': ["'self'"],
         'script-src': ["'self'", 'https://cdn.jsdelivr.net'],
@@ -53,7 +55,7 @@ const config = {
     prerender: {
       handleHttpError: 'warn',
       handleUnseenRoutes: 'ignore',
-      entries: ['/', '/privacy', '/terms']
+      entries: []
     },
     alias: {
       $lib: './src/lib'

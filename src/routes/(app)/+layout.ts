@@ -4,13 +4,10 @@ import type { LayoutLoad } from './$types';
 import { authActions } from '$lib/services/auth.facade';
 
 export const ssr = false;
-export const prerender = true;
+export const prerender = false;
 
 export const load: LayoutLoad = async () => {
-  if (import.meta.env.SSR) {
-    // Skip auth check during prerender/fallback generation
-    return {};
-  }
+  // SPA: run auth check only in the browser
   const session = await authActions.checkSession();
   if (!session.success) {
     throw redirect(302, `${base}/login`);
