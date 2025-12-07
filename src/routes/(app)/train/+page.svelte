@@ -83,6 +83,17 @@
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
   let fps = $state(0);
+  const SKELETON_STYLE = {
+    lineWidth: 5,
+    pointRadius: 7,
+    opacity: 0.9,
+    glow: 0
+  };
+  const TORSO_LINE = {
+    enabled: true,
+    lineWidth: 5,
+    color: ''
+  };
   let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
   let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
   let POSE_CONNECTIONS: unknown = null;
@@ -108,7 +119,7 @@
       drawConnectors = modules.drawConnectors;
       drawLandmarks = modules.drawLandmarks;
       POSE_CONNECTIONS = modules.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = filterFaceConnections(POSE_CONNECTIONS);
+      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(filterFaceConnections(POSE_CONNECTIONS));
       pose = new modules.Pose({
         locateFile: (file: string) => {
           return getPoseAssetUrl(file);
@@ -227,7 +238,7 @@
           });
 
       pose.setOptions({
-        modelComplexity: 2,
+        modelComplexity: 1,
         smoothLandmarks: true,
         enableSegmentation: false,
         smoothSegmentation: false,
@@ -241,7 +252,7 @@
       drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
       drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = filterFaceConnections(POSE_CONNECTIONS);
+      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(filterFaceConnections(POSE_CONNECTIONS));
 
       const Camera = globalScope.Camera as new (
         video: HTMLVideoElement,
@@ -306,15 +317,26 @@
         const renderLandmarks = hideFaceLandmarks(landmarks);
 
         if (renderLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS_NO_FACE) {
+          ctx.save();
+          ctx.globalAlpha = SKELETON_STYLE.opacity;
+          ctx.shadowBlur = SKELETON_STYLE.glow;
+          ctx.shadowColor = skeletonColor;
+
           drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
             color: skeletonColor,
-            lineWidth: 4
+            lineWidth: SKELETON_STYLE.lineWidth
           });
           drawLandmarks(ctx, renderLandmarks, {
             color: skeletonColor,
-            lineWidth: 2,
-            radius: 6
+            lineWidth: Math.max(1, SKELETON_STYLE.lineWidth / 2),
+            radius: SKELETON_STYLE.pointRadius
           });
+
+          if (TORSO_LINE.enabled) {
+            drawTorsoLine(ctx, renderLandmarks);
+          }
+
+          ctx.restore();
         }
 
       ctx.restore();
@@ -342,6 +364,54 @@
     return (connections as Array<[number, number]>).filter(
       ([a, b]) => !face.has(a as number) && !face.has(b as number)
     );
+  }
+
+  function removeTorsoSideLines(connections: unknown) {
+    if (!connections || !Array.isArray(connections)) return connections;
+    const blocked = new Set(['11-23', '12-24']);
+    return (connections as Array<[number, number]>).filter(([a, b]) => {
+      const key = `${a}-${b}`;
+      const keyAlt = `${b}-${a}`;
+      return !blocked.has(key) && !blocked.has(keyAlt);
+    });
+  }
+
+  function drawTorsoLine(ctx: CanvasRenderingContext2D, landmarks: PoseResults['poseLandmarks']) {
+    if (!landmarks) return;
+
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+
+    if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return;
+
+    const visibility =
+      (leftShoulder.visibility ?? 1) +
+      (rightShoulder.visibility ?? 1) +
+      (leftHip.visibility ?? 1) +
+      (rightHip.visibility ?? 1);
+
+    if (visibility < 1.5) return;
+
+    const shoulderMid = {
+      x: (leftShoulder.x + rightShoulder.x) / 2,
+      y: (leftShoulder.y + rightShoulder.y) / 2
+    };
+    const hipMid = {
+      x: (leftHip.x + rightHip.x) / 2,
+      y: (leftHip.y + rightHip.y) / 2
+    };
+
+    ctx.save();
+    ctx.strokeStyle = skeletonColor;
+    ctx.lineWidth = TORSO_LINE.lineWidth;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shoulderMid.x * ctx.canvas.width, shoulderMid.y * ctx.canvas.height);
+    ctx.lineTo(hipMid.x * ctx.canvas.width, hipMid.y * ctx.canvas.height);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function handleFeedback(feedback: FeedbackRecord) {
@@ -674,29 +744,32 @@
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
       <div class="overlays-container" style={`--overlay-scale:${overlayScale};`}>
-        {#if isCameraRunning && isDevMode && isFeedbackEnabled}
-          <div class="mode-indicator" style={`--overlay-scale:${overlayScale};`}>
-            {#if feedbackMode === 'hybrid'}
-              <Microscope />
-            {:else if feedbackMode === 'ml_only'}
-              <Bot />
-            {:else}
-              <Ruler />
-            {/if}
-            <span class="mode-text">{modeIndicator}</span>
-          </div>
-        {/if}
-
-        {#if isCameraRunning && feedbackMessages.length > 0 && isFeedbackEnabled}
-          <div class="feedback-overlay" style={`--overlay-scale:${overlayScale};`}>
-            {#each feedbackMessages.slice(0, 3) as message}
-              <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
-                <span>{message.text}</span>
+        {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0)}
+          <div class="feedback-card" style={`--overlay-scale:${overlayScale};`}>
+            {#if isDevMode}
+              <div class="mode-indicator in-card">
+                {#if feedbackMode === 'hybrid'}
+                  <Microscope />
+                {:else if feedbackMode === 'ml_only'}
+                  <Bot />
+                {:else}
+                  <Ruler />
+                {/if}
+                <span class="mode-text">{modeIndicator}</span>
               </div>
-            {/each}
+            {/if}
+
+            {#if feedbackMessages.length > 0}
+              <div class="feedback-overlay">
+                {#each feedbackMessages.slice(0, 3) as message}
+                  <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
+                    <span>{message.text}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </div>
         {/if}
-
       </div>
       <div class="overlay-scale-controls" style={`--overlay-scale:${overlayScale};`}>
         <button
@@ -989,12 +1062,25 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: clamp(8px, 1.5vh, 12px);
     padding: clamp(10px, 2vh, 20px) clamp(8px, 1.5vw, 10px);
     pointer-events: none;
     z-index: 50;
     transform: scale(var(--overlay-scale, 1));
     transform-origin: top right;
+  }
+
+  .feedback-card {
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--radius-md);
+    padding: clamp(8px, 1.5vh, 12px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.5vh, 12px);
+    align-items: flex-end;
+    pointer-events: none;
   }
 
   .overlay-scale-controls {
@@ -1036,8 +1122,8 @@
     display: flex;
     flex-direction: column;
     gap: clamp(6px, 1.2vh, 10px);
-    max-width: clamp(200px, 50vw, 600px);
-    width: 100%;
+    width: auto;
+    align-items: flex-end;
   }
 
   .feedback-message {
@@ -1052,6 +1138,8 @@
     border-left: clamp(3px, 0.5vw, 4px) solid transparent;
     animation: slideIn var(--transition-slow) ease;
     color: var(--color-text-primary);
+    align-self: flex-end;
+    width: auto;
   }
 
   .feedback-message.success {
@@ -1295,6 +1383,15 @@
     width: fit-content;
     transform: scale(var(--overlay-scale, 1));
     transform-origin: top right;
+    pointer-events: none;
+  }
+
+  .mode-indicator.in-card {
+    width: auto;
+    max-width: none;
+    transform: none;
+    justify-content: flex-start;
+    align-self: flex-end;
   }
 
   .mode-indicator :global(svg) {
@@ -1441,24 +1538,7 @@
   @media (max-width: 768px) {
     .overlays-container {
       padding: clamp(8px, 1.5vh, 15px) clamp(6px, 1.2vw, 8px);
-      gap: clamp(6px, 1.2vh, 10px);
-    }
-
-    .metrics-overlay {
-      max-width: clamp(65px, 10vw, 100px);
-    }
-
-    .metric {
-      padding: clamp(10px, 2vh, 18px) clamp(5px, 1.2vw, 8px);
-      min-width: clamp(55px, 7vw, 75px);
-    }
-
-    .metric-label {
-      font-size: clamp(7px, 1vw, 10px);
-    }
-
-    .metric-value {
-      font-size: clamp(14px, 2.2vw, 20px);
+      gap: 0;
     }
 
     .mode-indicator {
