@@ -89,7 +89,7 @@
     opacity: 0.9,
     glow: 0
   };
-  const TORSO_ANCHOR_RADIUS = 8;
+
   const TORSO_LINE = {
     enabled: true,
     lineWidth: 5,
@@ -327,6 +327,17 @@
             color: skeletonColor,
             lineWidth: SKELETON_STYLE.lineWidth
           });
+
+          // Outer circle (glow)
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          drawLandmarks(ctx, renderLandmarks, {
+            color: skeletonColor,
+            lineWidth: 0,
+            radius: SKELETON_STYLE.pointRadius * 2.2
+          });
+          ctx.restore();
+
           drawLandmarks(ctx, renderLandmarks, {
             color: skeletonColor,
             lineWidth: Math.max(1, SKELETON_STYLE.lineWidth / 2),
@@ -336,7 +347,7 @@
           if (TORSO_LINE.enabled) {
             drawTorsoLine(ctx, renderLandmarks);
           }
-          drawTorsoAnchors(ctx, renderLandmarks);
+
 
           ctx.restore();
         }
@@ -416,43 +427,7 @@
     ctx.restore();
   }
 
-  function drawTorsoAnchors(ctx: CanvasRenderingContext2D, landmarks: PoseResults['poseLandmarks']) {
-    if (!landmarks) return;
 
-    const leftShoulder = landmarks[11];
-    const rightShoulder = landmarks[12];
-    const leftHip = landmarks[23];
-    const rightHip = landmarks[24];
-
-    if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return;
-
-    const visibility =
-      (leftShoulder.visibility ?? 1) +
-      (rightShoulder.visibility ?? 1) +
-      (leftHip.visibility ?? 1) +
-      (rightHip.visibility ?? 1);
-
-    if (visibility < 1.5) return;
-
-    const shoulderMid = {
-      x: (leftShoulder.x + rightShoulder.x) / 2,
-      y: (leftShoulder.y + rightShoulder.y) / 2
-    };
-    const hipMid = {
-      x: (leftHip.x + rightHip.x) / 2,
-      y: (leftHip.y + rightHip.y) / 2
-    };
-
-    ctx.save();
-    ctx.fillStyle = skeletonColor;
-    ctx.beginPath();
-    ctx.arc(shoulderMid.x * ctx.canvas.width, shoulderMid.y * ctx.canvas.height, TORSO_ANCHOR_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(hipMid.x * ctx.canvas.width, hipMid.y * ctx.canvas.height, TORSO_ANCHOR_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
 
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
