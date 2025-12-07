@@ -1,6 +1,6 @@
 {
   "exercise": "squat",
-  "threshold": 0.080,
+  "threshold": 0.069,
   "model_type": "autoencoder_oneclass",
   "input_shape": [
     1,
@@ -17,6 +17,5 @@
     "hidden_size": 128,
     "latent_size": 32,
     "num_layers": 2
-  },
-  "notes": "Threshold original do treino (0.075). Cálculo de erro corrigido para match com PyTorch mean(dim=[1,2])."
+  }
 }

@@ -54,6 +54,7 @@
   let orientation = $state<'portrait' | 'landscape'>('landscape');
   let currentFeedback: FeedbackRecord | null = $state(null);
   let isPaused = $state(false);
+  let reconstructionError = $state<number | null>(null);
   const SKELETON_COLORS = {
     correct: 'var(--color-skeleton-correct)',
     incorrect: 'var(--color-skeleton-incorrect)',
@@ -89,6 +90,7 @@
     opacity: 0.9,
     glow: 0
   };
+  const TORSO_ANCHOR_RADIUS = 8;
   const TORSO_LINE = {
     enabled: true,
     lineWidth: 5,
@@ -335,6 +337,7 @@
           if (TORSO_LINE.enabled) {
             drawTorsoLine(ctx, renderLandmarks);
           }
+          drawTorsoAnchors(ctx, renderLandmarks);
 
           ctx.restore();
         }
@@ -414,6 +417,44 @@
     ctx.restore();
   }
 
+  function drawTorsoAnchors(ctx: CanvasRenderingContext2D, landmarks: PoseResults['poseLandmarks']) {
+    if (!landmarks) return;
+
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
+
+    if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return;
+
+    const visibility =
+      (leftShoulder.visibility ?? 1) +
+      (rightShoulder.visibility ?? 1) +
+      (leftHip.visibility ?? 1) +
+      (rightHip.visibility ?? 1);
+
+    if (visibility < 1.5) return;
+
+    const shoulderMid = {
+      x: (leftShoulder.x + rightShoulder.x) / 2,
+      y: (leftShoulder.y + rightShoulder.y) / 2
+    };
+    const hipMid = {
+      x: (leftHip.x + rightHip.x) / 2,
+      y: (leftHip.y + rightHip.y) / 2
+    };
+
+    ctx.save();
+    ctx.fillStyle = skeletonColor;
+    ctx.beginPath();
+    ctx.arc(shoulderMid.x * ctx.canvas.width, shoulderMid.y * ctx.canvas.height, TORSO_ANCHOR_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hipMid.x * ctx.canvas.width, hipMid.y * ctx.canvas.height, TORSO_ANCHOR_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
@@ -448,6 +489,10 @@
       if (repResult && (repResult as { isValid?: boolean }).isValid) {
         trainingActions.incrementReps();
       }
+    }
+
+    if (feedback.ml?.error !== undefined) {
+      reconstructionError = feedback.ml.error;
     }
   }
 
@@ -505,15 +550,16 @@
         animationFrameId = null;
       }
 
-      setTimeout(() => {
-        analyzer = null;
-        pose = null;
-        camera = null;
-        trainingActions.reset();
-        feedbackMessages = [];
-        currentFeedback = null;
-        elapsedTime = 0;
-      }, 2000);
+    setTimeout(() => {
+      analyzer = null;
+      pose = null;
+      camera = null;
+      trainingActions.reset();
+      feedbackMessages = [];
+      currentFeedback = null;
+      reconstructionError = null;
+      elapsedTime = 0;
+    }, 2000);
 
       isLoading = false;
     } catch (error: unknown) {
@@ -607,6 +653,38 @@
     } catch {}
   }
 
+  async function exitFullscreenExplicit() {
+    const doc = document as Document & {
+      exitFullscreen?: () => Promise<void>;
+      webkitExitFullscreen?: () => Promise<void>;
+      mozCancelFullScreen?: () => Promise<void>;
+      msExitFullscreen?: () => Promise<void>;
+      fullscreenElement?: Element;
+      webkitFullscreenElement?: Element;
+      mozFullScreenElement?: Element;
+      msFullscreenElement?: Element;
+    };
+
+    const isCurrentlyFullscreen =
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement;
+
+    if (!isCurrentlyFullscreen) return;
+
+    if (doc.exitFullscreen) {
+      await doc.exitFullscreen();
+    } else if (doc.webkitExitFullscreen) {
+      await doc.webkitExitFullscreen();
+    } else if (doc.mozCancelFullScreen) {
+      await doc.mozCancelFullScreen();
+    } else if (doc.msExitFullscreen) {
+      await doc.msExitFullscreen();
+    }
+    isFullscreen = false;
+  }
+
   function toggleAvatarMenu() {
     showAvatarMenu = !showAvatarMenu;
   }
@@ -678,6 +756,12 @@
 
     window.addEventListener('orientationchange', debouncedDetectOrientation);
     window.addEventListener('resize', debouncedDetectOrientation);
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        exitFullscreenExplicit();
+      }
+    };
+    window.addEventListener('keydown', handleKeydown);
 
     const handleScroll = debounce((e: Event) => {
       const target = e.target as HTMLElement;
@@ -698,6 +782,7 @@
     return () => {
       window.removeEventListener('orientationchange', debouncedDetectOrientation);
       window.removeEventListener('resize', debouncedDetectOrientation);
+      window.removeEventListener('keydown', handleKeydown);
       if (viewport) {
         viewport.removeEventListener('scroll', handleScroll);
       } else {
@@ -744,7 +829,7 @@
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
       <div class="overlays-container" style={`--overlay-scale:${overlayScale};`}>
-        {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0)}
+        {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
           <div class="feedback-card" style={`--overlay-scale:${overlayScale};`}>
             {#if isDevMode}
               <div class="mode-indicator in-card">
@@ -759,9 +844,19 @@
               </div>
             {/if}
 
+            {#if reconstructionError !== null}
+              <div class="feedback-overlay">
+                <div class="feedback-message info">
+                  <span>Erro de reconstrução: {reconstructionError.toFixed(4)}</span>
+                </div>
+              </div>
+            {/if}
+
             {#if feedbackMessages.length > 0}
               <div class="feedback-overlay">
-                {#each feedbackMessages.slice(0, 3) as message}
+                {#each feedbackMessages
+                  .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstrução'))
+                  .slice(0, 3) as message}
                   <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
                     <span>{message.text}</span>
                   </div>
@@ -1394,6 +1489,7 @@
     align-self: flex-end;
   }
 
+
   .mode-indicator :global(svg) {
     width: clamp(14px, 2.2vw, 18px) !important;
     height: clamp(14px, 2.2vw, 18px) !important;
@@ -1616,3 +1712,4 @@
     }
   }
 </style>
+
