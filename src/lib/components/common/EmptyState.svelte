@@ -72,7 +72,7 @@
   .state-card {
     background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 1.75rem;
     display: flex;
     flex-direction: column;
@@ -87,7 +87,7 @@
   .state-icon {
     width: 56px;
     height: 56px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     display: grid;
     place-items: center;
   }
@@ -123,7 +123,7 @@
     background: var(--color-primary-500);
     color: var(--color-text-primary);
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     font-weight: 700;
     cursor: pointer;
     transition: var(--transition-base);

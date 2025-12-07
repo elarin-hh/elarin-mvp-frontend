@@ -77,7 +77,7 @@
       onclick={toggleDropdown}
       disabled={disabled}
       class="w-full px-6 py-3 bg-transparent border-white/20 text-left focus:outline-none focus:border-white/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-      style="border-radius: 18px; border-width: 0.8px;"
+      style="border-radius: var(--radius-standard); border-width: 0.8px;"
     >
       <span class={value ? 'text-white' : 'text-white/50'}>{selectedLabel}</span>
       <svg
@@ -99,7 +99,7 @@
     {#if isOpen && !disabled}
       <div
         class="absolute z-50 w-full mt-2 bg-black/95 border border-white/20 backdrop-blur-lg overflow-hidden"
-        style="border-radius: 18px; max-height: 300px; overflow-y: auto;"
+        style="border-radius: var(--radius-standard); max-height: 300px; overflow-y: auto;"
       >
         {#each options as option}
           <button

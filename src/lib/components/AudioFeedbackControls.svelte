@@ -56,9 +56,13 @@
     flex-direction: column;
     gap: 0.6rem;
     padding: 0.85rem 1rem;
-    background: var(--color-bg-dark-secondary);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.85rem 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-standard);
   }
 
   .row {
@@ -94,7 +98,7 @@
   .dot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: rgba(255, 255, 255, 0.22);
     border: 1px solid rgba(255, 255, 255, 0.26);
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.07);
@@ -116,7 +120,7 @@
     padding: 0.35rem 0.8rem;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 14px;
+    border-radius: var(--radius-standard);
     color: #fff;
     font-size: 0.85rem;
     font-weight: 600;
@@ -142,7 +146,7 @@
 
   .chip {
     padding: 0.45rem 0.7rem;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.85rem;
     display: inline-flex;
     align-items: center;

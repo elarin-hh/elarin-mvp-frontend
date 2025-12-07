@@ -206,7 +206,7 @@
 <style>
   .button-primary {
     background: var(--color-primary-500);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: var(--transition-base);
   }
 
@@ -258,7 +258,7 @@
     -webkit-backdrop-filter: blur(var(--blur-md));
     color: var(--color-text-primary);
     padding: 4px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;

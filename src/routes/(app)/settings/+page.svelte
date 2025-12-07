@@ -496,7 +496,7 @@
     gap: 0.5rem;
     background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 10px;
     height: fit-content;
   }
@@ -509,7 +509,7 @@
     padding: 1rem;
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -534,7 +534,7 @@
   .tab-content {
     background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 2rem;
   }
 
@@ -576,7 +576,7 @@
     height: 70px;
     min-width: 70px;
     min-height: 70px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     overflow: hidden;
     background: var(--color-border-light);
     border: 1px solid var(--color-border-light);    
@@ -614,7 +614,7 @@
     padding: 0.45rem 1rem;
     background: var(--color-border-light);
     border: 1px solid var(--color-border-light);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: 14px;
     font-weight: 500;
@@ -645,7 +645,7 @@
     padding: 0.75rem 1rem;
     background: var(--color-glass-light);
     border: 1px solid var(--color-border-light);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: 1rem;
     transition: all 0.2s ease;
@@ -712,7 +712,7 @@
     padding: 1rem;
     background: rgba(239, 68, 68, 0.1);
     border-left: 4px solid var(--color-error);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   :global(.warning-icon) {
@@ -727,7 +727,7 @@
     padding: 1rem;
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid var(--color-error);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--color-error);
     font-size: 0.875rem;
     text-align: left;
@@ -744,7 +744,7 @@
     flex: 1;
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -783,7 +783,7 @@
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -833,7 +833,7 @@
   .privacy-card {
     padding: 1.25rem;
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: var(--color-bg-dark-secondary);
     display: flex;
     flex-direction: column;
@@ -899,7 +899,7 @@
     bottom: 0;
     background-color: rgba(255, 255, 255, 0.15);
     transition: 0.3s;
-    border-radius: 24px;
+    border-radius: var(--radius-lg);
   }
 
   .slider:before {
@@ -933,7 +933,7 @@
     padding: 1rem;
     background: rgba(255, 68, 68, 0.05);
     border: 1px solid var(--color-error);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
   }
 
   .danger-title {
@@ -971,7 +971,7 @@
   .organization-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
   }
 
@@ -989,7 +989,7 @@
     align-items: center;
     justify-content: center;
     background: var(--color-primary-500);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   :global(.org-icon) {
@@ -1021,7 +1021,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 0.875rem;
     white-space: nowrap;
@@ -1042,7 +1042,7 @@
   .plan-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
   }
 
   .plan-header {
@@ -1061,7 +1061,7 @@
     justify-content: center;
     background: rgba(174, 246, 92, 0.15);
     border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   :global(.plan-icon) {
@@ -1093,7 +1093,7 @@
     padding: 1rem;
     background: rgba(159, 246, 59, 0.08);
     border-left: 3px solid var(--color-primary-500);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .plan-notice p {
@@ -1123,7 +1123,7 @@
   .help-section {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
   }
 
@@ -1151,7 +1151,7 @@
     padding: 1.25rem;
     background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
     transition: all 0.2s ease;
   }
@@ -1233,7 +1233,7 @@
     padding: 0.75rem;
     background: var(--color-bg-dark-secondary);
     border: 1px solid var(--color-border-light);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .about-label {

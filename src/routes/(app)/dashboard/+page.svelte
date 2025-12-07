@@ -90,7 +90,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--color-border-light);
     color: var(--color-text-secondary);
@@ -101,7 +101,7 @@
   .pill .dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: var(--color-warning);
     box-shadow: 0 0 8px rgba(255, 165, 0, 0.8);
   }

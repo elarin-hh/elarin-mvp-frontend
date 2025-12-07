@@ -61,7 +61,7 @@
     background: var(--color-glass-dark-strong);
     backdrop-filter: blur(var(--blur-xl));
     -webkit-backdrop-filter: blur(var(--blur-xl));
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     border: 0.8px solid var(--color-border-light);
   }
 
@@ -77,12 +77,12 @@
 
   .modal-content::-webkit-scrollbar-track {
     background: var(--color-glass-dark);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
   }
 
   .modal-content::-webkit-scrollbar-thumb {
     background: var(--color-glass-light);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
   }
 
   .modal-content::-webkit-scrollbar-thumb:hover {
@@ -92,7 +92,7 @@
   .btn-primary {
     background: var(--color-primary-500);
     color: var(--color-text-primary);
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     transition: var(--transition-base);
   }
 
@@ -110,7 +110,7 @@
     background: transparent;
     border: 0.8px solid var(--color-border-light);
     color: var(--color-text-primary);
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     transition: var(--transition-base);
   }
 

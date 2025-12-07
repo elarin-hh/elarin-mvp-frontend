@@ -1,4 +1,5 @@
 import { authService, type AuthPayload } from '$lib/services/auth.service';
+import { tokenStorage } from '$lib/services/token-storage';
 import {
   setAuthError,
   setAuthLoading,
@@ -19,6 +20,10 @@ function persistDevFlag(user?: User | null) {
 function applyAuthPayload(payload: AuthPayload) {
   const { user, session } = payload;
   const sessionInfo = session ? { expires_in: session.expires_in ?? null } : { expires_in: null };
+
+  if (session?.access_token) {
+    tokenStorage.setAccessToken(session.access_token);
+  }
 
   persistDevFlag(user as User | null);
   setAuthState(user as User, sessionInfo);
@@ -115,6 +120,7 @@ export const authActions = {
       console.error('Failed to call backend logout endpoint', response.error);
     }
     persistDevFlag(null);
+    tokenStorage.clear();
     resetAuthState();
     setAuthLoading(false);
     return { success: true };

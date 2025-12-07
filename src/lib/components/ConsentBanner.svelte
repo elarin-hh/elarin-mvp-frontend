@@ -56,7 +56,7 @@
   .btn-accept {
     background: var(--color-primary-500);
     color: var(--color-text-primary);
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     transition: var(--transition-base);
   }
 
@@ -68,7 +68,7 @@
     background: transparent;
     border: 0.8px solid var(--color-border-light);
     color: var(--color-text-primary);
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     transition: var(--transition-base);
   }
 

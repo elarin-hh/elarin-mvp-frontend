@@ -21,7 +21,7 @@
   };
 </script>
 
-<div class="bg-white rounded-lg shadow-md {paddingClasses[padding]} {className}">
+<div class="bg-white rounded-standard shadow-md {paddingClasses[padding]} {className}">
   {@render children?.()}
 </div>
 

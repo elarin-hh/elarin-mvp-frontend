@@ -181,7 +181,7 @@
   :global(.sa-thumb) {
     position: absolute;
     background: var(--sa-thumb, #3D3F42);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     pointer-events: auto;
   }

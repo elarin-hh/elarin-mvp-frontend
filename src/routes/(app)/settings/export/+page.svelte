@@ -60,7 +60,7 @@
     </p>
   </div>
 
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-standard shadow-lg p-6">
     <h3 class="text-xl font-semibold mb-4">O que sera exportado:</h3>
 
     <ul class="space-y-2 mb-6">

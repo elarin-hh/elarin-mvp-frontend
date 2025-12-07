@@ -160,7 +160,7 @@
     background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border-radius: 18px;
+    border-radius: var(--radius-standard);
     position: relative;
     overflow: hidden;
   }
@@ -178,7 +178,7 @@
   <div class="w-full max-w-md space-y-4">
     <form onsubmit={(e) => { e.preventDefault(); handleRegisterWithOrganization(); }} class="space-y-4">
       {#if error}
-        <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: 18px;">
+        <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: var(--radius-standard);">
           {error}
         </div>
       {/if}
@@ -204,7 +204,7 @@
           required
           placeholder="Nome Completo"
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: 18px; border-width: 0.8px;"
+          style="border-radius: var(--radius-standard); border-width: 0.8px;"
         />
 
         <input
@@ -213,7 +213,7 @@
           required
           placeholder="E-mail"
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: 18px; border-width: 0.8px;"
+          style="border-radius: var(--radius-standard); border-width: 0.8px;"
         />
 
         <input
@@ -222,7 +222,7 @@
           required
           placeholder="Senha"
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: 18px; border-width: 0.8px;"
+          style="border-radius: var(--radius-standard); border-width: 0.8px;"
         />
 
         <input
@@ -231,7 +231,7 @@
           required
           placeholder="Confirmar Senha"
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: 18px; border-width: 0.8px;"
+          style="border-radius: var(--radius-standard); border-width: 0.8px;"
         />
 
         <div>
@@ -243,7 +243,7 @@
             id="birth-date"
             max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
             class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-            style="border-radius: 18px; border-width: 0.8px;"
+            style="border-radius: var(--radius-standard); border-width: 0.8px;"
           />
         </div>
 

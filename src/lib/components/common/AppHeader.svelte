@@ -165,7 +165,7 @@
             </button>
 
             <div
-              class="glass-button w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center rounded-full"
+              class="glass w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center rounded-standard"
             >
               <span class="text-white text-xs font-semibold whitespace-nowrap">PARTNER</span>
             </div>
@@ -173,7 +173,7 @@
             <div class="avatar-menu-container desktop-avatar">
               <button
                 type="button"
-                class="glass-button-round w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0"
+                class="glass glass-hover w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0 rounded-full"
                 aria-label="Perfil do usuário"
                 onclick={onToggleAvatarMenu}
               >
@@ -310,27 +310,7 @@
 </footer>
 
 <style>
-  .glass-button {
-    background: var(--color-glass-light);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 8px;
-    position: relative;
-    overflow: hidden;
-  }
 
-  .glass-button-round {
-    background: var(--color-glass-light);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .glass-button-round:hover {
-    background: var(--color-border-light);
-  }
 
   .header-container {
     transition: all 0.3s ease;
@@ -347,9 +327,11 @@
   }
 
   .header-glass.scrolled {
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+
+    box-shadow: var(--glass-shadow);
   }
 
   .header-content {
@@ -380,13 +362,13 @@
     top: calc(100% + 8px);
     right: 0;
     min-width: 180px;
-    background: var(--color-glass-dark-strong);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--color-border-light);
-    border-radius: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-standard);
     padding: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--glass-shadow);
     z-index: 9999;
     opacity: 0;
     transform: translateY(-10px);
@@ -406,7 +388,7 @@
     gap: 12px;
     padding: 12px 16px;
     color: var(--color-text-primary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: var(--transition-base);
     cursor: pointer;
     font-size: 0.875rem;
@@ -453,7 +435,7 @@
     padding: 4px 12px;
     background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
     border: 1px solid rgba(255, 152, 0, 0.4);
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     color: var(--color-warning);
     font-size: 0.75rem;
     font-weight: 600;
@@ -551,7 +533,7 @@
     .mobile-nav-button {
       width: 40px;
       height: 40px;
-      border-radius: 14px;
+      border-radius: var(--radius-md);
       border: 1px solid transparent;
       background: transparent;
       color: var(--color-text-muted);

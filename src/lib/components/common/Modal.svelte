@@ -43,7 +43,7 @@
     aria-modal="true"
     tabindex="-1"
   >
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto {className}">
+    <div class="bg-white rounded-standard shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto {className}">
       {#if title || showCloseButton}
         <div class="flex items-center justify-between p-6 border-b">
           {#if title}

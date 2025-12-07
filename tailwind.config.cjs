@@ -79,6 +79,14 @@ module.exports = {
         sm: '10px',
         md: '20px',
         lg: '30px'
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        standard: 'var(--radius-standard)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+        full: 'var(--radius-full)'
       }
     }
   },

@@ -70,7 +70,7 @@
 
   .button-primary {
     background: var(--color-primary-500);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: var(--transition-base);
   }
 
@@ -105,7 +105,7 @@
         Antes de Começar
       </h1>
 
-      <div class="card-secondary mb-4 p-6 rounded-lg border border-blue-500/20">
+      <div class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20">
         <div class="flex items-start gap-3">
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
             <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -121,7 +121,7 @@
         </div>
       </div>
 
-      <div class="card-secondary mb-8 p-6 rounded-lg border border-green-500/20">
+      <div class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20">
         <div class="flex items-start gap-3">
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
             <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">

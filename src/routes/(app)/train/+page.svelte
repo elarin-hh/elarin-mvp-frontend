@@ -1072,7 +1072,7 @@
   .video-container {
     position: relative;
     margin: 0 auto;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     background: black;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -1205,7 +1205,7 @@
   border: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-radius: 20px;
+  border-radius: var(--radius-standard);
   position: relative;
   padding: clamp(8px, 1.5vh, 12px);
   display: flex;
@@ -1229,7 +1229,7 @@
   .scale-btn {
     width: 42px;
     height: 42px;
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     color: var(--color-text-primary);
     display: flex;
     align-items: center;
@@ -1261,7 +1261,7 @@
     position: relative;
     overflow: hidden;
     padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     font-size: clamp(12px, 2vw, 16px);
     font-weight: 500;
     animation: slideIn var(--transition-slow) ease;
@@ -1346,7 +1346,7 @@
     display: flex;
     flex-direction: column;
     pointer-events: none;
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     max-width: clamp(70px, 12vw, 140px);
     max-height: 90vh;
     overflow: hidden;
@@ -1414,7 +1414,7 @@
     padding: 0 clamp(16px, 3vw, 24px);
     height: clamp(38px, 6vh, 48px);
     border: none;
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     font-size: clamp(13px, 2vw, 16px);
     font-weight: 600;
     cursor: pointer;
@@ -1444,7 +1444,7 @@
 
   .btn-glass {
     color: var(--color-text-primary);
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     position: relative;
     overflow: hidden;
   }
@@ -1460,7 +1460,7 @@
     width: clamp(38px, 6vh, 48px);
     height: clamp(38px, 6vh, 48px);
     min-width: clamp(38px, 6vh, 48px);
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -1479,12 +1479,12 @@
   }
 
   .card {
-    backdrop-filter: blur(15px) saturate(75%);
-    -webkit-backdrop-filter: blur(15px) saturate(75%);
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border-radius: var(--radius-standard);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
 
   :global(.icon-responsive) {
@@ -1528,7 +1528,7 @@
     margin: 20px auto;
     padding: 20px;
     background: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
   }
 
   .debug-panel pre {
@@ -1541,7 +1541,7 @@
     position: relative;
     overflow: hidden;
     padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
-    border-radius: 20px;
+    border-radius: var(--radius-standard);
     display: flex;
     align-items: center;
     gap: clamp(4px, 1vw, 8px);
@@ -1603,7 +1603,7 @@
     padding: 2px 8px;
     background: var(--color-border-light);
     color: var(--color-text-secondary);
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     font-size: clamp(10px, 1.6vw, 12px);
     text-transform: uppercase;
     letter-spacing: 0.5px;

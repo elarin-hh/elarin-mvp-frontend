@@ -21,7 +21,7 @@
     children
   }: Props = $props();
 
-  const baseClasses = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'font-medium rounded-standard transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variantClasses = {
     primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 disabled:bg-gray-400',
