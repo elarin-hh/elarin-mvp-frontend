@@ -665,24 +665,19 @@
       msFullscreenElement?: Element;
     };
 
-    const isCurrentlyFullscreen =
-      doc.fullscreenElement ||
-      doc.webkitFullscreenElement ||
-      doc.mozFullScreenElement ||
-      doc.msFullscreenElement;
-
-    if (!isCurrentlyFullscreen) return;
-
-    if (doc.exitFullscreen) {
-      await doc.exitFullscreen();
-    } else if (doc.webkitExitFullscreen) {
-      await doc.webkitExitFullscreen();
-    } else if (doc.mozCancelFullScreen) {
-      await doc.mozCancelFullScreen();
-    } else if (doc.msExitFullscreen) {
-      await doc.msExitFullscreen();
+    try {
+      if (doc.exitFullscreen) {
+        await doc.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      } else if (doc.mozCancelFullScreen) {
+        await doc.mozCancelFullScreen();
+      } else if (doc.msExitFullscreen) {
+        await doc.msExitFullscreen();
+      }
+    } finally {
+      isFullscreen = false;
     }
-    isFullscreen = false;
   }
 
   function toggleAvatarMenu() {
@@ -757,11 +752,29 @@
     window.addEventListener('orientationchange', debouncedDetectOrientation);
     window.addEventListener('resize', debouncedDetectOrientation);
     const handleKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' || event.key === 'Esc') {
         exitFullscreenExplicit();
       }
     };
+    const handleFullscreenChange = () => {
+      const doc = document as Document & {
+        fullscreenElement?: Element;
+        webkitFullscreenElement?: Element;
+        mozFullScreenElement?: Element;
+        msFullscreenElement?: Element;
+      };
+      const isCurrentlyFullscreen =
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement;
+      isFullscreen = Boolean(isCurrentlyFullscreen);
+    };
     window.addEventListener('keydown', handleKeydown);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     const handleScroll = debounce((e: Event) => {
       const target = e.target as HTMLElement;
@@ -783,6 +796,10 @@
       window.removeEventListener('orientationchange', debouncedDetectOrientation);
       window.removeEventListener('resize', debouncedDetectOrientation);
       window.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
       if (viewport) {
         viewport.removeEventListener('scroll', handleScroll);
       } else {
