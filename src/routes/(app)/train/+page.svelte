@@ -941,40 +941,49 @@
             <button class="btn btn-glass card" onclick={pauseTraining}>Pausar</button>
             <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
           {/if}
-          <button
-            class="btn btn-glass-icon card"
-            onclick={toggleFeedback}
-            title={isFeedbackEnabled ? 'Desativar feedback' : 'Ativar feedback'}
-          >
-            {#if isFeedbackEnabled}
-              <MessageSquare class="icon-responsive" />
-            {:else}
-              <MessageSquareOff class="icon-responsive" />
-            {/if}
-          </button>
-          <button
-            class="btn btn-glass-icon card"
-            onclick={toggleAudio}
-            title={$audioFeedbackStore.isEnabled ? 'Desativar áudio' : 'Ativar áudio'}
-          >
-            {#if $audioFeedbackStore.isEnabled}
-              <Volume2 class="icon-responsive" />
-            {:else}
-              <VolumeX class="icon-responsive" />
-            {/if}
-          </button>
           <button class="btn btn-glass-icon card" onclick={toggleFullscreen}>
             <span class="fullscreen-icon">{isFullscreen ? '⛶' : '⛶'}</span>
           </button>
         </div>
       {/if}
-    </div>
+  </div>
 
-    {#if errorMessage}
-      <div class="error-banner">
-        <p>{errorMessage}</p>
-      </div>
-    {/if}
+  {#if isCameraRunning || isPaused}
+    <div class="feedback-audio-controls">
+      <button
+        class="btn btn-glass card"
+        onclick={toggleFeedback}
+        title={isFeedbackEnabled ? 'Desativar feedback visual' : 'Ativar feedback visual'}
+      >
+        {#if isFeedbackEnabled}
+          <MessageSquare class="icon-responsive" />
+          <span>Feedback ligado</span>
+        {:else}
+          <MessageSquareOff class="icon-responsive" />
+          <span>Feedback desligado</span>
+        {/if}
+      </button>
+      <button
+        class="btn btn-glass card"
+        onclick={toggleAudio}
+        title={$audioFeedbackStore.isEnabled ? 'Desativar áudio' : 'Ativar áudio'}
+      >
+        {#if $audioFeedbackStore.isEnabled}
+          <Volume2 class="icon-responsive" />
+          <span>Áudio ligado</span>
+        {:else}
+          <VolumeX class="icon-responsive" />
+          <span>Áudio desligado</span>
+        {/if}
+      </button>
+    </div>
+  {/if}
+
+  {#if errorMessage}
+    <div class="error-banner">
+      <p>{errorMessage}</p>
+    </div>
+  {/if}
 
     {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
@@ -1487,6 +1496,21 @@
   .fullscreen-icon {
     font-size: clamp(18px, 2.8vw, 22px);
     line-height: 1;
+  }
+
+  .feedback-audio-controls {
+    margin: clamp(12px, 2vh, 20px) auto;
+    display: flex;
+    gap: clamp(10px, 2vw, 16px);
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 820px;
+  }
+
+  .feedback-audio-controls .btn {
+    gap: 8px;
+    padding: 0 clamp(14px, 3vw, 22px);
   }
 
   .error-banner {
