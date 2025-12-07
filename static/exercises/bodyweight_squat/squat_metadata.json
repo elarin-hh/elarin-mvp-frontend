@@ -1,5 +1,5 @@
 {
-  "exercise": "squat",
+  "exercise": "bodyweight_squat",
   "threshold": 0.069,
   "model_type": "autoencoder_oneclass",
   "input_shape": [

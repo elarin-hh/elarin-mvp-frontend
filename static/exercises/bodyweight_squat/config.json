@@ -1,12 +1,12 @@
 {
-  "exerciseName": "squat",
+  "exerciseName": "bodyweight_squat",
   "displayName": "Agachamento",
   "displayNameEn": "Squat",
-  "exercisePath": "./exercises/squat",
-  "validatorPath": "./exercises/squat/validator.js",
+  "exercisePath": "./exercises/bodyweight_squat",
+  "validatorPath": "./exercises/bodyweight_squat/validator.js",
   "modelFile": "squat_autoencoder.onnx",
   "metadataFile": "squat_metadata.json",
-  "modelPath": "./exercises/squat/squat_autoencoder.onnx",
+  "modelPath": "./exercises/bodyweight_squat/squat_autoencoder.onnx",
   "mlConfig": {
     "maxFrames": 60,
     "minFrames": 3,

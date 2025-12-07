@@ -8,6 +8,15 @@
 import { base } from '$app/paths';
 import type { ExerciseConfig } from '../types/exercise.types';
 
+const DEFAULT_EXERCISES = [
+	'bodyweight_squat',
+	'standing_hip_abduction',
+	'glute_bridge',
+	'seated_thoracic_extension',
+	'dead_bug_alternating',
+	'standing_v_raise'
+];
+
 // Cache de configurações
 const configCache: Record<string, ExerciseConfig> = {};
 
@@ -30,7 +39,9 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 			if (!path) return path ?? undefined;
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
 		};
-		config.modelPath = normalizePath(config.modelPath || (config.modelFile ? `./exercises/${exerciseId}/${config.modelFile}` : undefined));
+		config.modelPath = normalizePath(
+			config.modelPath || (config.modelFile ? `./exercises/${exerciseId}/${config.modelFile}` : undefined)
+		);
 		config.exercisePath = normalizePath(config.exercisePath);
 		config.validatorPath = normalizePath(config.validatorPath || undefined);
 		config.metadataFile = config.metadataFile || null;
@@ -55,12 +66,12 @@ export async function getAvailableExercises(): Promise<string[]> {
 	try {
 		const response = await fetch(`${base}/exercises.json`);
 		if (!response.ok) {
-			return ['squat']; // fallback
+			return DEFAULT_EXERCISES;
 		}
 		const data: { exercises?: string[] } = await response.json();
-		return data.exercises || ['squat'];
+		return data.exercises || DEFAULT_EXERCISES;
 	} catch {
-		return ['squat']; // fallback
+		return DEFAULT_EXERCISES;
 	}
 }
 

@@ -51,7 +51,7 @@ const DEFAULT_CONFIG: Required<
 	feedbackCooldownMs: 350
 };
 
-export class SquatValidator extends BaseValidator {
+export class SquatBodyweightValidator extends BaseValidator {
 	private currentState: 'UP' | 'DOWN' = 'UP';
 	private framesInCurrentState = 0;
 	public validReps = 0;

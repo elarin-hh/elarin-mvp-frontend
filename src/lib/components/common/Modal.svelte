@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { _ } from 'svelte-i18n';
   import type { Snippet } from 'svelte';
 
   interface Props {
@@ -55,7 +54,7 @@
               type="button"
               onclick={onClose}
               class="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label={$_('common.close')}
+              aria-label="Fechar"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

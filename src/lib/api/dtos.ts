@@ -23,7 +23,14 @@ export const trainingMetricSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   organizationId: z.number().int().positive().nullable(),
-  exercise: z.enum(['squat', 'lunge', 'plank', 'push_up']),
+  exercise: z.enum([
+    'bodyweight_squat',
+    'standing_hip_abduction',
+    'glute_bridge',
+    'seated_thoracic_extension',
+    'dead_bug_alternating',
+    'standing_v_raise'
+  ]),
   reps: z.number().int().nonnegative(),
   sets: z.number().int().nonnegative(),
   durationMs: z.number().nonnegative(),

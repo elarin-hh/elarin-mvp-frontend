@@ -3,30 +3,12 @@ import { trainingApi } from '$lib/api/training.api';
 
 // Merge legacy and integrated exercise types in a single union
 export type ExerciseType =
-  | 'plank'
-  | 'squat'
-  | 'legPress'
-  | 'abdominal'
-  | 'crossOver'
-  | 'biceps'
-  | 'triceps'
-  | 'glutes'
-  | 'shoulderPress'
-  | 'deadlift'
-  | 'benchPress'
-  | 'pullUp'
-  | 'dip'
-  | 'latPulldown'
-  | 'cableRow'
-  | 'lunges'
-  | 'calfRaise'
-  | 'hamstringCurl'
-  | 'chestFly'
-  | 'lateralRaise'
-  | 'frontRaise'
-  | 'shrugs'
-  | 'arnoldPress'
-  | 'push_up';
+  | 'bodyweight_squat'
+  | 'standing_hip_abduction'
+  | 'glute_bridge'
+  | 'seated_thoracic_extension'
+  | 'dead_bug_alternating'
+  | 'standing_v_raise';
 
 export type TrainingStatus = 'idle' | 'ready' | 'training' | 'paused' | 'finished';
 

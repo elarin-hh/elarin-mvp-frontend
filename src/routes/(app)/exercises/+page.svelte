@@ -21,7 +21,12 @@
   let isRefreshing = $state(false);
 
   const exerciseImages: Record<string, string> = {
-    squat: asset('/exercisesImages/squat.webp')
+    bodyweight_squat: asset('/exercisesImages/squat.webp'),
+    standing_hip_abduction: asset('/exercisesImages/squat.webp'),
+    glute_bridge: asset('/exercisesImages/squat.webp'),
+    seated_thoracic_extension: asset('/exercisesImages/squat.webp'),
+    dead_bug_alternating: asset('/exercisesImages/squat.webp'),
+    standing_v_raise: asset('/exercisesImages/squat.webp')
   };
 
   $effect(() => {

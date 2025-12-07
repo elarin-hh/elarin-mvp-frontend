@@ -18,7 +18,7 @@ export * from './utils/landmarks.utils';
 
 // Validators
 export { BaseValidator } from './validators/BaseValidator';
-export { SquatValidator } from './validators/SquatValidator';
+export { SquatBodyweightValidator } from './validators/SquatBodyweightValidator';
 export { LungeValidator } from './validators/LungeValidator';
 export { createValidator, hasValidator, getRegisteredExercises } from './validators';
 
