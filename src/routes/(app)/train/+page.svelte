@@ -5,15 +5,14 @@
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import AudioFeedbackControls from '$lib/components/AudioFeedbackControls.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus } from 'lucide-svelte';
+  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus, Volume2, VolumeX } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
   import { LANDMARK_GROUPS } from '$lib/vision/constants/mediapipe.constants';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
-  import { audioFeedbackActions } from '$lib/stores/audio-feedback.store';
+  import { audioFeedbackActions, audioFeedbackStore } from '$lib/stores/audio-feedback.store';
 
   const BIOMETRIC_CONSENT_KEY = 'elarin_biometric_consent';
   const BIOMETRIC_CONSENT_TS_KEY = 'elarin_biometric_consent_ts';
@@ -733,6 +732,10 @@
     }
   }
 
+  function toggleAudio() {
+    audioFeedbackActions.toggleEnabled();
+  }
+
   let hasStartedCamera = $state(false);
 
   $effect(() => {
@@ -849,7 +852,7 @@
         {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
           <div class="feedback-card" style={`--overlay-scale:${overlayScale};`}>
             {#if isDevMode}
-              <div class="mode-indicator in-card">
+              <div class="mode-indicator in-card card">
                 {#if feedbackMode === 'hybrid'}
                   <Microscope />
                 {:else if feedbackMode === 'ml_only'}
@@ -863,7 +866,7 @@
 
             {#if reconstructionError !== null}
               <div class="feedback-overlay">
-                <div class="feedback-message info">
+                <div class="feedback-message info card">
                   <span>Erro de reconstrução: {reconstructionError.toFixed(4)}</span>
                 </div>
               </div>
@@ -874,7 +877,7 @@
                 {#each feedbackMessages
                   .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstrução'))
                   .slice(0, 3) as message}
-                  <div class="feedback-message {message.type}" class:critical={message.severity === 'critical'}>
+                  <div class="feedback-message card {message.type}" class:critical={message.severity === 'critical'}>
                     <span>{message.text}</span>
                   </div>
                 {/each}
@@ -885,7 +888,7 @@
       </div>
       <div class="overlay-scale-controls" style={`--overlay-scale:${overlayScale};`}>
         <button
-          class="scale-btn"
+          class="scale-btn card"
           onclick={() => (overlayScale = Math.min(OVERLAY_MAX_SCALE, parseFloat((overlayScale + 0.1).toFixed(2))))}
           aria-label="Aumentar tamanho do overlay"
           disabled={overlayScale >= OVERLAY_MAX_SCALE}
@@ -893,7 +896,7 @@
           <Plus size={18} />
         </button>
         <button
-          class="scale-btn"
+          class="scale-btn card"
           onclick={() => (overlayScale = Math.max(OVERLAY_MIN_SCALE, parseFloat((overlayScale - 0.1).toFixed(2))))}
           aria-label="Diminuir tamanho do overlay"
           disabled={overlayScale <= OVERLAY_MIN_SCALE}
@@ -903,7 +906,7 @@
       </div>
 
       {#if isCameraRunning || isPaused}
-        <div class="metrics-overlay" style={`--overlay-scale:${overlayScale};`}>
+        <div class="metrics-overlay card" style={`--overlay-scale:${overlayScale};`}>
           <div class="metric">
             <span class="metric-label">Repetições</span>
             <span class="metric-value">{$trainingStore.reps}</span>
@@ -933,13 +936,13 @@
         <div class="video-controls">
           {#if isPaused}
             <button class="btn btn-primary" onclick={resumeTraining}>Retomar</button>
-            <button class="btn btn-glass" onclick={finishTraining}>Finalizar</button>
+            <button class="btn btn-glass card" onclick={finishTraining}>Finalizar</button>
           {:else}
-            <button class="btn btn-glass" onclick={pauseTraining}>Pausar</button>
+            <button class="btn btn-glass card" onclick={pauseTraining}>Pausar</button>
             <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
           {/if}
           <button
-            class="btn btn-glass-icon"
+            class="btn btn-glass-icon card"
             onclick={toggleFeedback}
             title={isFeedbackEnabled ? 'Desativar feedback' : 'Ativar feedback'}
           >
@@ -949,7 +952,18 @@
               <MessageSquareOff class="icon-responsive" />
             {/if}
           </button>
-          <button class="btn btn-glass-icon" onclick={toggleFullscreen}>
+          <button
+            class="btn btn-glass-icon card"
+            onclick={toggleAudio}
+            title={$audioFeedbackStore.isEnabled ? 'Desativar áudio' : 'Ativar áudio'}
+          >
+            {#if $audioFeedbackStore.isEnabled}
+              <Volume2 class="icon-responsive" />
+            {:else}
+              <VolumeX class="icon-responsive" />
+            {/if}
+          </button>
+          <button class="btn btn-glass-icon card" onclick={toggleFullscreen}>
             <span class="fullscreen-icon">{isFullscreen ? '⛶' : '⛶'}</span>
           </button>
         </div>
@@ -961,10 +975,6 @@
         <p>{errorMessage}</p>
       </div>
     {/if}
-
-    <div class="audio-controls-card">
-      <AudioFeedbackControls />
-    </div>
 
     {#if isCameraRunning && isDevMode}
       <div class="mode-selector-panel">
@@ -1181,16 +1191,17 @@
     transform-origin: top right;
   }
 
-  .feedback-card {
-    background: transparent;
-    border: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-radius: var(--radius-md);
-    padding: clamp(8px, 1.5vh, 12px);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(8px, 1.5vh, 12px);
+.feedback-card {
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 20px;
+  position: relative;
+  padding: clamp(8px, 1.5vh, 12px);
+  display: flex;
+  flex-direction: column;
+    gap: clamp(10px, 1.8vh, 14px);
     align-items: flex-end;
     pointer-events: none;
   }
@@ -1209,20 +1220,19 @@
   .scale-btn {
     width: 42px;
     height: 42px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
-    background: var(--color-glass-dark);
+    border-radius: 20px;
     color: var(--color-text-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: var(--transition-base);
+    overflow: hidden;
   }
 
   .scale-btn:hover:not(:disabled) {
-    background: var(--color-glass-dark-strong);
-    border-color: var(--color-border-light-hover);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .scale-btn:disabled {
@@ -1233,25 +1243,49 @@
   .feedback-overlay {
     display: flex;
     flex-direction: column;
-    gap: clamp(6px, 1.2vh, 10px);
+    gap: clamp(10px, 1.8vh, 14px);
     width: auto;
     align-items: flex-end;
   }
 
   .feedback-message {
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-    border: 1px solid var(--color-border-light);
+    position: relative;
+    overflow: hidden;
     padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
-    border-radius: var(--radius-md);
+    border-radius: 20px;
     font-size: clamp(12px, 2vw, 16px);
     font-weight: 500;
-    border-left: clamp(3px, 0.5vw, 4px) solid transparent;
     animation: slideIn var(--transition-slow) ease;
     color: var(--color-text-primary);
     align-self: flex-end;
     width: auto;
+  }
+
+  .feedback-message::before,
+  .mode-indicator::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  }
+
+  .feedback-message::after,
+  .mode-indicator::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.8),
+      transparent,
+      rgba(255, 255, 255, 0.3)
+    );
   }
 
   .feedback-message.success {
@@ -1298,18 +1332,12 @@
   .metrics-overlay {
     position: absolute;
     top: 50%;
-    left: 0;
+    left: clamp(10px, 2vw, 18px);
     transform: translateY(-50%) scale(var(--overlay-scale, 1));
     display: flex;
     flex-direction: column;
     pointer-events: none;
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-    border: 1px solid var(--color-border-light);
-    border-left: none;
-    border-top-right-radius: clamp(15px, 4vw, 40px);
-    border-bottom-right-radius: clamp(15px, 4vw, 40px);
+    border-radius: 20px;
     max-width: clamp(70px, 12vw, 140px);
     max-height: 90vh;
     overflow: hidden;
@@ -1377,7 +1405,7 @@
     padding: 0 clamp(16px, 3vw, 24px);
     height: clamp(38px, 6vh, 48px);
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 20px;
     font-size: clamp(13px, 2vw, 16px);
     font-weight: 600;
     cursor: pointer;
@@ -1406,28 +1434,26 @@
   }
 
   .btn-glass {
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
     color: var(--color-text-primary);
-    border: 1px solid var(--color-border-light);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
   }
 
   .btn-glass:hover {
-    background: var(--color-glass-dark-strong);
-    border-color: var(--color-border-light-hover);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .btn-glass-icon {
     padding: 0;
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
     color: var(--color-text-primary);
     width: clamp(38px, 6vh, 48px);
     height: clamp(38px, 6vh, 48px);
     min-width: clamp(38px, 6vh, 48px);
-    border: 1px solid var(--color-border-light);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1435,12 +1461,21 @@
   }
 
   .btn-glass-icon:hover {
-    background: var(--color-glass-dark-strong);
-    border-color: var(--color-border-light-hover);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .btn-glass-icon:active {
     transform: scale(0.95);
+  }
+
+  .card {
+    backdrop-filter: blur(15px) saturate(75%);
+    /* -webkit-backdrop-filter: blur(15px) saturate(45%); */
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
   }
 
   :global(.icon-responsive) {
@@ -1479,12 +1514,10 @@
   }
 
   .mode-indicator {
-    background: var(--color-glass-dark);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-    border: 1px solid var(--color-border-light);
+    position: relative;
+    overflow: hidden;
     padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
-    border-radius: var(--radius-md);
+    border-radius: 20px;
     display: flex;
     align-items: center;
     gap: clamp(4px, 1vw, 8px);
@@ -1505,7 +1538,6 @@
     justify-content: flex-start;
     align-self: flex-end;
   }
-
 
   .mode-indicator :global(svg) {
     width: clamp(14px, 2.2vw, 18px) !important;
@@ -1636,16 +1668,6 @@
 
   .mode-info strong {
     color: var(--color-text-primary);
-  }
-
-  .audio-controls-card {
-    max-width: 980px;
-    margin: clamp(10px, 2vh, 16px) auto;
-  }
-
-  .audio-controls-card :global(.audio-feedback-controls) {
-    background: var(--color-bg-dark-secondary);
-    border-color: rgba(255, 255, 255, 0.08);
   }
 
   @media (max-width: 768px) {
