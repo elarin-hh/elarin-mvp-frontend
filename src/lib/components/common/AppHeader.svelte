@@ -165,7 +165,8 @@
             </button>
 
             <div
-              class="glass w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center rounded-standard"
+              class="glass w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center"
+              style="border-radius: var(--radius-sm);"
             >
               <span class="text-white text-xs font-semibold whitespace-nowrap">PARTNER</span>
             </div>
@@ -432,25 +433,14 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px;
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 87, 34, 0.2));
-    border: 1px solid rgba(255, 152, 0, 0.4);
-    border-radius: var(--radius-standard);
+    padding: 2px 8px;
+    background: rgba(255, 152, 0, 0.05);
+    border: 1px solid rgba(255, 152, 0, 0.2);
+    border-radius: var(--radius-sm);
     color: var(--color-warning);
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.5px;
-    animation: pulse-dev 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-dev {
-    0%,
-    100% {
-      box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 16px rgba(255, 152, 0, 0.5);
-    }
   }
 
   :global(body) {

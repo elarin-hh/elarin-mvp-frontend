@@ -187,10 +187,10 @@
               {/if}
             </div>
 
-            <span
-              class="exercise-name text-white text-sm sm:text-base font-medium px-2 sm:px-3 py-2 pt-4 sm:pt-5 -mt-3 z-0 group-hover:rounded-b-lg"
+            <!-- <span
+              class="exercise-name text-white text-sm sm:text-base font-medium px-2 sm:px-3 py-2 pt-4 sm:pt-5 -mt-3 z-0 rounded-b-sm"
             >
-            </span>
+            </span> -->
           </div>
         {/each}
       </div>

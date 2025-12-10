@@ -37,6 +37,7 @@
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
   let videoContainerElement: HTMLDivElement;
+  let splitContainerElement: HTMLDivElement;
   let analyzer: ExerciseAnalyzer | null = $state(null);
   let pose: MediaPipePose | null = $state(null);
   let camera: MediaPipeCamera | null = $state(null);
@@ -69,7 +70,7 @@
 
   let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
-  let isFeedbackEnabled = $state(true);
+  let isFeedbackEnabled = $state(false);
   const OVERLAY_MIN_SCALE = 0.8;
   const OVERLAY_MAX_SCALE = 1.4;
   let overlayScale = $state(1);
@@ -83,6 +84,23 @@
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
   let fps = $state(0);
+  let showTimer = $state(true);
+  let showScore = $state(true);
+  let showReps = $state(true);
+  let activeTab = $state<'display' | 'skeleton' | 'sound' | 'advanced' | 'dev'>('display');
+  let layoutMode = $state<'side-by-side' | 'user-centered' | 'coach-centered'>('side-by-side');
+  
+  // PiP dragging state
+  let pipPosition = $state({ x: 16, y: 16 }); // Default top-right position (1rem = 16px)
+  let isDraggingPip = $state(false);
+  let dragOffset = { x: 0, y: 0 };
+  
+  // PiP resizing state
+  let pipSize = $state({ width: 200, height: 112.5 }); // Default 200px width, 16:9 ratio
+  let isResizingPip = $state(false);
+  let resizeStartPos = { x: 0, y: 0 };
+  let resizeStartSize = { width: 0, height: 0 };
+
   const SKELETON_STYLE = {
     lineWidth: 5,
     pointRadius: 7,
@@ -136,15 +154,13 @@
   }
 
   function syncCanvasSize(force = false) {
-    if (!videoElement || !canvasElement || !videoContainerElement) return;
+    if (!videoElement || !canvasElement) return;
 
-    // Usa o tamanho atual do container para evitar esticar/zoomer o layout
-    const rect = videoContainerElement.getBoundingClientRect();
-    const containerWidth = Math.round(rect.width);
-    const containerHeight = Math.round(rect.height);
-
-    const width = containerWidth || videoElement.clientWidth || videoElement.videoWidth;
-    const height = containerHeight || videoElement.clientHeight || videoElement.videoHeight;
+    // Decouple canvas buffer size from display size.
+    // Use video native resolution to obtain correct aspect ratio.
+    const width = videoElement.videoWidth;
+    const height = videoElement.videoHeight;
+    
     if (!width || !height) return;
 
     const needsResize = force || canvasElement.width !== width || canvasElement.height !== height;
@@ -575,7 +591,7 @@
   }
 
   async function toggleFullscreen() {
-    if (!videoContainerElement) return;
+    if (!splitContainerElement) return;
 
     try {
       const doc = document as Document & {
@@ -588,7 +604,7 @@
         mozCancelFullScreen?: () => Promise<void>;
         msExitFullscreen?: () => Promise<void>;
       };
-      const elem = videoContainerElement as HTMLDivElement & {
+      const elem = splitContainerElement as HTMLDivElement & {
         requestFullscreen?: () => Promise<void>;
         webkitRequestFullscreen?: () => Promise<void>;
         mozRequestFullScreen?: () => Promise<void>;
@@ -786,6 +802,79 @@
     };
   });
 
+  // PiP drag handlers
+  function handlePipMouseDown(e: MouseEvent) {
+    if (layoutMode === 'side-by-side') return;
+    
+    isDraggingPip = true;
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    dragOffset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    e.preventDefault();
+  }
+
+  function handlePipMouseMove(e: MouseEvent) {
+    if (!isDraggingPip || !splitContainerElement) return;
+
+    const containerRect = splitContainerElement.getBoundingClientRect();
+    const pipWidth = pipSize.width;
+    const pipHeight = pipSize.height;
+
+    let newX = e.clientX - containerRect.left - dragOffset.x;
+    let newY = e.clientY - containerRect.top - dragOffset.y;
+
+    // Constrain within container bounds
+    newX = Math.max(0, Math.min(newX, containerRect.width - pipWidth));
+    newY = Math.max(0, Math.min(newY, containerRect.height - pipHeight));
+
+    pipPosition = { x: newX, y: newY };
+  }
+
+  function handlePipMouseUp() {
+    isDraggingPip = false;
+    isResizingPip = false;
+  }
+
+  // PiP resize handlers
+  function handleResizeMouseDown(e: MouseEvent) {
+    isResizingPip = true;
+    resizeStartPos = { x: e.clientX, y: e.clientY };
+    resizeStartSize = { ...pipSize };
+    e.stopPropagation(); // Prevent drag from triggering
+    e.preventDefault();
+  }
+
+  function handleResizeMouseMove(e: MouseEvent) {
+    if (!isResizingPip || !splitContainerElement) return;
+
+    const deltaX = e.clientX - resizeStartPos.x;
+    const deltaY = e.clientY - resizeStartPos.y;
+    
+    // Use the larger delta to maintain aspect ratio
+    const delta = Math.max(deltaX, deltaY);
+    
+    let newWidth = resizeStartSize.width + delta;
+    
+    // Constrain size (min 150px, max 700px)
+    newWidth = Math.max(150, Math.min(700, newWidth));
+    
+    const newHeight = newWidth * (9/16); // Maintain 16:9 aspect ratio
+    
+    pipSize = { width: newWidth, height: newHeight };
+    
+    // Adjust position if resizing would push PiP out of bounds
+    const containerRect = splitContainerElement.getBoundingClientRect();
+    if (pipPosition.x + newWidth > containerRect.width) {
+      pipPosition = { ...pipPosition, x: containerRect.width - newWidth };
+    }
+    if (pipPosition.y + newHeight > containerRect.height) {
+      pipPosition = { ...pipPosition, y: containerRect.height - newHeight };
+    }
+  }
+
   onDestroy(() => {
     if (camera) camera.stop();
     if (analyzer) analyzer.destroy();
@@ -794,11 +883,43 @@
   });
 </script>
 
+{#snippet fullscreenButton()}
+  <button class="fullscreen-btn-floating" onclick={toggleFullscreen} aria-label="Tela cheia">
+    {#if isFullscreen}
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+      </svg>
+    {:else}
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+    {/if}
+  </button>
+{/snippet}
+
+{#snippet repCounter(cssClass: string)}
+  <div class={cssClass}>
+    <div class="rep-info">
+      <span class="rep-label">Reps.</span>
+      <span class="rep-count">{$trainingStore.reps} /30</span>
+    </div>
+    <div class="rep-progress">
+      {#each Array(30) as _, i}
+        <div 
+          class="rep-line" 
+          class:completed={i < $trainingStore.reps}
+          class:current={i === $trainingStore.reps}
+        ></div>
+      {/each}
+    </div>
+  </div>
+{/snippet}
+
 <svelte:head>
   <title>Elarin</title>
 </svelte:head>
 
-<main class="train-page">
+<main class="train-page" onmousemove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }} onmouseup={handlePipMouseUp}>
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -811,21 +932,35 @@
 
   <div class="content">
     <div
-      class="video-container"
+      class="split-container"
+      bind:this={splitContainerElement}
       class:fullscreen={isFullscreen}
-      class:portrait={orientation === 'portrait'}
-      class:landscape={orientation === 'landscape'}
-      bind:this={videoContainerElement}
+      class:layout-side-by-side={layoutMode === 'side-by-side'}
+      class:layout-user-centered={layoutMode === 'user-centered'}
+      class:layout-coach-centered={layoutMode === 'coach-centered'}
     >
+      <div
+        class="video-container"
+        class:portrait={orientation === 'portrait'}
+        class:landscape={orientation === 'landscape'}
+        bind:this={videoContainerElement}
+        style={layoutMode === 'coach-centered' ? `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;` : ''}
+        onmousedown={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
+        class:draggable-pip={layoutMode === 'coach-centered'}
+      >
       <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
         <track kind="captions" src="" label="No captions" />
       </video>
 
       <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
+      
+      {#if layoutMode === 'coach-centered'}
+        <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
+      {/if}
 
-      <div class="overlays-container" style={`--overlay-scale:${overlayScale};`}>
+      <div class="overlays-container">
         {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
-          <div class="feedback-card" style={`--overlay-scale:${overlayScale};`}>
+          <div class="feedback-card">
             {#if isDevMode}
               <div class="mode-indicator in-card card">
                 {#if feedbackMode === 'hybrid'}
@@ -861,145 +996,164 @@
           </div>
         {/if}
       </div>
-      <div class="overlay-scale-controls" style={`--overlay-scale:${overlayScale};`}>
-        <button
-          class="scale-btn card"
-          onclick={() => (overlayScale = Math.min(OVERLAY_MAX_SCALE, parseFloat((overlayScale + 0.1).toFixed(2))))}
-          aria-label="Aumentar tamanho do overlay"
-          disabled={overlayScale >= OVERLAY_MAX_SCALE}
-        >
-          <Plus size={18} />
-        </button>
-        <button
-          class="scale-btn card"
-          onclick={() => (overlayScale = Math.max(OVERLAY_MIN_SCALE, parseFloat((overlayScale - 0.1).toFixed(2))))}
-          aria-label="Diminuir tamanho do overlay"
-          disabled={overlayScale <= OVERLAY_MIN_SCALE}
-        >
-          <Minus size={18} />
-        </button>
-      </div>
 
       {#if isCameraRunning || isPaused}
-        <div class="metrics-overlay card" style={`--overlay-scale:${overlayScale};`}>
-          <div class="metric">
-            <span class="metric-label">Repetições</span>
-            <span class="metric-value">{$trainingStore.reps}</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Tempo</span>
-            <span class="metric-value">{formatTime(elapsedTime)}</span>
-          </div>
-          {#if isDevMode}
-            <div class="metric">
-              <span class="metric-label">Precisão</span>
-              <span class="metric-value">{accuracy.toFixed(0)}%</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Confiança</span>
-              <span class="metric-value">{confidence.toFixed(0)}%</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">FPS</span>
-              <span class="metric-value">{fps}</span>
-            </div>
-          {/if}
-        </div>
+        {#if layoutMode === 'user-centered'}
+          {@render repCounter('rep-counter-bar-overlay')}
+        {/if}
+
+        {#if layoutMode !== 'coach-centered'}
+          {@render fullscreenButton()}
+        {/if}
+      {/if}
+    </div>
+
+    <div class="reference-container"
+      style={layoutMode === 'user-centered' ? `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;` : ''}
+      onmousedown={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
+      class:draggable-pip={layoutMode === 'user-centered'}
+    >
+      <video
+        class="reference-video"
+        src="{base}/videos/squat.mp4"
+        playsinline
+        loop
+        autoplay
+        muted
+      >
+        <track kind="captions" src="" label="No captions" />
+      </video>
+      
+      {#if layoutMode === 'user-centered'}
+        <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
       {/if}
 
-      {#if isCameraRunning || isPaused}
-        <div class="video-controls">
-          {#if isPaused}
-            <button class="btn btn-primary" onclick={resumeTraining}>Retomar</button>
-            <button class="btn btn-glass card" onclick={finishTraining}>Finalizar</button>
-          {:else}
-            <button class="btn btn-glass card" onclick={pauseTraining}>Pausar</button>
-            <button class="btn btn-primary" onclick={finishTraining}>Finalizar</button>
-          {/if}
-          <button class="btn btn-glass-icon card" onclick={toggleFullscreen}>
-            <span class="fullscreen-icon">{isFullscreen ? '⛶' : '⛶'}</span>
-          </button>
-        </div>
+      {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered'}
+        {@render repCounter('rep-counter-bar-overlay')}
+        {@render fullscreenButton()}
       {/if}
+    </div>
+
+    {#if (isCameraRunning || isPaused) && layoutMode === 'side-by-side'}
+      {@render repCounter('rep-counter-bar-overlay')}
+    {/if}
   </div>
 
-  {#if isCameraRunning || isPaused}
-    <div class="feedback-audio-controls">
-      <button
-        class="btn btn-glass card"
-        onclick={toggleFeedback}
-        title={isFeedbackEnabled ? 'Desativar feedback visual' : 'Ativar feedback visual'}
-      >
-        {#if isFeedbackEnabled}
-          <MessageSquare class="icon-responsive" />
-          <span>Feedback ligado</span>
-        {:else}
-          <MessageSquareOff class="icon-responsive" />
-          <span>Feedback desligado</span>
-        {/if}
-      </button>
-      <button
-        class="btn btn-glass card"
-        onclick={toggleAudio}
-        title={$audioFeedbackStore.isEnabled ? 'Desativar áudio' : 'Ativar áudio'}
-      >
-        {#if $audioFeedbackStore.isEnabled}
-          <Volume2 class="icon-responsive" />
-          <span>Áudio ligado</span>
-        {:else}
-          <VolumeX class="icon-responsive" />
-          <span>Áudio desligado</span>
-        {/if}
-      </button>
-    </div>
-  {/if}
 
-  {#if errorMessage}
-    <div class="error-banner">
-      <p>{errorMessage}</p>
-    </div>
-  {/if}
 
-    {#if isCameraRunning && isDevMode}
-      <div class="mode-selector-panel">
-        <h3>
-          <Settings class="mode-panel-icon" />
-          Modo de Análise
-          <span class="dev-pill">Dev only</span>
-        </h3>
-        <div class="mode-buttons">
-          <button class="mode-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>
-            <Microscope class="mode-btn-icon" />
-            <div class="mode-labels">
-              <span class="mode-title">Híbrido</span>
-              <span class="mode-desc">ML + Heurística</span>
-            </div>
-          </button>
-
-          <button class="mode-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>
-            <Bot class="mode-btn-icon" />
-            <div class="mode-labels">
-              <span class="mode-title">ML only</span>
-              <span class="mode-desc">Autoencoder</span>
-            </div>
-          </button>
-
-          <button class="mode-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>
-            <Ruler class="mode-btn-icon" />
-            <div class="mode-labels">
-              <span class="mode-title">Heurística</span>
-              <span class="mode-desc">Biomecânica</span>
-            </div>
-          </button>
+    {#if isCameraRunning || isPaused}
+      <div class="settings-panel">
+        <div class="settings-tabs">
+          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => activeTab = 'display'}>Exibição</button>
+          <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => activeTab = 'skeleton'}>Esqueleto</button>
+          <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => activeTab = 'sound'}>Som e Efeitos</button>
+          <button class="tab-btn" class:active={activeTab === 'advanced'} onclick={() => activeTab = 'advanced'}>Avançado</button>
+          {#if isDevMode}
+            <button class="tab-btn" class:active={activeTab === 'dev'} onclick={() => activeTab = 'dev'}>Dev</button>
+          {/if}
         </div>
 
-        <div class="mode-info">
-          {#if feedbackMode === 'hybrid'}
-            <p><strong>Híbrido:</strong> ML + heurísticas biomecânicas.</p>
-          {:else if feedbackMode === 'ml_only'}
-            <p><strong>ML only:</strong> Apenas autoencoder.</p>
-          {:else}
-            <p><strong>Heurística:</strong> Regras biomecânicas dedicadas.</p>
+        <div class="settings-content">
+          {#if activeTab === 'display'}
+            <div class="settings-group">
+              <h4>Escolher Layout de Exibição</h4>
+              <div class="layout-options">
+                  <div class="layout-option" class:active={layoutMode === 'side-by-side'} onclick={() => layoutMode = 'side-by-side'}>
+                      <div class="layout-preview side-by-side"></div>
+                      <span>Lado a Lado</span>
+                  </div>
+                  <div class="layout-option" class:active={layoutMode === 'user-centered'} onclick={() => layoutMode = 'user-centered'}>
+                      <div class="layout-preview user-centered"></div>
+                      <span>Usuário Centralizado</span>
+                  </div>
+                  <div class="layout-option" class:active={layoutMode === 'coach-centered'} onclick={() => layoutMode = 'coach-centered'}>
+                      <div class="layout-preview coach-centered"></div>
+                      <span>Treinador Centralizado</span>
+                  </div>
+              </div>
+            </div>
+            <div class="settings-group">
+              <h4>Mais opções</h4>
+              <div class="toggle-row">
+                <span>Cronômetro</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={showTimer} onclick={() => showTimer = !showTimer}></button>
+                  <span class="toggle-label">{showTimer ? 'On' : 'Off'}</span>
+                </div>
+              </div>
+              <div class="toggle-row">
+                <span>Contador</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={showReps} onclick={() => showReps = !showReps}></button>
+                  <span class="toggle-label">{showReps ? 'On' : 'Off'}</span>
+                </div>
+              </div>
+            </div>
+
+          {:else if activeTab === 'sound'}
+             <div class="settings-group">
+              <h4>Configurações de Som</h4>
+              <div class="toggle-row">
+                <span>Feedback de Áudio</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={$audioFeedbackStore.isEnabled} onclick={toggleAudio}></button>
+                  <span class="toggle-label">{$audioFeedbackStore.isEnabled ? 'On' : 'Off'}</span>
+                </div>
+              </div>
+            </div>
+
+          {:else if activeTab === 'skeleton'}
+             <div class="settings-group">
+                 <h4>Sobreposição de Esqueleto</h4>
+                 <div class="toggle-row">
+                     <span>Mostrar Esqueleto</span>
+                     <div class="toggle-wrapper">
+                       <button class="toggle-btn" class:on={true} disabled></button>
+                       <span class="toggle-label">On</span>
+                     </div>
+                 </div>
+             </div>
+
+          {:else if activeTab === 'advanced'}
+            <div class="settings-group">
+              <h4>Modo de Feedback</h4>
+               <div class="toggle-row">
+                <span>Feedback Visual</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={isFeedbackEnabled} onclick={toggleFeedback}></button>
+                  <span class="toggle-label">{isFeedbackEnabled ? 'On' : 'Off'}</span>
+                </div>
+              </div>
+              
+              {#if isDevMode}
+                  <div class="mode-buttons-mini">
+                    <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>Híbrido</button>
+                    <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
+                    <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heurística</button>
+                  </div>
+                   <div class="debug-info-mini">
+                     {modeIndicator}
+                   </div>
+              {/if}
+            </div>
+          {:else if activeTab === 'dev'}
+            <div class="settings-group">
+              <h4>Métricas de Desenvolvimento</h4>
+              <div class="dev-metrics">
+                <div class="dev-metric-card">
+                  <span class="dev-metric-label">Precisão</span>
+                  <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
+                </div>
+                <div class="dev-metric-card">
+                  <span class="dev-metric-label">Confiança</span>
+                  <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
+                </div>
+                <div class="dev-metric-card">
+                  <span class="dev-metric-label">FPS</span>
+                  <span class="dev-metric-value">{fps}</span>
+                </div>
+              </div>
+            </div>
           {/if}
         </div>
       </div>
@@ -1011,11 +1165,10 @@
         <pre>{JSON.stringify(currentFeedback, null, 2)}</pre>
       </div>
     {/if}
-  </div>
 
-  {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
-    <Loading message={loadingStage} />
-  {/if}
+    {#if !isCameraRunning && (isLoading || !scriptsLoaded)}
+      <Loading message={loadingStage} />
+    {/if}
 
   <!-- Biometric Consent Modal (LGPD Art. 11) -->
   <BiometricConsent
@@ -1036,6 +1189,8 @@
     padding: 1rem;
     padding-top: 5rem;
     width: 100%;
+    max-width: 1600px; /* Allow wider layout for split screen */
+    margin: 0 auto;
   }
 
   @media (min-width: 640px) {
@@ -1044,14 +1199,404 @@
     }
   }
 
+  .split-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0; /* Remove gap between containers */
+    width: 1280px; /* Increased to match settings */
+    height: auto; /* Auto height based on content */
+    margin: 0 auto;
+    margin-bottom: 4rem; /* Space for settings panel */
+    align-items: center;
+    position: relative;
+  }
+
+  @media (min-width: 1024px) {
+    .split-container {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .split-container {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+    }
+  }
+
   .video-container {
     position: relative;
     margin: 0 auto;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-md) 0 0 var(--radius-md); /* Rounded only on left side */
     overflow: hidden;
     background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease-in-out;
+    /* Força o video-container a se comportar bem dentro do grid */
+    width: 100%;
+    max-height: 80vh; /* Prevent vertical overflow */
+  }
+
+  .reference-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9; /* Maintain aspect ratio */
+    border-radius: 0 var(--radius-md) var(--radius-md) 0; /* Rounded only on right side */
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 80vh; /* Prevent vertical overflow */
+  }
+
+  /* Layout Mode: User Centered */
+  .split-container.layout-user-centered {
+    grid-template-columns: 1fr;
+    position: relative;
+    /* Maintain same fixed dimensions */
+    width: 1280px;
+    height: 720px; /* 16:9 of 1280 */
+  }
+
+  .split-container.layout-user-centered .video-container {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-md);
+    max-height: none;
+  }
+
+  .split-container.layout-user-centered .reference-container {
+    position: absolute;
+    width: 200px;
+    height: auto;
+    aspect-ratio: 16/9;
+    z-index: 50;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    max-height: none; /* Override for PiP */
+  }
+
+  /* Layout Mode: Coach Centered */
+  .split-container.layout-coach-centered {
+    grid-template-columns: 1fr;
+    position: relative;
+    /* Maintain same fixed dimensions */
+    width: 1280px;
+    height: 720px; /* 16:9 of 1280 */
+  }
+
+  .split-container.layout-coach-centered .reference-container {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-md);
+    max-height: none;
+  }
+
+  .split-container.layout-coach-centered .video-container {
+    position: absolute;
+    width: 200px;
+    height: auto;
+    aspect-ratio: 16/9;
+    z-index: 50;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    max-height: none; /* Override for PiP */
+  }
+
+  /* Draggable PiP styles */
+  .draggable-pip {
+    cursor: move;
+    user-select: none;
+  }
+
+  .draggable-pip:active {
+    cursor: grabbing;
+  }
+
+  /* PiP Resize Handle */
+  .pip-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px 0 var(--radius-md) 0;
+    cursor: nwse-resize;
+    z-index: 20;
+    transition: background 0.2s;
+  }
+
+  .pip-resize-handle:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .pip-resize-handle::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(255, 255, 255, 0.8);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.8);
+  }
+
+  /* Floating Fullscreen Button */
+  .fullscreen-btn-floating {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.3s ease;
+    z-index: 15;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .fullscreen-btn-floating:hover {
+    background: rgba(0, 0, 0, 0.85);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+  }
+
+  .fullscreen-btn-floating:active {
+    transform: scale(0.95);
+  }
+
+  .fullscreen-btn-floating svg {
+    flex-shrink: 0;
+  }
+
+  /* Rep Counter Progress Bar */
+  /* Rep Counter Progress Bar */
+  .rep-counter-bar {
+    position: relative;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+  }
+
+  /* Rep Counter as Overlay (inside video/reference containers) */
+  .rep-counter-bar-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.60);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+  }
+
+  .rep-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 80px;
+  }
+
+  .rep-label {
+    font-size: 1.2rem;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .rep-count {
+    font-size: 5em;
+    font-weight: 300;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .rep-progress {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 90px;
+    padding-bottom: 4px;
+  }
+
+  .rep-line {
+    width: 14px; /* Fixed width again */
+    flex-shrink: 0;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px; /* Rounded at both ends like test tubes */
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rep-line::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-radius: 12px;
+    transition: height 0.3s ease;
+  }
+
+  .rep-line.completed::before {
+    height: 100%;
+    background: linear-gradient(to top, #666 0%, #999 50%, #666 100%);
+  }
+
+  .rep-line.current::before {
+    height: 100%;
+    background: linear-gradient(to top, var(--color-primary-600) 0%, var(--color-primary-400) 50%, var(--color-primary-500) 100%);
+    box-shadow: 0 0 12px var(--color-primary-500), inset 0 2px 8px rgba(255, 255, 255, 0.3);
+    animation: pulse-tube 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-tube {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+
+  @media (max-width: 1280px) {
+    .split-container.layout-user-centered,
+    .split-container.layout-coach-centered {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+    }
+  }
+
+  .reference-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+
+
+  /* Side-by-Side Fullscreen Only */
+  .split-container.fullscreen.layout-side-by-side {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: 50vw 50vw !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+  }
+
+  .split-container.fullscreen.layout-side-by-side .video-container,
+  .split-container.fullscreen.layout-side-by-side .reference-container {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100vh;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    aspect-ratio: auto !important;
+  }
+
+  /* User/Coach Centered Fullscreen Logic */
+  .split-container.fullscreen.layout-user-centered,
+  .split-container.fullscreen.layout-coach-centered {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: black !important;
+    display: block !important; /* Or flex if needed */
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Main Container in User-Centered Fullscreen */
+  .split-container.fullscreen.layout-user-centered .video-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  /* Main Container in Coach-Centered Fullscreen */
+  .split-container.fullscreen.layout-coach-centered .reference-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  /* PiP in Fullscreen (Preserve positioning/sizing) */
+  .split-container.fullscreen.layout-user-centered .reference-container,
+  .split-container.fullscreen.layout-coach-centered .video-container {
+     /* Allow inline styles to dictate position/size (drag) */
+     /* Ensure z-index is high */
+     z-index: 10000 !important;
+     /* Do NOT force width/height 100% */
+     position: absolute !important;
+     max-height: none !important; /* Ensure PiP isn't capped */
+  }
+
+  /* Force video/canvas to fill container in fullscreen side-by-side */
+  .split-container.fullscreen.layout-side-by-side .video-canvas,
+  .split-container.fullscreen.layout-side-by-side .reference-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Force video/canvas to fill container in Centered Fullscreen (Main) */
+  .split-container.fullscreen.layout-user-centered .video-canvas,
+  .split-container.fullscreen.layout-coach-centered .reference-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important; /* Or cover depending on preference */
   }
 
   .video-canvas {
@@ -1731,23 +2276,277 @@
       height: clamp(16px, 2.5vw, 20px) !important;
     }
 
+
+
     .fullscreen-icon {
       font-size: clamp(16px, 2.5vw, 20px);
     }
   }
 
-  @media (max-width: 480px) {
-    .overlays-container {
-      padding: clamp(6px, 1vh, 12px) clamp(4px, 1vw, 6px);
-    }
-
-    .mode-indicator {
-      max-width: clamp(140px, 70vw, 350px);
-    }
-
-    .feedback-overlay {
-      max-width: clamp(150px, 65vw, 350px);
-    }
+  /* Settings Panel Styles */
+  .settings-panel {
+    width: 100%;
+    background: #000;
+    color: #fff;
+    padding: 1.5rem;
+    padding-bottom: 2rem;
+    margin-top: 1rem;
+    animation: slideUp 0.3s ease-out;
   }
+
+  @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+  }
+
+  .settings-tabs {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      padding-bottom: 0.5rem;
+  }
+
+  .tab-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding-bottom: 0.5rem;
+      position: relative;
+      transition: color 0.2s;
+  }
+
+  .tab-btn:hover {
+      color: #ccc;
+  }
+
+  .tab-btn.active {
+      color: #fff;
+  }
+
+  .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -0.6rem; /* Align with border-bottom of container */
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #fff;
+      border-radius: 2px;
+  }
+
+  .settings-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 3rem;
+      align-items: start;
+  }
+
+  .settings-group h4 {
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+  }
+
+  .layout-options {
+      display: flex;
+      gap: 1.5rem;
+  }
+
+  .layout-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      opacity: 0.5;
+  }
+
+  .layout-option.active {
+      opacity: 1;
+  }
+
+  .layout-preview {
+      width: 100px;
+      height: 60px;
+      border: 2px solid #555;
+      border-radius: 8px;
+      background: #222;
+      position: relative;
+  }
+
+  .layout-option.active .layout-preview {
+      border-color: #fff;
+      background: #000;
+  }
+
+  .layout-preview.side-by-side {
+      background: linear-gradient(90deg, #333 50%, #fff 50%);
+  }
+  
+  .layout-preview.user-centered {
+      background: #333;
+      position: relative;
+  }
+
+  .layout-preview.user-centered::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 24px;
+      height: 24px;
+      background: #555;
+      border-radius: 4px;
+  }
+
+  .layout-preview.coach-centered {
+      background: #555;
+      position: relative;
+  }
+
+  .layout-preview.coach-centered::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: #333;
+      border-radius: 4px;
+  }
+
+  .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      min-width: 250px;
+  }
+
+  .toggle-row span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #fff;
+  }
+
+  .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+  }
+
+  .toggle-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #888;
+      min-width: 28px;
+      text-align: left;
+  }
+
+  /* Dev Metrics Styles */
+  .dev-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+  }
+
+  .dev-metric-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+      text-align: center;
+  }
+
+  .dev-metric-label {
+      font-size: 0.85rem;
+      color: #888;
+      font-weight: 500;
+  }
+
+  .dev-metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary-500);
+  }
+
+  /* iOS-style Toggle Switch - Compact */
+  .toggle-btn {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #39393d;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      padding: 0;
+      flex-shrink: 0;
+  }
+
+  .toggle-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+  }
+
+  .toggle-btn::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      z-index: 2;
+  }
+
+  .toggle-btn.on {
+      background: var(--color-primary-500);
+  }
+
+  .toggle-btn.on::before {
+      transform: translateX(20px);
+  }
+
+  /* Mini controls for Dev panel */
+  .mode-buttons-mini {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+  }
+  
+  .mini-btn {
+      background: #222;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+  }
+
+  .mini-btn.active {
+      background: #fff;
+      color: #000;
+  }
+
+  .debug-info-mini {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.5rem;
+  }
+
 </style>
 
