@@ -8,7 +8,7 @@
   import { isDeveloper } from '$lib/config/env.config';
   import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus, Volume2, VolumeX } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
-  import { LANDMARK_GROUPS } from '$lib/vision/constants/mediapipe.constants';
+  import { LANDMARK_GROUPS, MEDIAPIPE_LANDMARKS } from '$lib/vision/constants/mediapipe.constants';
   import Loading from '$lib/components/common/Loading.svelte';
   import BiometricConsent from '$lib/components/BiometricConsent.svelte';
   import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
@@ -48,6 +48,7 @@
   let scriptsLoaded = $state(false);
   let loadingStage = $state('Inicializando...');
   let isCameraRunning = $state(false);
+  let currentLandmarks = $state<Array<{ x: number; y: number; z: number; visibility?: number }>>([]);
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
@@ -91,7 +92,7 @@
   let layoutMode = $state<'side-by-side' | 'user-centered' | 'coach-centered'>('side-by-side');
   
   // PiP dragging state
-  let pipPosition = $state({ x: 16, y: 16 }); // Default top-right position (1rem = 16px)
+  let pipPosition = $state({ x: 1064, y: 16 }); // Default top-right position (1280 - 200 - 16 = 1064)
   let isDraggingPip = $state(false);
   let dragOffset = { x: 0, y: 0 };
   
@@ -375,6 +376,11 @@
       queueMicrotask(() => {
         analyzer?.analyzeFrame(landmarks);
       });
+    }
+
+    // Update real-time landmarks for Dev tab
+    if (activeTab === 'dev' && landmarks) {
+      currentLandmarks = landmarks;
     }
   }
 
@@ -915,6 +921,25 @@
   </div>
 {/snippet}
 
+{#snippet verticalRepSlide(cssClass = '')}
+  {@const progress = 92}
+  <div class="vertical-rep-slide {cssClass}">
+    <div class="v-slide-track">
+      <div class="v-slide-inner">
+        <div class="v-slide-fill" style:height="{progress}%"></div>
+      </div>
+      
+      <!-- Handle pops out of the track -->
+      <div class="v-slide-handle" style:bottom="{progress}%"></div>
+
+      <!-- Bubble moves with the top of the fill -->
+      <div class="v-slide-bubble" style:top="{100 - progress}%">
+        92
+      </div>
+    </div>
+  </div>
+{/snippet}
+
 <svelte:head>
   <title>Elarin</title>
 </svelte:head>
@@ -1000,6 +1025,7 @@
       {#if isCameraRunning || isPaused}
         {#if layoutMode === 'user-centered'}
           {@render repCounter('rep-counter-bar-overlay')}
+          {@render verticalRepSlide('left-aligned')}
         {/if}
 
         {#if layoutMode !== 'coach-centered'}
@@ -1030,12 +1056,14 @@
 
       {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered'}
         {@render repCounter('rep-counter-bar-overlay')}
+        {@render verticalRepSlide('left-aligned')}
         {@render fullscreenButton()}
       {/if}
     </div>
 
     {#if (isCameraRunning || isPaused) && layoutMode === 'side-by-side'}
       {@render repCounter('rep-counter-bar-overlay')}
+      {@render verticalRepSlide()}
     {/if}
   </div>
 
@@ -1047,7 +1075,7 @@
           <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => activeTab = 'display'}>Exibição</button>
           <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => activeTab = 'skeleton'}>Esqueleto</button>
           <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => activeTab = 'sound'}>Som e Efeitos</button>
-          <button class="tab-btn" class:active={activeTab === 'advanced'} onclick={() => activeTab = 'advanced'}>Avançado</button>
+
           {#if isDevMode}
             <button class="tab-btn" class:active={activeTab === 'dev'} onclick={() => activeTab = 'dev'}>Dev</button>
           {/if}
@@ -1088,6 +1116,13 @@
                   <span class="toggle-label">{showReps ? 'On' : 'Off'}</span>
                 </div>
               </div>
+              <div class="toggle-row">
+                <span>Feedback Visual</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={isFeedbackEnabled} onclick={toggleFeedback}></button>
+                  <span class="toggle-label">{isFeedbackEnabled ? 'On' : 'Off'}</span>
+                </div>
+              </div>
             </div>
 
           {:else if activeTab === 'sound'}
@@ -1114,30 +1149,9 @@
                  </div>
              </div>
 
-          {:else if activeTab === 'advanced'}
-            <div class="settings-group">
-              <h4>Modo de Feedback</h4>
-               <div class="toggle-row">
-                <span>Feedback Visual</span>
-                <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={isFeedbackEnabled} onclick={toggleFeedback}></button>
-                  <span class="toggle-label">{isFeedbackEnabled ? 'On' : 'Off'}</span>
-                </div>
-              </div>
-              
-              {#if isDevMode}
-                  <div class="mode-buttons-mini">
-                    <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>Híbrido</button>
-                    <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
-                    <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heurística</button>
-                  </div>
-                   <div class="debug-info-mini">
-                     {modeIndicator}
-                   </div>
-              {/if}
-            </div>
+
           {:else if activeTab === 'dev'}
-            <div class="settings-group">
+            <div class="settings-group" style="grid-column: 1 / -1;">
               <h4>Métricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
@@ -1152,6 +1166,57 @@
                   <span class="dev-metric-label">FPS</span>
                   <span class="dev-metric-value">{fps}</span>
                 </div>
+              </div>
+
+              <!-- Feedback Controls (Moved here) -->
+              <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Controle de Feedback</h4>
+              <div class="mode-buttons-mini">
+                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>Híbrido</button>
+                <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
+                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heurística</button>
+              </div>
+               <div class="debug-info-mini">
+                 {modeIndicator}
+               </div>
+            </div>
+
+            <!-- Landmark Metrics Grid -->
+            <div class="settings-group" style="grid-column: 1 / -1;">
+              <h4>Landmarks em Tempo Real (33 Pontos)</h4>
+              <div class="landmark-grid">
+                {#each Object.entries(MEDIAPIPE_LANDMARKS) as [name, index]}
+                  {@const lm = currentLandmarks[index]}
+                  <div class="landmark-card">
+                    <div class="landmark-header">
+                      <span class="landmark-id">{index}</span>
+                      <span class="landmark-name">{name}</span>
+                    </div>
+                    {#if lm}
+                      <div class="landmark-values">
+                        <div class="val-row">
+                          <span class="val-label">X:</span>
+                          <span class="val-data">{lm.x.toFixed(4)}</span>
+                        </div>
+                        <div class="val-row">
+                          <span class="val-label">Y:</span>
+                          <span class="val-data">{lm.y.toFixed(4)}</span>
+                        </div>
+                        <div class="val-row">
+                          <span class="val-label">Z:</span>
+                          <span class="val-data">{lm.z.toFixed(4)}</span>
+                        </div>
+                        <div class="val-row">
+                          <span class="val-label">Vis:</span>
+                          <span class="val-data" style:color={lm.visibility && lm.visibility > 0.5 ? 'var(--color-success)' : 'var(--color-error)'}>
+                            {(lm.visibility ?? 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    {:else}
+                      <div class="landmark-waiting">Aguardando dados...</div>
+                    {/if}
+                  </div>
+                {/each}
               </div>
             </div>
           {/if}
@@ -1408,26 +1473,32 @@
     right: 0;
     background: rgba(0, 0, 0, 0.60);
     backdrop-filter: blur(10px);
-    padding: 0.75rem 1rem;
+    
+    /* Responsive scaling base: scales with viewport size */
+    font-size: clamp(9px, 1.35vh, 17px); 
+    
+    /* All dimensions below use 'em' to scale with the above font-size */
+    padding: 1em 1.5em; 
+    
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5em;
     z-index: 10;
   }
 
   .rep-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    min-width: 80px;
+    gap: 0.25em;
+    min-width: 6em;
   }
 
   .rep-label {
-    font-size: 1.2rem;
+    font-size: 1.2em;
     color: #888;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
   }
 
   .rep-count {
@@ -1441,17 +1512,17 @@
     flex: 1;
     display: flex;
     align-items: flex-end;
-    gap: 4px;
-    height: 90px;
-    padding-bottom: 4px;
+    gap: 1em;
+    height: 7em; /* ~105px at 15px font-size */
+    padding-bottom: 0.25em;
   }
 
   .rep-line {
-    width: 14px; /* Fixed width again */
+    width: 1em; /* Scales proportionally */
     flex-shrink: 0;
     height: 100%;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px; /* Rounded at both ends like test tubes */
+    border-radius: 99em; /* Fully rounded relative to width */
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -1465,7 +1536,7 @@
     right: 0;
     height: 0%;
     background: linear-gradient(to top, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
-    border-radius: 12px;
+    border-radius: 99em;
     transition: height 0.3s ease;
   }
 
@@ -1485,6 +1556,122 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.8; }
   }
+
+  /* Vertical Rep Slide */
+  .vertical-rep-slide {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 50%;
+    width: 22px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+
+  .v-slide-track {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 999px;
+    position: relative;
+    overflow: visible; /* Ensure bubble can pop out if needed, though bubble is likely inside or on top */
+    border: 3px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Inner track for masking overflow of fill */
+  .v-slide-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .v-slide-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #ccff00; /* Neon green/lime */
+    /* background: linear-gradient(to top, #ccff00, #aaff00); */
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.5);
+    border-radius: 28px 28px 0 0;
+  }
+
+  /* The top dot/handle of the fill */
+  /* The top handle dot - separated to pop out of track */
+  .v-slide-handle {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 50%); /* Center horizontally, align center vertically to bottom anchor */
+    width: 40px; /* Significantly wider than track (28px) */
+    height: 40px;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Inner white dot for detail */
+  .v-slide-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+    background: #ccff00;
+    border-radius: 50%;
+  }
+
+  .v-slide-bubble {
+    position: absolute;
+    right: -95px; /* Offset to the right of the bar */
+    top: 0; /* Will be set dynamically via style or transform */
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.60);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 8px 22px;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif; /* or inherit */
+    white-space: nowrap;
+    transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Triangle pointing let */
+  .v-slide-bubble::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid rgba(0, 0, 0, 0.60);
+  }
+
+  /* Modifiers for Left Aligned Slide */
+  .vertical-rep-slide.left-aligned {
+    left: 2rem; /* Margin from left edge */
+    right: auto;
+    transform: translateY(-50%); /* Remove X centering */
+  }
+
+  /* Bubble stays on default (right) side for left alignment, so no extra overrides needed */
 
   @media (max-width: 1280px) {
     .split-container.layout-user-centered,
@@ -2380,7 +2567,7 @@
 
   .layout-option.active .layout-preview {
       border-color: #fff;
-      background: #000;
+      /* background: #000; Removed to keep the preview visible */
   }
 
   .layout-preview.side-by-side {
@@ -2518,6 +2705,91 @@
 
   .toggle-btn.on::before {
       transform: translateX(20px);
+  }
+
+  /* Landmark Grid Styles */
+  .landmark-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .landmark-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .landmark-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .landmark-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .landmark-id {
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  .landmark-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .landmark-values {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .val-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+  }
+
+  .val-label {
+    color: #666;
+    font-family: monospace;
+  }
+
+  .val-data {
+    color: var(--color-text-primary);
+    font-family: monospace;
+    font-weight: 500;
+  }
+
+  .landmark-waiting {
+    font-size: 0.75rem;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0;
   }
 
   /* Mini controls for Dev panel */
