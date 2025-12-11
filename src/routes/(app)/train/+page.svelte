@@ -80,7 +80,7 @@
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
-  let modeIndicator = $state('HÌbrido (ML + HeurÌstica)');
+  let modeIndicator = $state('H√≠brido (ML + Heur√≠stica)');
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
@@ -230,7 +230,7 @@
   }
 
   function setEmulatedState(reason?: string) {
-    cameraFallbackReason = reason || 'Modo demonstraÁ„o: usando vÌdeo de exemplo.';
+    cameraFallbackReason = reason || 'Modo demonstra√ß√£o: usando v√≠deo de exemplo.';
     isCameraEmulated = true;
   }
 
@@ -256,7 +256,7 @@
 
       const handleError = () => {
         cleanup();
-        reject(new Error('Falha ao carregar vÌdeo de demonstraÁ„o'));
+        reject(new Error('Falha ao carregar v√≠deo de demonstra√ß√£o'));
       };
 
       video.addEventListener('loadeddata', handleReady, { once: true });
@@ -282,8 +282,8 @@
   function createEmulatedCamera(reason?: string): MediaPipeCamera {
     return {
       async start() {
-        if (!videoElement) throw new Error('Elemento de vÌdeo indisponÌvel');
-        if (!pose) throw new Error('Pose n„o inicializado');
+        if (!videoElement) throw new Error('Elemento de v√≠deo indispon√≠vel');
+        if (!pose) throw new Error('Pose n√£o inicializado');
 
         setEmulatedState(reason);
 
@@ -381,12 +381,12 @@
       }
 
       if (!scriptsLoaded) {
-        throw new Error('DependÍncias ainda n„o foram carregadas completamente. Aguarde...');
+        throw new Error('Depend√™ncias ainda n√£o foram carregadas completamente. Aguarde...');
       }
 
       const selectedExercise = $trainingStore.exerciseType;
       if (!selectedExercise) {
-        throw new Error('Nenhum exercÌcio selecionado. Por favor, volte e selecione um exercÌcio.');
+        throw new Error('Nenhum exerc√≠cio selecionado. Por favor, volte e selecione um exerc√≠cio.');
       }
 
       if (!$trainingStore.backendSessionId) {
@@ -395,7 +395,7 @@
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
-        throw new Error('Falha ao carregar configuraÁ„o do exercÌcio');
+        throw new Error('Falha ao carregar configura√ß√£o do exerc√≠cio');
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
@@ -411,7 +411,7 @@
       }
 
       if (!videoElement) {
-        throw new Error('Elemento de vÌdeo n„o foi carregado corretamente.');
+        throw new Error('Elemento de v√≠deo n√£o foi carregado corretamente.');
       }
 
       const Pose = (window as unknown as Record<string, unknown>).Pose as new (config: {
@@ -444,7 +444,7 @@
 
       const hasPhysicalCamera = await hasVideoInputAvailable();
       const startWithRealCamera = async () => {
-        if (!Camera) throw new Error('Biblioteca de c‚mera n„o encontrada.');
+        if (!Camera) throw new Error('Biblioteca de c√¢mera n√£o encontrada.');
 
         clearEmulatedState();
         camera = new Camera(videoElement, {
@@ -471,10 +471,10 @@
           await startWithRealCamera();
         } catch (cameraError) {
           console.warn('vision_warning:camera_start_failed_fallback_to_emulation', cameraError);
-          await startWithEmulatedCamera('N„o conseguimos acessar a c‚mera. Usando vÌdeo de demonstraÁ„o para testar.');
+          await startWithEmulatedCamera('N√£o conseguimos acessar a c√¢mera. Usando v√≠deo de demonstra√ß√£o para testar.');
         }
       } else {
-        await startWithEmulatedCamera('Nenhuma c‚mera detectada. Usando vÌdeo de demonstraÁ„o para testar.');
+        await startWithEmulatedCamera('Nenhuma c√¢mera detectada. Usando v√≠deo de demonstra√ß√£o para testar.');
       }
 
       trainingActions.start();
@@ -651,7 +651,7 @@
       skeletonColor = resolveCssColor(SKELETON_COLORS.neutral);
     }
 
-    // MemoizaÁ„o: sÛ atualiza se as mensagens mudaram
+    // Memoiza√ß√£o: s√≥ atualiza se as mensagens mudaram
     const newMessages = feedback.messages || [];
     const hasNewMessages = JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages);
 
@@ -665,7 +665,7 @@
       }
     }
 
-    // Detecta repetiÁıes v·lidas
+    // Detecta repeti√ß√µes v√°lidas
     if (feedback.heuristic?.details) {
       const repResult = feedback.heuristic.details.find(
         (d: unknown) => (d as { type?: string }).type === 'valid_repetition'
@@ -774,9 +774,9 @@
     if (mode === 'ml_only') {
       modeIndicator = 'ML Only (Autoencoder)';
     } else if (mode === 'heuristic_only') {
-      modeIndicator = 'HeurÌstica Only (Biomec‚nica)';
+      modeIndicator = 'Heur√≠stica Only (Biomec√¢nica)';
     } else {
-      modeIndicator = 'HÌbrido (ML + HeurÌstica)';
+      modeIndicator = 'H√≠brido (ML + Heur√≠stica)';
     }
 
     analyzer?.setFeedbackMode(mode);
@@ -948,7 +948,7 @@
   function handleBiometricConsentDenied() {
     clearBiometricConsentFlags();
     showBiometricConsent = false;
-    errorMessage = 'Consentimento biomÈtrico negado. A c‚mera n„o pode ser iniciada sem sua autorizaÁ„o.';
+    errorMessage = 'Consentimento biom√©trico negado. A c√¢mera n√£o pode ser iniciada sem sua autoriza√ß√£o.';
     setTimeout(() => {
       goto(`${base}/exercises`);
     }, 3000);
@@ -1213,7 +1213,7 @@
 
     {#if isCameraEmulated}
       <div class="inline-alert info-alert">
-        <span class="inline-alert-strong">Modo demonstraÁ„o:</span>
+        <span class="inline-alert-strong">Modo demonstra√ß√£o:</span>
         <span>{cameraFallbackReason}</span>
       </div>
     {/if}
@@ -1264,7 +1264,7 @@
               {#if reconstructionError !== null}
                 <div class="feedback-overlay">
                   <div class="feedback-message info card">
-                    <span>Erro de reconstruÁ„o: {reconstructionError.toFixed(4)}</span>
+                    <span>Erro de reconstru√ß√£o: {reconstructionError.toFixed(4)}</span>
                   </div>
                 </div>
               {/if}
@@ -1272,7 +1272,7 @@
               {#if feedbackMessages.length > 0}
                 <div class="feedback-overlay">
                   {#each feedbackMessages
-                    .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstruÁ„o'))
+                    .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstru√ß√£o'))
                     .slice(0, 3) as message}
                     <div class="feedback-message card {message.type}" class:critical={message.severity === 'critical'}>
                       <span>{message.text}</span>
@@ -1336,7 +1336,7 @@
     {#if isCameraRunning || isPaused}
       <div class="settings-panel">
         <div class="settings-tabs">
-          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => (activeTab = 'display')}>ExibiÁ„o</button>
+          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => (activeTab = 'display')}>Exibi√ß√£o</button>
           <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => (activeTab = 'skeleton')}>Esqueleto</button>
           <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => (activeTab = 'sound')}>Som e Efeitos</button>
 
@@ -1348,7 +1348,7 @@
         <div class="settings-content">
           {#if activeTab === 'display'}
             <div class="settings-group">
-              <h4>Escolher Layout de ExibiÁ„o</h4>
+              <h4>Escolher Layout de Exibi√ß√£o</h4>
               <div class="layout-options">
                 <div class="layout-option" class:active={layoutMode === 'side-by-side'} onclick={() => (layoutMode = 'side-by-side')}>
                   <div class="layout-preview side-by-side"></div>
@@ -1356,7 +1356,7 @@
                 </div>
                 <div class="layout-option" class:active={layoutMode === 'user-centered'} onclick={() => (layoutMode = 'user-centered')}>
                   <div class="layout-preview user-centered"></div>
-                  <span>Usu·rio Centralizado</span>
+                  <span>Usu√°rio Centralizado</span>
                 </div>
                 <div class="layout-option" class:active={layoutMode === 'coach-centered'} onclick={() => (layoutMode = 'coach-centered')}>
                   <div class="layout-preview coach-centered"></div>
@@ -1365,9 +1365,9 @@
               </div>
             </div>
             <div class="settings-group">
-              <h4>Mais opÁıes</h4>
+              <h4>Mais op√ß√µes</h4>
               <div class="toggle-row">
-                <span>CronÙmetro</span>
+                <span>Cron√¥metro</span>
                 <div class="toggle-wrapper">
                   <button class="toggle-btn" class:on={showTimer} onclick={() => (showTimer = !showTimer)}></button>
                   <span class="toggle-label">{showTimer ? 'On' : 'Off'}</span>
@@ -1391,9 +1391,9 @@
 
           {:else if activeTab === 'sound'}
             <div class="settings-group">
-              <h4>ConfiguraÁıes de Som</h4>
+              <h4>Configura√ß√µes de Som</h4>
               <div class="toggle-row">
-                <span>Feedback de ¡udio</span>
+                <span>Feedback de √Åudio</span>
                 <div class="toggle-wrapper">
                   <button class="toggle-btn" class:on={$audioFeedbackStore.isEnabled} onclick={toggleAudio}></button>
                   <span class="toggle-label">{$audioFeedbackStore.isEnabled ? 'On' : 'Off'}</span>
@@ -1403,7 +1403,7 @@
 
           {:else if activeTab === 'skeleton'}
             <div class="settings-group">
-              <h4>SobreposiÁ„o de Esqueleto</h4>
+              <h4>Sobreposi√ß√£o de Esqueleto</h4>
               <div class="toggle-row">
                 <span>Mostrar Esqueleto</span>
                 <div class="toggle-wrapper">
@@ -1415,14 +1415,14 @@
 
           {:else if activeTab === 'dev'}
             <div class="settings-group" style="grid-column: 1 / -1;">
-              <h4>MÈtricas de Desenvolvimento</h4>
+              <h4>M√©tricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Precis„o</span>
+                  <span class="dev-metric-label">Precis√£o</span>
                   <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">ConfianÁa</span>
+                  <span class="dev-metric-label">Confian√ßa</span>
                   <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
@@ -1433,9 +1433,9 @@
 
               <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Controle de Feedback</h4>
               <div class="mode-buttons-mini">
-                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>HÌbrido</button>
+                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>H√≠brido</button>
                 <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
-                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>HeurÌstica</button>
+                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heur√≠stica</button>
               </div>
               <div class="debug-info-mini">{modeIndicator}</div>
             </div>
@@ -1617,8 +1617,8 @@
     position: relative;
     width: 100%;
     max-width: 1280px;
-    aspect-ratio: 16 / 9;
-    height: auto;
+    height: calc(100vh - 6rem);
+    min-height: 60vh;
   }
 
   .split-container.layout-user-centered .video-container {
@@ -2060,6 +2060,8 @@
       width: 100%;
       max-width: 100%;
       margin: 0;
+      height: var(--player-height);
+      max-height: 70vh;
       border-radius: 0;
     }
 
@@ -2085,11 +2087,11 @@
   .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
     width: 100%;
     max-width: 100%;
-    height: auto;
-    max-height: none;
+    height: var(--player-height);
+    max-height: 80vh;
     margin: 0;
-    align-self: stretch;
-    justify-self: stretch;
+    align-self: center;
+    justify-self: center;
   }
 
   .split-container.fullscreen.layout-side-by-side {
