@@ -1435,7 +1435,7 @@
             </div>
 
           {:else if activeTab === 'dev'}
-            <div class="settings-group" style="grid-column: 1 / -1;">
+            <div class="settings-group settings-group-full">
               <h4>Métricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
@@ -1452,7 +1452,7 @@
                 </div>
               </div>
 
-              <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Controle de Feedback</h4>
+              <h4 class="dev-section-title">Controle de Feedback</h4>
               <div class="mode-buttons-mini">
                 <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>Híbrido</button>
                 <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
@@ -1461,7 +1461,7 @@
               <div class="debug-info-mini">{modeIndicator}</div>
             </div>
 
-            <div class="settings-group" style="grid-column: 1 / -1;">
+            <div class="settings-group settings-group-full">
               <h4>Landmarks em Tempo Real (33 Pontos)</h4>
               <div class="landmark-grid">
                 {#each Object.entries(MEDIAPIPE_LANDMARKS) as [name, index]}
@@ -1571,10 +1571,6 @@
 
   .split-container {
     /* Grid Layout Variables */
-    --video-min-size: 320px;
-    --video-max-size: 960px;
-    --pip-width: 200px;
-    --pip-height: calc(var(--pip-width) * 9 / 16);
     --container-gap: 0;
     --container-max-width: var(--layout-max-width);
     --container-height: calc(100vh - 6rem);
@@ -1605,23 +1601,6 @@
   .split-container.layout-coach-centered {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
-  }
-
-  @media (max-width: 1023px) {
-    .split-container.layout-side-by-side:not(.fullscreen) {
-      height: auto;
-      min-height: auto;
-    }
-    .split-container.layout-side-by-side:not(.fullscreen) {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto;
-    }
-  }
-
-  @media (max-width: 1280px) {
-    .split-container {
-      max-height: 70vh;
-    }
   }
 
   @media (max-width: 1280px) {
@@ -2111,16 +2090,6 @@
       gap: 0;
     }
 
-    .split-container.layout-side-by-side:not(.fullscreen) .video-container,
-    .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
-      width: 100%;
-      max-width: 100%;
-      margin: 0;
-      height: var(--player-height);
-      max-height: 70vh;
-      border-radius: 0;
-    }
-
     .split-container.layout-side-by-side:not(.fullscreen) .video-container {
       border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
@@ -2342,23 +2311,6 @@
       aspect-ratio: 16 / 9;
       max-height: 50vh;
     }
-
-    .video-container.portrait .metrics-overlay {
-      max-width: 85px;
-    }
-
-    .video-container.portrait .metric {
-      padding: clamp(10px, 1.8vh, 18px) clamp(5px, 1.2vw, 8px);
-      min-width: clamp(55px, 7vw, 75px);
-    }
-
-    .video-container.portrait .metric-label {
-      font-size: clamp(7px, 1vw, 9px);
-    }
-
-    .video-container.portrait .metric-value {
-      font-size: clamp(14px, 2.2vw, 18px);
-    }
   }
 
   .overlays-container {
@@ -2388,40 +2340,6 @@
     gap: clamp(10px, 1.8vh, 14px);
     align-items: flex-end;
     pointer-events: none;
-  }
-
-  .overlay-scale-controls {
-    position: absolute;
-    bottom: clamp(12px, 2.5vh, 20px);
-    right: clamp(10px, 2vw, 16px);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    pointer-events: auto;
-    z-index: 90;
-  }
-
-  .scale-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: var(--radius-standard);
-    color: var(--color-text-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition-base);
-    overflow: hidden;
-  }
-
-  .scale-btn:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .scale-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .feedback-overlay {
@@ -2504,146 +2422,6 @@
     50% { opacity: 0.7; }
   }
 
-  .metrics-overlay {
-    position: absolute;
-    top: 50%;
-    left: clamp(10px, 2vw, 18px);
-    transform: translateY(-50%) scale(var(--overlay-scale, 1));
-    display: flex;
-    flex-direction: column;
-    pointer-events: none;
-    border-radius: var(--radius-standard);
-    max-width: clamp(70px, 12vw, 140px);
-    max-height: 90vh;
-    overflow: hidden;
-    z-index: 10;
-    transform-origin: center left;
-  }
-
-  .metric {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(2px, 0.5vh, 4px);
-    padding: clamp(12px, 2.5vh, 30px) clamp(6px, 1.5vw, 15px);
-    position: relative;
-    min-width: clamp(65px, 9vw, 110px);
-  }
-
-  .metric::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 1px;
-    background: var(--color-border-light);
-  }
-
-  .metric:last-child::after {
-    display: none;
-  }
-
-  .metric-label {
-    font-size: clamp(8px, 1.2vw, 12px);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: clamp(0.3px, 0.5px, 0.8px);
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .metric-value {
-    font-size: clamp(16px, 2.5vw, 26px);
-    font-weight: bold;
-    color: var(--color-primary-500);
-    line-height: 1.2;
-  }
-
-  .video-controls {
-    position: absolute;
-    bottom: clamp(12px, 2.5vh, 20px);
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: clamp(6px, 1.5vw, 10px);
-    flex-wrap: nowrap;
-    justify-content: center;
-    align-items: center;
-    padding: 0 clamp(8px, 2vw, 16px);
-    z-index: 20;
-  }
-
-  .btn {
-    padding: 0 clamp(16px, 3vw, 24px);
-    height: clamp(38px, 6vh, 48px);
-    border: none;
-    border-radius: var(--radius-standard);
-    font-size: clamp(13px, 2vw, 16px);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition-base);
-    backdrop-filter: blur(var(--blur-md));
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .btn-primary {
-    background: var(--color-primary-500);
-    color: var(--color-text-primary);
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background: var(--color-primary-600);
-    transform: translateY(-2px);
-    box-shadow: var(--glow-success);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-glass {
-    color: var(--color-text-primary);
-    border-radius: var(--radius-standard);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-glass:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .btn-glass-icon {
-    padding: 0;
-    color: var(--color-text-primary);
-    width: clamp(38px, 6vh, 48px);
-    height: clamp(38px, 6vh, 48px);
-    min-width: clamp(38px, 6vh, 48px);
-    border-radius: var(--radius-standard);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .btn-glass-icon:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .btn-glass-icon:active {
-    transform: scale(0.95);
-  }
-
   .card {
     background: var(--glass-bg);
     backdrop-filter: var(--glass-backdrop);
@@ -2651,42 +2429,6 @@
     border-radius: var(--radius-standard);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-  }
-
-  :global(.icon-responsive) {
-    width: clamp(18px, 2.8vw, 22px);
-    height: clamp(18px, 2.8vw, 22px);
-    flex-shrink: 0;
-  }
-
-  .fullscreen-icon {
-    font-size: clamp(18px, 2.8vw, 22px);
-    line-height: 1;
-  }
-
-  .feedback-audio-controls {
-    margin: clamp(12px, 2vh, 20px) auto;
-    display: flex;
-    gap: clamp(10px, 2vw, 16px);
-    justify-content: center;
-    flex-wrap: wrap;
-    width: 100%;
-    max-width: 820px;
-  }
-
-  .feedback-audio-controls .btn {
-    gap: 8px;
-    padding: 0 clamp(14px, 3vw, 22px);
-  }
-
-  .error-banner {
-    max-width: 1280px;
-    margin: 20px auto;
-    padding: 16px;
-    background: rgba(255, 68, 68, 0.1);
-    border: 1px solid var(--color-error);
-    border-radius: var(--radius-md);
-    color: var(--color-error);
   }
 
   .debug-panel {
@@ -2741,125 +2483,6 @@
     text-overflow: ellipsis;
   }
 
-  .mode-selector-panel {
-    max-width: 980px;
-    margin: clamp(10px, 2vh, 16px) auto;
-    padding: clamp(10px, 2.5vw, 14px);
-    background: var(--color-bg-dark-secondary);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
-    display: flex;
-    flex-direction: column;
-    gap: clamp(8px, 1.5vh, 12px);
-  }
-
-  .mode-selector-panel h3 {
-    color: var(--color-text-primary);
-    margin: 0;
-    font-size: clamp(1rem, 2vw, 1.15rem);
-    display: flex;
-    align-items: center;
-    gap: clamp(6px, 1vw, 10px);
-    font-weight: 600;
-  }
-
-  .dev-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: var(--color-border-light);
-    color: var(--color-text-secondary);
-    border-radius: var(--radius-full);
-    font-size: clamp(10px, 1.6vw, 12px);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  :global(.mode-panel-icon) {
-    width: clamp(16px, 2.5vw, 18px);
-    height: clamp(16px, 2.5vw, 18px);
-    flex-shrink: 0;
-  }
-
-  .mode-buttons {
-    display: flex;
-    gap: clamp(8px, 1.5vw, 12px);
-    flex-wrap: wrap;
-    margin: 0;
-  }
-
-  .mode-btn {
-    display: flex;
-    flex: 1 1 180px;
-    align-items: center;
-    gap: clamp(8px, 1vw, 10px);
-    padding: clamp(8px, 2vw, 12px);
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-primary);
-    font-size: clamp(13px, 1.8vw, 14px);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .mode-labels {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    align-items: flex-start;
-  }
-
-  .mode-title {
-    line-height: 1.2;
-  }
-
-  :global(.mode-btn-icon) {
-    width: clamp(18px, 2.8vw, 20px);
-    height: clamp(18px, 2.8vw, 20px);
-    flex-shrink: 0;
-  }
-
-  .mode-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-  }
-
-  .mode-btn.active {
-    background: transparent;
-    border-color: var(--color-primary-500);
-    box-shadow: none;
-  }
-
-  .mode-desc {
-    font-size: clamp(11px, 1.6vw, 12px);
-    color: var(--color-text-secondary);
-    font-weight: 500;
-  }
-
-  .mode-info {
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 1.2vw, 12px);
-    background: var(--color-bg-dark-secondary);
-    border: 1px dashed rgba(255, 255, 255, 0.14);
-    padding: clamp(8px, 2vw, 12px);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-secondary);
-    font-size: clamp(12px, 1.8vw, 13px);
-  }
-
-  .mode-info p {
-    margin: 0;
-    color: var(--color-text-secondary);
-  }
-
-  .mode-info strong {
-    color: var(--color-text-primary);
-  }
-
   @media (max-width: 768px) {
     .overlays-container {
       padding: clamp(8px, 1.5vh, 15px) clamp(6px, 1.2vw, 8px);
@@ -2879,51 +2502,6 @@
 
     .feedback-overlay {
       max-width: clamp(180px, 60vw, 400px);
-    }
-
-    .mode-buttons {
-      flex-direction: column;
-      gap: clamp(8px, 2vw, 12px);
-    }
-
-    .mode-btn {
-      flex: 1 1 auto;
-    }
-
-    .mode-selector-panel {
-      padding: clamp(12px, 3vw, 15px);
-    }
-
-    .mode-selector-panel h3 {
-      font-size: clamp(1.05rem, 3vw, 1.2rem);
-    }
-  }
-
-  @media (max-width: 640px) {
-    .video-controls {
-      gap: clamp(4px, 1vw, 8px);
-      padding: 0 clamp(4px, 1vw, 8px);
-    }
-
-    .btn {
-      padding: 0 clamp(12px, 2.5vw, 20px);
-      height: clamp(34px, 5vh, 42px);
-      font-size: clamp(11px, 1.8vw, 14px);
-    }
-
-    .btn-glass-icon {
-      width: clamp(34px, 5vh, 42px);
-      height: clamp(34px, 5vh, 42px);
-      min-width: clamp(34px, 5vh, 42px);
-    }
-
-    :global(.icon-responsive) {
-      width: clamp(16px, 2.5vw, 20px);
-      height: clamp(16px, 2.5vw, 20px);
-    }
-
-    .fullscreen-icon {
-      font-size: clamp(16px, 2.5vw, 20px);
     }
   }
 
@@ -3015,6 +2593,14 @@
     color: var(--color-text-primary);
     margin-bottom: 1.5rem;
     font-weight: 600;
+  }
+
+  .settings-group-full {
+    grid-column: 1 / -1;
+  }
+
+  .dev-section-title {
+    margin: 1.5rem 0 0.5rem;
   }
 
   .layout-options {
