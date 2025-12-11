@@ -100,7 +100,43 @@
   let pipSize = $state({ width: 200, height: 112.5 }); // Default 200px width, 16:9 ratio
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
-  let resizeStartSize = { width: 0, height: 0 };
+
+
+  // Countdown State
+  let showCountdown = $state(true);
+  let countdownValue = $state('Iniciar');
+  let countdownActive = $state(false);
+  let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+  function clearCountdown() {
+    countdownTimeouts.forEach(clearTimeout);
+    countdownTimeouts = [];
+  }
+
+  function startCountdown() {
+    if (countdownActive) return;
+    
+    // Auto-enter fullscreen
+    if (!isFullscreen) {
+      toggleFullscreen();
+    }
+
+    clearCountdown();
+    countdownActive = true;
+    
+    // Sequence: 3 -> 2 -> 1 -> Go!
+    countdownValue = "3";
+    
+    // Schedule all steps with explicit delays
+    const t1 = setTimeout(() => countdownValue = "2", 1000);
+    const t2 = setTimeout(() => countdownValue = "1", 2000);
+    const t3 = setTimeout(() => countdownValue = "Vai!", 3000);
+    const t4 = setTimeout(() => {
+        showCountdown = false;
+    }, 4000); // Show "Vai!" for 1s
+    
+    countdownTimeouts = [t1, t2, t3, t4];
+  }
 
   const SKELETON_STYLE = {
     lineWidth: 5,
@@ -769,6 +805,13 @@
         doc.mozFullScreenElement ||
         doc.msFullscreenElement;
       isFullscreen = Boolean(isCurrentlyFullscreen);
+
+      if (!isFullscreen) {
+        clearCountdown();
+        showCountdown = true;
+        countdownActive = false;
+        countdownValue = (elapsedTime > 0 || $trainingStore.reps > 0) ? 'Retomar' : 'Iniciar';
+      }
     };
     window.addEventListener('keydown', handleKeydown);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -1023,7 +1066,7 @@
       </div>
 
       {#if isCameraRunning || isPaused}
-        {#if layoutMode === 'user-centered'}
+        {#if layoutMode === 'user-centered' && !showCountdown}
           {@render repCounter('rep-counter-bar-overlay')}
           {@render verticalRepSlide('left-aligned')}
         {/if}
@@ -1054,16 +1097,34 @@
         <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
       {/if}
 
-      {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered'}
+      {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered' && !showCountdown}
         {@render repCounter('rep-counter-bar-overlay')}
         {@render verticalRepSlide('left-aligned')}
         {@render fullscreenButton()}
       {/if}
     </div>
 
-    {#if (isCameraRunning || isPaused) && layoutMode === 'side-by-side'}
-      {@render repCounter('rep-counter-bar-overlay')}
-      {@render verticalRepSlide()}
+    {#if (isCameraRunning || isPaused)}
+      {#if showCountdown}
+        <div class="countdown-overlay">
+          <button 
+            class="countdown-circle" 
+            class:pulsing={countdownActive}
+            onclick={startCountdown}
+            disabled={countdownActive && countdownValue !== 'Iniciar'}
+          >
+            <span 
+              class="countdown-text" 
+              class:is-number={['3', '2', '1'].includes(countdownValue)}
+            >
+              {countdownValue}
+            </span>
+          </button>
+        </div>
+      {:else if layoutMode === 'side-by-side'}
+        {@render repCounter('rep-counter-bar-overlay')}
+        {@render verticalRepSlide()}
+      {/if}
     {/if}
   </div>
 
@@ -1619,6 +1680,76 @@
     z-index: 10;
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Countdown Overlay */
+  .countdown-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .countdown-circle {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .countdown-circle:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+  }
+
+  .countdown-circle:disabled {
+    cursor: default;
+  }
+
+  .countdown-text {
+    font-size: 2rem;
+    font-weight: 300;
+    color: white;
+    letter-spacing: 0.05em;
+  }
+
+  .countdown-circle.pulsing {
+    animation: pulse-countdown 1s ease-in-out infinite;
+    background: rgba(0, 0, 0, 0.6); /* Keep consistent glassmorphism */
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 50px var(--color-primary-500);
+  }
+
+  .countdown-circle.pulsing .countdown-text {
+    color: var(--color-primary-500);
+    text-shadow: 0 0 20px rgba(var(--color-primary-500-rgb), 0.5);
+  }
+
+  .countdown-text.is-number {
+    font-size: 5rem; /* Larger font only for numbers */
+    font-weight: 300;
+  }
+
+  @keyframes pulse-countdown {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 255, 0, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 30px rgba(204, 255, 0, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 255, 0, 0); }
+  }
+
 
   /* Inner white dot for detail */
   .v-slide-handle::after {
@@ -2821,4 +2952,6 @@
   }
 
 </style>
+
+
 
