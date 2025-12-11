@@ -1299,6 +1299,12 @@
         {/if}
 
         <div class="overlays-container">
+          {#if (isCameraRunning || isPaused) && showTimer && layoutMode === 'user-centered'}
+            <div class="timer-overlay card">
+              <span class="timer-value">{formatTime(elapsedTime)}</span>
+            </div>
+          {/if}
+
           {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
             <div class="feedback-card">
               {#if isDevMode}
@@ -1366,6 +1372,14 @@
         >
           <track kind="captions" src="" label="No captions" />
         </video>
+
+        <div class="overlays-container">
+          {#if (isCameraRunning || isPaused) && showTimer && (layoutMode === 'side-by-side' || layoutMode === 'coach-centered')}
+            <div class="timer-overlay card">
+              <span class="timer-value">{formatTime(elapsedTime)}</span>
+            </div>
+          {/if}
+        </div>
 
         {#if layoutMode === 'user-centered'}
           <div class="pip-resize-handle" onmousedown={handleResizeMouseDown} ontouchstart={handleResizeMouseDown}></div>
@@ -2348,8 +2362,7 @@
 
   .overlays-container {
     position: absolute;
-    top: 0;
-    right: 0;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -2358,6 +2371,34 @@
     z-index: 50;
     transform: scale(var(--overlay-scale, 1));
     transform-origin: top right;
+  }
+
+  .timer-overlay {
+    --timer-size: clamp(108px, 11vw, 136px);
+    position: absolute;
+    right: clamp(12px, 2vw, 18px);
+    top: clamp(12px, 2vw, 18px);
+    transform: none;
+    width: var(--timer-size);
+    height: var(--timer-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    padding: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+  }
+
+  .timer-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.1;
+    text-align: center;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
   }
 
   .feedback-card {
