@@ -2075,17 +2075,21 @@
 
 
   .split-container.layout-side-by-side:not(.fullscreen) {
-    justify-items: center;
+    justify-items: stretch;
+    align-items: stretch;
     height: auto;
     min-height: 0;
-    align-items: start;
   }
 
   .split-container.layout-side-by-side:not(.fullscreen) .video-container,
   .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
-    width: min(100%, var(--player-width));
-    height: var(--player-height);
-    max-height: 80vh;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    align-self: stretch;
+    justify-self: stretch;
   }
 
   .split-container.fullscreen.layout-side-by-side {
