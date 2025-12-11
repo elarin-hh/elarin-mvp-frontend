@@ -2410,7 +2410,7 @@
 
   .timer-value {
     font-size: 1.6rem;
-    font-weight: 700;
+    font-weight: 300;
     color: var(--color-text-primary);
     line-height: 1.1;
     text-align: center;
