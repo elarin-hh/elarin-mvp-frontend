@@ -92,16 +92,17 @@
   let layoutMode = $state<'side-by-side' | 'user-centered' | 'coach-centered'>('side-by-side');
   
   // PiP dragging state
-  let pipPosition = $state({ x: 1064, y: 16 }); // Default top-right position (1280 - 200 - 16 = 1064)
+  let pipPosition = $state({ x: 0, y: 0 }); // Position recalculated per layout
   let isDraggingPip = $state(false);
   let dragOffset = { x: 0, y: 0 };
   
   // PiP resizing state
-  let pipSize = $state({ width: 200, height: 112.5 }); // Default 200px width, 16:9 ratio
+  let pipSize = $state({ width: 260, height: 146.25 }); // Default larger width, 16:9 ratio
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
   let resizeStartSize = { ...pipSize };
   const PIP_MARGIN = 16;
+  const PIP_BOTTOM_BUFFER = 96; // Keep PiP slightly above the reps overlay
   let emulatedFrameId: number | null = null;
 
   const pipStyle = () =>
@@ -111,7 +112,7 @@
     if (!splitContainerElement || layoutMode === 'side-by-side') return;
     const rect = splitContainerElement.getBoundingClientRect();
     const maxX = Math.max(0, rect.width - pipSize.width);
-    const maxY = Math.max(0, rect.height - pipSize.height);
+    const maxY = Math.max(0, rect.height - pipSize.height - PIP_BOTTOM_BUFFER);
     pipPosition = {
       x: Math.min(Math.max(0, pipPosition.x), maxX),
       y: Math.min(Math.max(0, pipPosition.y), maxY)
@@ -121,9 +122,11 @@
   function resetPipPosition() {
     if (!splitContainerElement || layoutMode === 'side-by-side') return;
     const rect = splitContainerElement.getBoundingClientRect();
+    const availableHeight = Math.max(0, rect.height - PIP_BOTTOM_BUFFER);
+    const centerY = Math.max(0, (availableHeight - pipSize.height) / 2);
     pipPosition = {
       x: Math.max(0, rect.width - pipSize.width - PIP_MARGIN),
-      y: PIP_MARGIN
+      y: centerY
     };
   }
 
@@ -157,6 +160,9 @@
     showCountdown = false;
     resumeReferenceVideo();
     countdownTimeouts = [];
+    if (isPaused) {
+      void resumeTraining();
+    }
   }
 
   function pauseForFullscreenExit() {
@@ -1063,11 +1069,13 @@
       if (isFullscreen) {
         orientation = 'landscape';
         void enforceLandscapeOrientation();
+        resetPipPosition();
       } else {
         releaseOrientationLock();
         detectOrientation();
         pauseForFullscreenExit();
         clearCountdown();
+        resetPipPosition();
       }
 
       clampPipPosition();
@@ -1299,7 +1307,7 @@
         {/if}
 
         <div class="overlays-container">
-          {#if (isCameraRunning || isPaused) && showTimer && layoutMode === 'user-centered'}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === 'user-centered'}
             <div class="timer-overlay card">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
@@ -1374,7 +1382,7 @@
         </video>
 
         <div class="overlays-container">
-          {#if (isCameraRunning || isPaused) && showTimer && (layoutMode === 'side-by-side' || layoutMode === 'coach-centered')}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === 'side-by-side' || layoutMode === 'coach-centered')}
             <div class="timer-overlay card">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
