@@ -1077,28 +1077,38 @@
     };
   });
 
-  function handlePipMouseDown(e: MouseEvent) {
+  function getClientPosition(e: MouseEvent | TouchEvent) {
+    if (e instanceof TouchEvent) {
+      const touch = e.touches[0] || e.changedTouches[0];
+      return { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function handlePipMouseDown(e: MouseEvent | TouchEvent) {
     if (layoutMode === 'side-by-side') return;
 
     isDraggingPip = true;
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
+    const { x, y } = getClientPosition(e);
     dragOffset = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: x - rect.left,
+      y: y - rect.top
     };
     e.preventDefault();
   }
 
-  function handlePipMouseMove(e: MouseEvent) {
+  function handlePipMouseMove(e: MouseEvent | TouchEvent) {
     if (!isDraggingPip || !splitContainerElement) return;
 
     const containerRect = splitContainerElement.getBoundingClientRect();
     const pipWidth = pipSize.width;
     const pipHeight = pipSize.height;
 
-    let newX = e.clientX - containerRect.left - dragOffset.x;
-    let newY = e.clientY - containerRect.top - dragOffset.y;
+    const { x, y } = getClientPosition(e);
+    let newX = x - containerRect.left - dragOffset.x;
+    let newY = y - containerRect.top - dragOffset.y;
 
     newX = Math.max(0, Math.min(newX, containerRect.width - pipWidth));
     newY = Math.max(0, Math.min(newY, containerRect.height - pipHeight));
@@ -1111,19 +1121,21 @@
     isResizingPip = false;
   }
 
-  function handleResizeMouseDown(e: MouseEvent) {
+  function handleResizeMouseDown(e: MouseEvent | TouchEvent) {
     isResizingPip = true;
-    resizeStartPos = { x: e.clientX, y: e.clientY };
+    const { x, y } = getClientPosition(e);
+    resizeStartPos = { x, y };
     resizeStartSize = { ...pipSize };
     e.stopPropagation();
     e.preventDefault();
   }
 
-  function handleResizeMouseMove(e: MouseEvent) {
+  function handleResizeMouseMove(e: MouseEvent | TouchEvent) {
     if (!isResizingPip || !splitContainerElement) return;
 
-    const deltaX = e.clientX - resizeStartPos.x;
-    const deltaY = e.clientY - resizeStartPos.y;
+    const { x, y } = getClientPosition(e);
+    const deltaX = x - resizeStartPos.x;
+    const deltaY = y - resizeStartPos.y;
 
     const delta = Math.max(deltaX, deltaY);
 
@@ -1195,7 +1207,14 @@
   <title>Elarin</title>
 </svelte:head>
 
-<main class="train-page" onmousemove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }} onmouseup={handlePipMouseUp}>
+<main
+  class="train-page"
+  onmousemove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }}
+  onmouseup={handlePipMouseUp}
+  ontouchmove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }}
+  ontouchend={handlePipMouseUp}
+  ontouchcancel={handlePipMouseUp}
+>
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -1233,6 +1252,7 @@
         bind:this={videoContainerElement}
         style={layoutMode === 'coach-centered' ? pipStyle() : undefined}
         onmousedown={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
+        ontouchstart={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
         class:draggable-pip={layoutMode === 'coach-centered'}
       >
         <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
@@ -1300,6 +1320,7 @@
         class="reference-container"
         style={layoutMode === 'user-centered' ? pipStyle() : undefined}
         onmousedown={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
+        ontouchstart={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
         class:draggable-pip={layoutMode === 'user-centered'}
       >
         <video class="reference-video" src="{base}/videos/squat.mp4" playsinline loop autoplay muted>
@@ -1307,7 +1328,7 @@
         </video>
 
         {#if layoutMode === 'user-centered'}
-          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
+          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown} ontouchstart={handleResizeMouseDown}></div>
         {/if}
 
         {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered' && !showCountdown}
@@ -1508,6 +1529,7 @@
     --player-width: clamp(var(--player-min-width), 45vw, var(--player-max-width));
     --player-height: calc(var(--player-width) * 0.5625);
     --player-zoom: 1.06;
+    --layout-max-width: 1280px;
 
     min-height: 100vh;
     background: var(--color-bg-dark);
@@ -1561,17 +1583,18 @@
     --pip-width: 200px;
     --pip-height: calc(var(--pip-width) * 9 / 16);
     --container-gap: 0;
-    --container-max-width: 1280px;
+    --container-max-width: var(--layout-max-width);
     --container-height: calc(100vh - 6rem);
     
     display: grid;
-    width: 100%;
+    width: min(100%, var(--container-max-width));
     max-width: var(--container-max-width);
     height: var(--container-height);
     min-height: 60vh;
     margin: 0 auto 4rem;
     gap: var(--container-gap);
     position: relative;
+    justify-self: center;
     
     /* Default: single column for mobile */
     grid-template-columns: 1fr;
@@ -1878,7 +1901,7 @@
 
   .vertical-rep-slide {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     height: 50%;
@@ -2912,7 +2935,10 @@
   }
 
   .settings-panel {
-    width: 100%;
+    width: min(100%, var(--layout-max-width));
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+    justify-self: center;
     background: var(--color-bg-deep, #000);
     color: var(--color-text-primary);
     padding: clamp(1rem, 4vw, 1.5rem);
