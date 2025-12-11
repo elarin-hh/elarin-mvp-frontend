@@ -43,6 +43,8 @@
   let camera: MediaPipeCamera | null = $state(null);
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let isCameraEmulated = $state(false);
+  let cameraFallbackReason = $state('');
   let debugMode = $state(false);
   let isScrolled = $state(false);
   let scriptsLoaded = $state(false);
@@ -61,6 +63,7 @@
     incorrect: 'var(--color-skeleton-incorrect)',
     neutral: 'var(--color-skeleton-neutral)'
   };
+  const EMULATED_VIDEO_SRC = `${base}/videos/squat.mp4`;
 
   const resolveCssColor = (value: string): string => {
     if (!value.startsWith('var(') || typeof document === 'undefined') return value;
@@ -100,6 +103,7 @@
   let pipSize = $state({ width: 200, height: 112.5 }); // Default 200px width, 16:9 ratio
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
+  let emulatedFrameId: number | null = null;
 
 
   // Countdown State
@@ -193,11 +197,9 @@
   function syncCanvasSize(force = false) {
     if (!videoElement || !canvasElement) return;
 
-    // Decouple canvas buffer size from display size.
-    // Use video native resolution to obtain correct aspect ratio.
     const width = videoElement.videoWidth;
     const height = videoElement.videoHeight;
-    
+
     if (!width || !height) return;
 
     const needsResize = force || canvasElement.width !== width || canvasElement.height !== height;
@@ -206,6 +208,111 @@
       canvasElement.height = height;
       hasSyncedCanvas = true;
     }
+  }
+
+  function setEmulatedState(reason?: string) {
+    cameraFallbackReason = reason || 'Modo demonstração: usando vídeo de exemplo.';
+    isCameraEmulated = true;
+  }
+
+  function clearEmulatedState() {
+    cameraFallbackReason = '';
+    isCameraEmulated = false;
+  }
+
+  function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
+    if (video.readyState >= 2) return Promise.resolve();
+
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        video.removeEventListener('loadeddata', handleReady);
+        video.removeEventListener('canplay', handleReady);
+        video.removeEventListener('error', handleError);
+      };
+
+      const handleReady = () => {
+        cleanup();
+        resolve();
+      };
+
+      const handleError = () => {
+        cleanup();
+        reject(new Error('Falha ao carregar vídeo de demonstração'));
+      };
+
+      video.addEventListener('loadeddata', handleReady, { once: true });
+      video.addEventListener('canplay', handleReady, { once: true });
+      video.addEventListener('error', handleError, { once: true });
+    });
+  }
+
+  async function hasVideoInputAvailable(): Promise<boolean> {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
+        return false;
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some((device) => device.kind === 'videoinput');
+    } catch (error) {
+      console.warn('vision_warning:enumerate_devices_failed', error);
+      return false;
+    }
+  }
+
+  function createEmulatedCamera(reason?: string): MediaPipeCamera {
+    return {
+      async start() {
+        if (!videoElement) throw new Error('Elemento de vídeo indisponível');
+        if (!pose) throw new Error('Pose não inicializado');
+
+        setEmulatedState(reason);
+
+        if (emulatedFrameId) {
+          cancelAnimationFrame(emulatedFrameId);
+          emulatedFrameId = null;
+        }
+
+        videoElement.srcObject = null;
+        videoElement.src = EMULATED_VIDEO_SRC;
+        videoElement.loop = true;
+        videoElement.muted = true;
+        videoElement.playsInline = true;
+        videoElement.currentTime = 0;
+
+        await waitForVideoReady(videoElement);
+        await videoElement.play();
+        syncCanvasSize(true);
+
+        const renderFrame = async () => {
+          if (!isCameraEmulated || !pose || !videoElement) return;
+
+          try {
+            await pose.send({ image: videoElement });
+          } catch (err) {
+            console.error('vision_error:emulated_frame', err);
+          }
+
+          emulatedFrameId = requestAnimationFrame(renderFrame);
+        };
+
+        emulatedFrameId = requestAnimationFrame(renderFrame);
+      },
+      stop() {
+        if (emulatedFrameId) {
+          cancelAnimationFrame(emulatedFrameId);
+          emulatedFrameId = null;
+        }
+
+        if (videoElement) {
+          videoElement.pause();
+          videoElement.currentTime = 0;
+          videoElement.srcObject = null;
+        }
+
+        clearEmulatedState();
+      }
+    };
   }
 
   function clearBiometricConsentFlags() {
@@ -284,12 +391,16 @@
         throw new Error('Falha ao inicializar analyzer');
       }
 
+      if (!videoElement) {
+        throw new Error('Elemento de vídeo não foi carregado corretamente.');
+      }
+
       const Pose = (window as unknown as Record<string, unknown>).Pose as new (config: {
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-            locateFile: getPoseAssetUrl
-          });
+        locateFile: getPoseAssetUrl
+      });
 
       pose.setOptions({
         modelComplexity: 1,
@@ -308,21 +419,45 @@
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
       POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(filterFaceConnections(POSE_CONNECTIONS));
 
-      const Camera = globalScope.Camera as new (
-        video: HTMLVideoElement,
-        config: { onFrame: () => Promise<void>; width: number; height: number }
-      ) => MediaPipeCamera;
-      camera = new Camera(videoElement, {
-        onFrame: async () => {
-          if (pose && videoElement) {
-            await pose.send({ image: videoElement });
-          }
-        },
-        width: 640,
-        height: 360
-      });
+      const Camera = globalScope.Camera as
+        | (new (video: HTMLVideoElement, config: { onFrame: () => Promise<void>; width: number; height: number }) => MediaPipeCamera)
+        | undefined;
 
-      await camera.start();
+      const hasPhysicalCamera = await hasVideoInputAvailable();
+      const startWithRealCamera = async () => {
+        if (!Camera) throw new Error('Biblioteca de câmera não encontrada.');
+
+        clearEmulatedState();
+        camera = new Camera(videoElement, {
+          onFrame: async () => {
+            if (pose && videoElement) {
+              await pose.send({ image: videoElement });
+            }
+          },
+          width: 1280,
+          height: 720
+        });
+
+        await camera.start();
+        syncCanvasSize(true);
+      };
+
+      const startWithEmulatedCamera = async (reason: string) => {
+        camera = createEmulatedCamera(reason);
+        await camera.start();
+      };
+
+      if (hasPhysicalCamera && Camera) {
+        try {
+          await startWithRealCamera();
+        } catch (cameraError) {
+          console.warn('vision_warning:camera_start_failed_fallback_to_emulation', cameraError);
+          await startWithEmulatedCamera('Não conseguimos acessar a câmera. Usando vídeo de demonstração para testar.');
+        }
+      } else {
+        await startWithEmulatedCamera('Nenhuma câmera detectada. Usando vídeo de demonstração para testar.');
+      }
+
       trainingActions.start();
       syncCanvasSize();
       startTimer();
@@ -330,6 +465,8 @@
       isLoading = false;
     } catch (error: unknown) {
       errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
+      clearEmulatedState();
+      isCameraRunning = false;
       isLoading = false;
       console.error('vision_error:start_camera', error);
     }
@@ -573,6 +710,7 @@
       await trainingActions.finish();
 
       if (camera) camera.stop();
+      clearEmulatedState();
       pauseTimer();
       isCameraRunning = false;
       hasStartedCamera = false;
@@ -582,16 +720,16 @@
         animationFrameId = null;
       }
 
-    setTimeout(() => {
-      analyzer = null;
-      pose = null;
-      camera = null;
-      trainingActions.reset();
-      feedbackMessages = [];
-      currentFeedback = null;
-      reconstructionError = null;
-      elapsedTime = 0;
-    }, 2000);
+      setTimeout(() => {
+        analyzer = null;
+        pose = null;
+        camera = null;
+        trainingActions.reset();
+        feedbackMessages = [];
+        currentFeedback = null;
+        reconstructionError = null;
+        elapsedTime = 0;
+      }, 2000);
 
       isLoading = false;
     } catch (error: unknown) {
@@ -926,6 +1064,7 @@
 
   onDestroy(() => {
     if (camera) camera.stop();
+    clearEmulatedState();
     if (analyzer) analyzer.destroy();
     if (timerInterval) clearInterval(timerInterval);
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -999,6 +1138,19 @@
   />
 
   <div class="content">
+    {#if errorMessage}
+      <div class="inline-alert error-alert">
+        {errorMessage}
+      </div>
+    {/if}
+
+    {#if isCameraEmulated}
+      <div class="inline-alert info-alert">
+        <span class="inline-alert-strong">Modo demonstração:</span>
+        <span>{cameraFallbackReason}</span>
+      </div>
+    {/if}
+
     <div
       class="split-container"
       bind:this={splitContainerElement}
@@ -1014,8 +1166,8 @@
         bind:this={videoContainerElement}
         style={layoutMode === 'coach-centered' ? `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;` : ''}
         onmousedown={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
-        class:draggable-pip={layoutMode === 'coach-centered'}
-      >
+      class:draggable-pip={layoutMode === 'coach-centered'}
+    >
       <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
         <track kind="captions" src="" label="No captions" />
       </video>
@@ -1319,6 +1471,30 @@
     margin: 0 auto;
   }
 
+  .inline-alert {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+  }
+
+  .inline-alert-strong {
+    font-weight: 700;
+  }
+
+  .inline-alert.error-alert {
+    border-left: 4px solid var(--color-error);
+  }
+
+  .inline-alert.info-alert {
+    border-left: 4px solid var(--color-warning);
+  }
+
   @media (min-width: 640px) {
     .content {
       padding-top: 6rem;
@@ -1366,6 +1542,7 @@
     /* Força o video-container a se comportar bem dentro do grid */
     width: 100%;
     max-height: 80vh; /* Prevent vertical overflow */
+    aspect-ratio: 16 / 9;
   }
 
   .reference-container {
@@ -1920,12 +2097,16 @@
   .video-canvas {
     display: block;
     transition: all 0.3s ease-in-out;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
   }
 
   .video-container.landscape {
     width: 100%;
     height: auto;
     max-width: 1280px;
+    aspect-ratio: 16 / 9;
   }
 
   .video-container.landscape .video-canvas {
@@ -1948,8 +2129,8 @@
   .video-container.portrait .video-canvas {
     width: auto;
     height: 100%;
-    min-width: 100%;
-    object-fit: cover;
+    max-width: 100%;
+    object-fit: contain;
     object-position: center center;
   }
 
@@ -1990,8 +2171,8 @@
   .video-container.fullscreen.portrait .video-canvas {
     width: auto !important;
     height: 100% !important;
-    min-width: 100% !important;
-    object-fit: cover !important;
+    min-width: unset !important;
+    object-fit: contain !important;
     object-position: center center !important;
   }
 
@@ -2952,6 +3133,3 @@
   }
 
 </style>
-
-
-
