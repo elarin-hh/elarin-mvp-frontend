@@ -6,7 +6,7 @@
   import { base } from '$app/paths';
   import AppHeader from '$lib/components/common/AppHeader.svelte';
   import { isDeveloper } from '$lib/config/env.config';
-  import { Bot, Ruler, Microscope, Settings, MessageSquare, MessageSquareOff, Plus, Minus, Volume2, VolumeX } from 'lucide-svelte';
+  import { Bot, Ruler, Microscope } from 'lucide-svelte';
   import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
   import { LANDMARK_GROUPS, MEDIAPIPE_LANDMARKS } from '$lib/vision/constants/mediapipe.constants';
   import Loading from '$lib/components/common/Loading.svelte';
@@ -75,23 +75,19 @@
   let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
   let isFeedbackEnabled = $state(false);
-  const OVERLAY_MIN_SCALE = 0.8;
-  const OVERLAY_MAX_SCALE = 1.4;
-  let overlayScale = $state(1);
   let accuracy = $state(0);
   let confidence = $state(0);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
   let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
-  let modeIndicator = $state('H√≠brido (ML + Heur√≠stica)');
+  let modeIndicator = $state('HÌbrido (ML + HeurÌstica)');
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
   let fps = $state(0);
   let showTimer = $state(true);
-  let showScore = $state(true);
   let showReps = $state(true);
-  let activeTab = $state<'display' | 'skeleton' | 'sound' | 'advanced' | 'dev'>('display');
+  let activeTab = $state<'display' | 'skeleton' | 'sound' | 'dev'>('display');
   let layoutMode = $state<'side-by-side' | 'user-centered' | 'coach-centered'>('side-by-side');
   
   // PiP dragging state
@@ -103,8 +99,32 @@
   let pipSize = $state({ width: 200, height: 112.5 }); // Default 200px width, 16:9 ratio
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
+  let resizeStartSize = { ...pipSize };
+  const PIP_MARGIN = 16;
   let emulatedFrameId: number | null = null;
 
+  const pipStyle = () =>
+    `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;`;
+
+  function clampPipPosition() {
+    if (!splitContainerElement || layoutMode === 'side-by-side') return;
+    const rect = splitContainerElement.getBoundingClientRect();
+    const maxX = Math.max(0, rect.width - pipSize.width);
+    const maxY = Math.max(0, rect.height - pipSize.height);
+    pipPosition = {
+      x: Math.min(Math.max(0, pipPosition.x), maxX),
+      y: Math.min(Math.max(0, pipPosition.y), maxY)
+    };
+  }
+
+  function resetPipPosition() {
+    if (!splitContainerElement || layoutMode === 'side-by-side') return;
+    const rect = splitContainerElement.getBoundingClientRect();
+    pipPosition = {
+      x: Math.max(0, rect.width - pipSize.width - PIP_MARGIN),
+      y: PIP_MARGIN
+    };
+  }
 
   // Countdown State
   let showCountdown = $state(true);
@@ -163,7 +183,6 @@
   const FRAME_THROTTLE_MS = 0; // no throttle, process every frame
   let animationFrameId: number | null = null;
 
-
   function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
     let timeout: number | null = null;
     return (...args: Parameters<T>) => {
@@ -211,7 +230,7 @@
   }
 
   function setEmulatedState(reason?: string) {
-    cameraFallbackReason = reason || 'Modo demonstra√ß√£o: usando v√≠deo de exemplo.';
+    cameraFallbackReason = reason || 'Modo demonstraÁ„o: usando vÌdeo de exemplo.';
     isCameraEmulated = true;
   }
 
@@ -237,7 +256,7 @@
 
       const handleError = () => {
         cleanup();
-        reject(new Error('Falha ao carregar v√≠deo de demonstra√ß√£o'));
+        reject(new Error('Falha ao carregar vÌdeo de demonstraÁ„o'));
       };
 
       video.addEventListener('loadeddata', handleReady, { once: true });
@@ -263,8 +282,8 @@
   function createEmulatedCamera(reason?: string): MediaPipeCamera {
     return {
       async start() {
-        if (!videoElement) throw new Error('Elemento de v√≠deo indispon√≠vel');
-        if (!pose) throw new Error('Pose n√£o inicializado');
+        if (!videoElement) throw new Error('Elemento de vÌdeo indisponÌvel');
+        if (!pose) throw new Error('Pose n„o inicializado');
 
         setEmulatedState(reason);
 
@@ -362,12 +381,12 @@
       }
 
       if (!scriptsLoaded) {
-        throw new Error('Depend√™ncias ainda n√£o foram carregadas completamente. Aguarde...');
+        throw new Error('DependÍncias ainda n„o foram carregadas completamente. Aguarde...');
       }
 
       const selectedExercise = $trainingStore.exerciseType;
       if (!selectedExercise) {
-        throw new Error('Nenhum exerc√≠cio selecionado. Por favor, volte e selecione um exerc√≠cio.');
+        throw new Error('Nenhum exercÌcio selecionado. Por favor, volte e selecione um exercÌcio.');
       }
 
       if (!$trainingStore.backendSessionId) {
@@ -376,7 +395,7 @@
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
-        throw new Error('Falha ao carregar configura√ß√£o do exerc√≠cio');
+        throw new Error('Falha ao carregar configuraÁ„o do exercÌcio');
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
@@ -392,7 +411,7 @@
       }
 
       if (!videoElement) {
-        throw new Error('Elemento de v√≠deo n√£o foi carregado corretamente.');
+        throw new Error('Elemento de vÌdeo n„o foi carregado corretamente.');
       }
 
       const Pose = (window as unknown as Record<string, unknown>).Pose as new (config: {
@@ -425,7 +444,7 @@
 
       const hasPhysicalCamera = await hasVideoInputAvailable();
       const startWithRealCamera = async () => {
-        if (!Camera) throw new Error('Biblioteca de c√¢mera n√£o encontrada.');
+        if (!Camera) throw new Error('Biblioteca de c‚mera n„o encontrada.');
 
         clearEmulatedState();
         camera = new Camera(videoElement, {
@@ -452,10 +471,10 @@
           await startWithRealCamera();
         } catch (cameraError) {
           console.warn('vision_warning:camera_start_failed_fallback_to_emulation', cameraError);
-          await startWithEmulatedCamera('N√£o conseguimos acessar a c√¢mera. Usando v√≠deo de demonstra√ß√£o para testar.');
+          await startWithEmulatedCamera('N„o conseguimos acessar a c‚mera. Usando vÌdeo de demonstraÁ„o para testar.');
         }
       } else {
-        await startWithEmulatedCamera('Nenhuma c√¢mera detectada. Usando v√≠deo de demonstra√ß√£o para testar.');
+        await startWithEmulatedCamera('Nenhuma c‚mera detectada. Usando vÌdeo de demonstraÁ„o para testar.');
       }
 
       trainingActions.start();
@@ -498,49 +517,48 @@
       cancelAnimationFrame(animationFrameId);
     }
 
-  animationFrameId = requestAnimationFrame(() => {
+    animationFrameId = requestAnimationFrame(() => {
       ctx.save();
       ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       ctx.translate(canvasElement.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-        const renderLandmarks = hideFaceLandmarks(landmarks);
+      const renderLandmarks = hideFaceLandmarks(landmarks);
 
-        if (renderLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS_NO_FACE) {
-          ctx.save();
-          ctx.globalAlpha = SKELETON_STYLE.opacity;
-          ctx.shadowBlur = SKELETON_STYLE.glow;
-          ctx.shadowColor = skeletonColor;
+      if (renderLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS_NO_FACE) {
+        ctx.save();
+        ctx.globalAlpha = SKELETON_STYLE.opacity;
+        ctx.shadowBlur = SKELETON_STYLE.glow;
+        ctx.shadowColor = skeletonColor;
 
-          drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
-            color: skeletonColor,
-            lineWidth: SKELETON_STYLE.lineWidth
-          });
+        drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
+          color: skeletonColor,
+          lineWidth: SKELETON_STYLE.lineWidth
+        });
 
-          // Outer circle (glow)
-          ctx.save();
-          ctx.globalAlpha = 0.3;
-          drawLandmarks(ctx, renderLandmarks, {
-            color: skeletonColor,
-            lineWidth: 0,
-            radius: SKELETON_STYLE.pointRadius * 2.2
-          });
-          ctx.restore();
+        // Outer circle (glow)
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        drawLandmarks(ctx, renderLandmarks, {
+          color: skeletonColor,
+          lineWidth: 0,
+          radius: SKELETON_STYLE.pointRadius * 2.2
+        });
+        ctx.restore();
 
-          drawLandmarks(ctx, renderLandmarks, {
-            color: skeletonColor,
-            lineWidth: Math.max(1, SKELETON_STYLE.lineWidth / 2),
-            radius: SKELETON_STYLE.pointRadius
-          });
+        drawLandmarks(ctx, renderLandmarks, {
+          color: skeletonColor,
+          lineWidth: Math.max(1, SKELETON_STYLE.lineWidth / 2),
+          radius: SKELETON_STYLE.pointRadius
+        });
 
-          if (TORSO_LINE.enabled) {
-            drawTorsoLine(ctx, renderLandmarks);
-          }
-
-
-          ctx.restore();
+        if (TORSO_LINE.enabled) {
+          drawTorsoLine(ctx, renderLandmarks);
         }
+
+        ctx.restore();
+      }
 
       ctx.restore();
     });
@@ -622,8 +640,6 @@
     ctx.restore();
   }
 
-
-
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
@@ -635,7 +651,7 @@
       skeletonColor = resolveCssColor(SKELETON_COLORS.neutral);
     }
 
-    // Memoiza√ß√£o: s√≥ atualiza se as mensagens mudaram
+    // MemoizaÁ„o: sÛ atualiza se as mensagens mudaram
     const newMessages = feedback.messages || [];
     const hasNewMessages = JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages);
 
@@ -649,7 +665,7 @@
       }
     }
 
-    // Detecta repeti√ß√µes v√°lidas
+    // Detecta repetiÁıes v·lidas
     if (feedback.heuristic?.details) {
       const repResult = feedback.heuristic.details.find(
         (d: unknown) => (d as { type?: string }).type === 'valid_repetition'
@@ -665,11 +681,7 @@
     }
   }
 
-  function handleMetricsUpdate(metrics: {
-    validReps?: number;
-    accuracy?: string;
-    avgConfidence?: number;
-  }) {
+  function handleMetricsUpdate(metrics: { validReps?: number; accuracy?: string; avgConfidence?: number }) {
     accuracy = parseFloat(metrics.accuracy || '0') || 0;
     confidence = (metrics.avgConfidence ? metrics.avgConfidence * 100 : 0) || 0;
   }
@@ -762,9 +774,9 @@
     if (mode === 'ml_only') {
       modeIndicator = 'ML Only (Autoencoder)';
     } else if (mode === 'heuristic_only') {
-      modeIndicator = 'Heur√≠stica Only (Biomec√¢nica)';
+      modeIndicator = 'HeurÌstica Only (Biomec‚nica)';
     } else {
-      modeIndicator = 'H√≠brido (ML + Heur√≠stica)';
+      modeIndicator = 'HÌbrido (ML + HeurÌstica)';
     }
 
     analyzer?.setFeedbackMode(mode);
@@ -792,10 +804,7 @@
       };
 
       const isCurrentlyFullscreen =
-        doc.fullscreenElement ||
-        doc.webkitFullscreenElement ||
-        doc.mozFullScreenElement ||
-        doc.msFullscreenElement;
+        doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
 
       if (!isCurrentlyFullscreen) {
         if (elem.requestFullscreen) {
@@ -875,15 +884,13 @@
   function handleBiometricConsentAccepted() {
     hasBiometricConsent = true;
     showBiometricConsent = false;
-    // Restart camera after consent
     startCamera();
   }
 
   function handleBiometricConsentDenied() {
     clearBiometricConsentFlags();
     showBiometricConsent = false;
-    errorMessage = 'Consentimento biom√©trico negado. A c√¢mera n√£o pode ser iniciada sem sua autoriza√ß√£o.';
-    // Redirect back to exercises
+    errorMessage = 'Consentimento biomÈtrico negado. A c‚mera n„o pode ser iniciada sem sua autorizaÁ„o.';
     setTimeout(() => {
       goto(`${base}/exercises`);
     }, 3000);
@@ -892,6 +899,7 @@
   function detectOrientation() {
     orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
     syncCanvasSize(true);
+    clampPipPosition();
   }
 
   const debouncedDetectOrientation = debounce(detectOrientation, 150);
@@ -910,9 +918,22 @@
   let hasStartedCamera = $state(false);
 
   $effect(() => {
-    if (scriptsLoaded && $trainingStore.exerciseType && !isCameraRunning && !isLoading && !analyzer && !hasStartedCamera) {
+    if (
+      scriptsLoaded &&
+      $trainingStore.exerciseType &&
+      !isCameraRunning &&
+      !isLoading &&
+      !analyzer &&
+      !hasStartedCamera
+    ) {
       hasStartedCamera = true;
       setTimeout(() => startCamera(), 500);
+    }
+  });
+
+  $effect(() => {
+    if (layoutMode !== 'side-by-side') {
+      resetPipPosition();
     }
   });
 
@@ -938,17 +959,15 @@
         msFullscreenElement?: Element;
       };
       const isCurrentlyFullscreen =
-        doc.fullscreenElement ||
-        doc.webkitFullscreenElement ||
-        doc.mozFullScreenElement ||
-        doc.msFullscreenElement;
+        doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
       isFullscreen = Boolean(isCurrentlyFullscreen);
+      clampPipPosition();
 
       if (!isFullscreen) {
         clearCountdown();
         showCountdown = true;
         countdownActive = false;
-        countdownValue = (elapsedTime > 0 || $trainingStore.reps > 0) ? 'Retomar' : 'Iniciar';
+        countdownValue = elapsedTime > 0 || $trainingStore.reps > 0 ? 'Retomar' : 'Iniciar';
       }
     };
     window.addEventListener('keydown', handleKeydown);
@@ -989,10 +1008,9 @@
     };
   });
 
-  // PiP drag handlers
   function handlePipMouseDown(e: MouseEvent) {
     if (layoutMode === 'side-by-side') return;
-    
+
     isDraggingPip = true;
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
@@ -1013,7 +1031,6 @@
     let newX = e.clientX - containerRect.left - dragOffset.x;
     let newY = e.clientY - containerRect.top - dragOffset.y;
 
-    // Constrain within container bounds
     newX = Math.max(0, Math.min(newX, containerRect.width - pipWidth));
     newY = Math.max(0, Math.min(newY, containerRect.height - pipHeight));
 
@@ -1025,12 +1042,11 @@
     isResizingPip = false;
   }
 
-  // PiP resize handlers
   function handleResizeMouseDown(e: MouseEvent) {
     isResizingPip = true;
     resizeStartPos = { x: e.clientX, y: e.clientY };
     resizeStartSize = { ...pipSize };
-    e.stopPropagation(); // Prevent drag from triggering
+    e.stopPropagation();
     e.preventDefault();
   }
 
@@ -1039,27 +1055,17 @@
 
     const deltaX = e.clientX - resizeStartPos.x;
     const deltaY = e.clientY - resizeStartPos.y;
-    
-    // Use the larger delta to maintain aspect ratio
+
     const delta = Math.max(deltaX, deltaY);
-    
+
     let newWidth = resizeStartSize.width + delta;
-    
-    // Constrain size (min 150px, max 700px)
+
     newWidth = Math.max(150, Math.min(700, newWidth));
-    
-    const newHeight = newWidth * (9/16); // Maintain 16:9 aspect ratio
-    
+
+    const newHeight = newWidth * (9 / 16);
+
     pipSize = { width: newWidth, height: newHeight };
-    
-    // Adjust position if resizing would push PiP out of bounds
-    const containerRect = splitContainerElement.getBoundingClientRect();
-    if (pipPosition.x + newWidth > containerRect.width) {
-      pipPosition = { ...pipPosition, x: containerRect.width - newWidth };
-    }
-    if (pipPosition.y + newHeight > containerRect.height) {
-      pipPosition = { ...pipPosition, y: containerRect.height - newHeight };
-    }
+    clampPipPosition();
   }
 
   onDestroy(() => {
@@ -1093,11 +1099,7 @@
     </div>
     <div class="rep-progress">
       {#each Array(30) as _, i}
-        <div 
-          class="rep-line" 
-          class:completed={i < $trainingStore.reps}
-          class:current={i === $trainingStore.reps}
-        ></div>
+        <div class="rep-line" class:completed={i < $trainingStore.reps} class:current={i === $trainingStore.reps}></div>
       {/each}
     </div>
   </div>
@@ -1110,11 +1112,9 @@
       <div class="v-slide-inner">
         <div class="v-slide-fill" style:height="{progress}%"></div>
       </div>
-      
-      <!-- Handle pops out of the track -->
+
       <div class="v-slide-handle" style:bottom="{progress}%"></div>
 
-      <!-- Bubble moves with the top of the fill -->
       <div class="v-slide-bubble" style:top="{100 - progress}%">
         92
       </div>
@@ -1139,14 +1139,12 @@
 
   <div class="content">
     {#if errorMessage}
-      <div class="inline-alert error-alert">
-        {errorMessage}
-      </div>
+      <div class="inline-alert error-alert">{errorMessage}</div>
     {/if}
 
     {#if isCameraEmulated}
       <div class="inline-alert info-alert">
-        <span class="inline-alert-strong">Modo demonstra√ß√£o:</span>
+        <span class="inline-alert-strong">Modo demonstraÁ„o:</span>
         <span>{cameraFallbackReason}</span>
       </div>
     {/if}
@@ -1164,168 +1162,152 @@
         class:portrait={orientation === 'portrait'}
         class:landscape={orientation === 'landscape'}
         bind:this={videoContainerElement}
-        style={layoutMode === 'coach-centered' ? `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;` : ''}
+        style={layoutMode === 'coach-centered' ? pipStyle() : undefined}
         onmousedown={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
-      class:draggable-pip={layoutMode === 'coach-centered'}
-    >
-      <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
-        <track kind="captions" src="" label="No captions" />
-      </video>
+        class:draggable-pip={layoutMode === 'coach-centered'}
+      >
+        <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
+          <track kind="captions" src="" label="No captions" />
+        </video>
 
-      <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
-      
-      {#if layoutMode === 'coach-centered'}
-        <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
-      {/if}
+        <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
 
-      <div class="overlays-container">
-        {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
-          <div class="feedback-card">
-            {#if isDevMode}
-              <div class="mode-indicator in-card card">
-                {#if feedbackMode === 'hybrid'}
-                  <Microscope />
-                {:else if feedbackMode === 'ml_only'}
-                  <Bot />
-                {:else}
-                  <Ruler />
-                {/if}
-                <span class="mode-text">{modeIndicator}</span>
-              </div>
-            {/if}
+        {#if layoutMode === 'coach-centered'}
+          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
+        {/if}
 
-            {#if reconstructionError !== null}
-              <div class="feedback-overlay">
-                <div class="feedback-message info card">
-                  <span>Erro de reconstru√ß√£o: {reconstructionError.toFixed(4)}</span>
+        <div class="overlays-container">
+          {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
+            <div class="feedback-card">
+              {#if isDevMode}
+                <div class="mode-indicator in-card card">
+                  {#if feedbackMode === 'hybrid'}
+                    <Microscope />
+                  {:else if feedbackMode === 'ml_only'}
+                    <Bot />
+                  {:else}
+                    <Ruler />
+                  {/if}
+                  <span class="mode-text">{modeIndicator}</span>
                 </div>
-              </div>
-            {/if}
+              {/if}
 
-            {#if feedbackMessages.length > 0}
-              <div class="feedback-overlay">
-                {#each feedbackMessages
-                  .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstru√ß√£o'))
-                  .slice(0, 3) as message}
-                  <div class="feedback-message card {message.type}" class:critical={message.severity === 'critical'}>
-                    <span>{message.text}</span>
+              {#if reconstructionError !== null}
+                <div class="feedback-overlay">
+                  <div class="feedback-message info card">
+                    <span>Erro de reconstruÁ„o: {reconstructionError.toFixed(4)}</span>
                   </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+                </div>
+              {/if}
+
+              {#if feedbackMessages.length > 0}
+                <div class="feedback-overlay">
+                  {#each feedbackMessages
+                    .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstruÁ„o'))
+                    .slice(0, 3) as message}
+                    <div class="feedback-message card {message.type}" class:critical={message.severity === 'critical'}>
+                      <span>{message.text}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        {#if isCameraRunning || isPaused}
+          {#if layoutMode === 'user-centered' && !showCountdown && showReps}
+            {@render repCounter('rep-counter-bar-overlay')}
+            {@render verticalRepSlide('left-aligned')}
+          {/if}
+
+          {#if layoutMode !== 'coach-centered'}
+            {@render fullscreenButton()}
+          {/if}
+        {/if}
+      </div>
+
+      <div
+        class="reference-container"
+        style={layoutMode === 'user-centered' ? pipStyle() : undefined}
+        onmousedown={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
+        class:draggable-pip={layoutMode === 'user-centered'}
+      >
+        <video class="reference-video" src="{base}/videos/squat.mp4" playsinline loop autoplay muted>
+          <track kind="captions" src="" label="No captions" />
+        </video>
+
+        {#if layoutMode === 'user-centered'}
+          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
+        {/if}
+
+        {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered' && !showCountdown}
+          {#if showReps}
+            {@render repCounter('rep-counter-bar-overlay')}
+            {@render verticalRepSlide('left-aligned')}
+          {/if}
+          {@render fullscreenButton()}
         {/if}
       </div>
 
       {#if isCameraRunning || isPaused}
-        {#if layoutMode === 'user-centered' && !showCountdown}
+        {#if showCountdown}
+          <div class="countdown-overlay">
+            <button class="countdown-circle" class:pulsing={countdownActive} onclick={startCountdown} disabled={countdownActive && countdownValue !== 'Iniciar'}>
+              <span class="countdown-text" class:is-number={['3', '2', '1'].includes(countdownValue)}>{countdownValue}</span>
+            </button>
+          </div>
+        {:else if layoutMode === 'side-by-side' && showReps}
           {@render repCounter('rep-counter-bar-overlay')}
-          {@render verticalRepSlide('left-aligned')}
-        {/if}
-
-        {#if layoutMode !== 'coach-centered'}
-          {@render fullscreenButton()}
+          {@render verticalRepSlide()}
         {/if}
       {/if}
     </div>
-
-    <div class="reference-container"
-      style={layoutMode === 'user-centered' ? `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;` : ''}
-      onmousedown={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
-      class:draggable-pip={layoutMode === 'user-centered'}
-    >
-      <video
-        class="reference-video"
-        src="{base}/videos/squat.mp4"
-        playsinline
-        loop
-        autoplay
-        muted
-      >
-        <track kind="captions" src="" label="No captions" />
-      </video>
-      
-      {#if layoutMode === 'user-centered'}
-        <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
-      {/if}
-
-      {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered' && !showCountdown}
-        {@render repCounter('rep-counter-bar-overlay')}
-        {@render verticalRepSlide('left-aligned')}
-        {@render fullscreenButton()}
-      {/if}
-    </div>
-
-    {#if (isCameraRunning || isPaused)}
-      {#if showCountdown}
-        <div class="countdown-overlay">
-          <button 
-            class="countdown-circle" 
-            class:pulsing={countdownActive}
-            onclick={startCountdown}
-            disabled={countdownActive && countdownValue !== 'Iniciar'}
-          >
-            <span 
-              class="countdown-text" 
-              class:is-number={['3', '2', '1'].includes(countdownValue)}
-            >
-              {countdownValue}
-            </span>
-          </button>
-        </div>
-      {:else if layoutMode === 'side-by-side'}
-        {@render repCounter('rep-counter-bar-overlay')}
-        {@render verticalRepSlide()}
-      {/if}
-    {/if}
-  </div>
-
-
 
     {#if isCameraRunning || isPaused}
       <div class="settings-panel">
         <div class="settings-tabs">
-          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => activeTab = 'display'}>Exibi√ß√£o</button>
-          <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => activeTab = 'skeleton'}>Esqueleto</button>
-          <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => activeTab = 'sound'}>Som e Efeitos</button>
+          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => (activeTab = 'display')}>ExibiÁ„o</button>
+          <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => (activeTab = 'skeleton')}>Esqueleto</button>
+          <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => (activeTab = 'sound')}>Som e Efeitos</button>
 
           {#if isDevMode}
-            <button class="tab-btn" class:active={activeTab === 'dev'} onclick={() => activeTab = 'dev'}>Dev</button>
+            <button class="tab-btn" class:active={activeTab === 'dev'} onclick={() => (activeTab = 'dev')}>Dev</button>
           {/if}
         </div>
 
         <div class="settings-content">
           {#if activeTab === 'display'}
             <div class="settings-group">
-              <h4>Escolher Layout de Exibi√ß√£o</h4>
+              <h4>Escolher Layout de ExibiÁ„o</h4>
               <div class="layout-options">
-                  <div class="layout-option" class:active={layoutMode === 'side-by-side'} onclick={() => layoutMode = 'side-by-side'}>
-                      <div class="layout-preview side-by-side"></div>
-                      <span>Lado a Lado</span>
-                  </div>
-                  <div class="layout-option" class:active={layoutMode === 'user-centered'} onclick={() => layoutMode = 'user-centered'}>
-                      <div class="layout-preview user-centered"></div>
-                      <span>Usu√°rio Centralizado</span>
-                  </div>
-                  <div class="layout-option" class:active={layoutMode === 'coach-centered'} onclick={() => layoutMode = 'coach-centered'}>
-                      <div class="layout-preview coach-centered"></div>
-                      <span>Treinador Centralizado</span>
-                  </div>
+                <div class="layout-option" class:active={layoutMode === 'side-by-side'} onclick={() => (layoutMode = 'side-by-side')}>
+                  <div class="layout-preview side-by-side"></div>
+                  <span>Lado a Lado</span>
+                </div>
+                <div class="layout-option" class:active={layoutMode === 'user-centered'} onclick={() => (layoutMode = 'user-centered')}>
+                  <div class="layout-preview user-centered"></div>
+                  <span>Usu·rio Centralizado</span>
+                </div>
+                <div class="layout-option" class:active={layoutMode === 'coach-centered'} onclick={() => (layoutMode = 'coach-centered')}>
+                  <div class="layout-preview coach-centered"></div>
+                  <span>Treinador Centralizado</span>
+                </div>
               </div>
             </div>
             <div class="settings-group">
-              <h4>Mais op√ß√µes</h4>
+              <h4>Mais opÁıes</h4>
               <div class="toggle-row">
-                <span>Cron√¥metro</span>
+                <span>CronÙmetro</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={showTimer} onclick={() => showTimer = !showTimer}></button>
+                  <button class="toggle-btn" class:on={showTimer} onclick={() => (showTimer = !showTimer)}></button>
                   <span class="toggle-label">{showTimer ? 'On' : 'Off'}</span>
                 </div>
               </div>
               <div class="toggle-row">
                 <span>Contador</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={showReps} onclick={() => showReps = !showReps}></button>
+                  <button class="toggle-btn" class:on={showReps} onclick={() => (showReps = !showReps)}></button>
                   <span class="toggle-label">{showReps ? 'On' : 'Off'}</span>
                 </div>
               </div>
@@ -1339,10 +1321,10 @@
             </div>
 
           {:else if activeTab === 'sound'}
-             <div class="settings-group">
-              <h4>Configura√ß√µes de Som</h4>
+            <div class="settings-group">
+              <h4>ConfiguraÁıes de Som</h4>
               <div class="toggle-row">
-                <span>Feedback de √Åudio</span>
+                <span>Feedback de ¡udio</span>
                 <div class="toggle-wrapper">
                   <button class="toggle-btn" class:on={$audioFeedbackStore.isEnabled} onclick={toggleAudio}></button>
                   <span class="toggle-label">{$audioFeedbackStore.isEnabled ? 'On' : 'Off'}</span>
@@ -1351,28 +1333,27 @@
             </div>
 
           {:else if activeTab === 'skeleton'}
-             <div class="settings-group">
-                 <h4>Sobreposi√ß√£o de Esqueleto</h4>
-                 <div class="toggle-row">
-                     <span>Mostrar Esqueleto</span>
-                     <div class="toggle-wrapper">
-                       <button class="toggle-btn" class:on={true} disabled></button>
-                       <span class="toggle-label">On</span>
-                     </div>
-                 </div>
-             </div>
-
+            <div class="settings-group">
+              <h4>SobreposiÁ„o de Esqueleto</h4>
+              <div class="toggle-row">
+                <span>Mostrar Esqueleto</span>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn" class:on={true} disabled></button>
+                  <span class="toggle-label">On</span>
+                </div>
+              </div>
+            </div>
 
           {:else if activeTab === 'dev'}
             <div class="settings-group" style="grid-column: 1 / -1;">
-              <h4>M√©tricas de Desenvolvimento</h4>
+              <h4>MÈtricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Precis√£o</span>
+                  <span class="dev-metric-label">Precis„o</span>
                   <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Confian√ßa</span>
+                  <span class="dev-metric-label">ConfianÁa</span>
                   <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
@@ -1381,19 +1362,15 @@
                 </div>
               </div>
 
-              <!-- Feedback Controls (Moved here) -->
               <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Controle de Feedback</h4>
               <div class="mode-buttons-mini">
-                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>H√≠brido</button>
+                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>HÌbrido</button>
                 <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
-                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heur√≠stica</button>
+                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>HeurÌstica</button>
               </div>
-               <div class="debug-info-mini">
-                 {modeIndicator}
-               </div>
+              <div class="debug-info-mini">{modeIndicator}</div>
             </div>
 
-            <!-- Landmark Metrics Grid -->
             <div class="settings-group" style="grid-column: 1 / -1;">
               <h4>Landmarks em Tempo Real (33 Pontos)</h4>
               <div class="landmark-grid">
@@ -1448,12 +1425,11 @@
       <Loading message={loadingStage} />
     {/if}
 
-  <!-- Biometric Consent Modal (LGPD Art. 11) -->
-  <BiometricConsent
-    bind:visible={showBiometricConsent}
-    on:accepted={handleBiometricConsentAccepted}
-    on:denied={handleBiometricConsentDenied}
-  />
+    <BiometricConsent
+      bind:visible={showBiometricConsent}
+      on:accepted={handleBiometricConsentAccepted}
+      on:denied={handleBiometricConsentDenied}
+    />
 </main>
 
 <style>
@@ -1467,7 +1443,7 @@
     padding: 1rem;
     padding-top: 5rem;
     width: 100%;
-    max-width: 1600px; /* Allow wider layout for split screen */
+    max-width: 1600px;
     margin: 0 auto;
   }
 
@@ -1478,9 +1454,11 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
     color: var(--color-text-primary);
+    backdrop-filter: var(--glass-backdrop, blur(12px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(12px));
   }
 
   .inline-alert-strong {
@@ -1504,11 +1482,11 @@
   .split-container {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0; /* Remove gap between containers */
-    width: 1280px; /* Increased to match settings */
-    height: auto; /* Auto height based on content */
-    margin: 0 auto;
-    margin-bottom: 4rem; /* Space for settings panel */
+    gap: 0;
+    width: 100%;
+    max-width: 1280px;
+    height: auto;
+    margin: 0 auto 4rem;
     align-items: center;
     position: relative;
   }
@@ -1522,8 +1500,6 @@
 
   @media (max-width: 1280px) {
     .split-container {
-      width: 100%;
-      height: auto;
       max-height: 70vh;
     }
   }
@@ -1531,41 +1507,40 @@
   .video-container {
     position: relative;
     margin: 0 auto;
-    border-radius: var(--radius-md) 0 0 var(--radius-md); /* Rounded only on left side */
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
     overflow: hidden;
-    background: black;
+    background: var(--color-bg-deep, #000);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: black;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    /* For√ßa o video-container a se comportar bem dentro do grid */
     width: 100%;
-    max-height: 80vh; /* Prevent vertical overflow */
+    max-height: 80vh;
     aspect-ratio: 16 / 9;
   }
 
   .reference-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 16/9; /* Maintain aspect ratio */
-    border-radius: 0 var(--radius-md) var(--radius-md) 0; /* Rounded only on right side */
+    aspect-ratio: 16/9;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
     overflow: hidden;
-    background: #000;
+    background: var(--color-bg-deep, #000);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    max-height: 80vh; /* Prevent vertical overflow */
+    max-height: 80vh;
   }
 
-  /* Layout Mode: User Centered */
-  .split-container.layout-user-centered {
+  .split-container.layout-user-centered,
+  .split-container.layout-coach-centered {
     grid-template-columns: 1fr;
     position: relative;
-    /* Maintain same fixed dimensions */
-    width: 1280px;
-    height: 720px; /* 16:9 of 1280 */
+    width: 100%;
+    max-width: 1280px;
+    aspect-ratio: 16 / 9;
+    height: auto;
   }
 
   .split-container.layout-user-centered .video-container {
@@ -1583,16 +1558,7 @@
     z-index: 50;
     border-radius: var(--radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-    max-height: none; /* Override for PiP */
-  }
-
-  /* Layout Mode: Coach Centered */
-  .split-container.layout-coach-centered {
-    grid-template-columns: 1fr;
-    position: relative;
-    /* Maintain same fixed dimensions */
-    width: 1280px;
-    height: 720px; /* 16:9 of 1280 */
+    max-height: none;
   }
 
   .split-container.layout-coach-centered .reference-container {
@@ -1610,10 +1576,9 @@
     z-index: 50;
     border-radius: var(--radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-    max-height: none; /* Override for PiP */
+    max-height: none;
   }
 
-  /* Draggable PiP styles */
   .draggable-pip {
     cursor: move;
     user-select: none;
@@ -1623,7 +1588,6 @@
     cursor: grabbing;
   }
 
-  /* PiP Resize Handle */
   .pip-resize-handle {
     position: absolute;
     bottom: 0;
@@ -1652,30 +1616,30 @@
     border-bottom: 2px solid rgba(255, 255, 255, 0.8);
   }
 
-  /* Floating Fullscreen Button */
   .fullscreen-btn-floating {
     position: absolute;
     top: 1rem;
     left: 1rem;
     width: 48px;
     height: 48px;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.7));
+    backdrop-filter: var(--glass-backdrop, blur(10px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #fff;
+    color: var(--color-text-primary, #fff);
     transition: all 0.3s ease;
     z-index: 15;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .fullscreen-btn-floating:hover {
-    background: rgba(0, 0, 0, 0.85);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.85));
+    border-color: var(--glass-border, rgba(255, 255, 255, 0.4));
     transform: scale(1.05);
   }
 
@@ -1687,15 +1651,14 @@
     flex-shrink: 0;
   }
 
-  /* Rep Counter Progress Bar */
-  /* Rep Counter Progress Bar */
   .rep-counter-bar {
     position: relative;
     width: 100%;
     max-width: 1280px;
     margin: 0 auto;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.85));
+    backdrop-filter: var(--glass-backdrop, blur(10px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
@@ -1703,21 +1666,16 @@
     z-index: 10;
   }
 
-  /* Rep Counter as Overlay (inside video/reference containers) */
   .rep-counter-bar-overlay {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.60);
-    backdrop-filter: blur(10px);
-    
-    /* Responsive scaling base: scales with viewport size */
-    font-size: clamp(9px, 1.35vh, 17px); 
-    
-    /* All dimensions below use 'em' to scale with the above font-size */
-    padding: 1em 1.5em; 
-    
+    background: var(--glass-bg, rgba(0, 0, 0, 0.60));
+    backdrop-filter: var(--glass-backdrop, blur(10px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
+    font-size: clamp(9px, 1.35vh, 17px);
+    padding: 1em 1.5em;
     display: flex;
     align-items: center;
     gap: 1.5em;
@@ -1733,7 +1691,7 @@
 
   .rep-label {
     font-size: 1.2em;
-    color: #888;
+    color: var(--color-text-secondary, #888);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1742,7 +1700,7 @@
   .rep-count {
     font-size: 5em;
     font-weight: 300;
-    color: #fff;
+    color: var(--color-text-primary, #fff);
     line-height: 1;
   }
 
@@ -1751,16 +1709,16 @@
     display: flex;
     align-items: flex-end;
     gap: 1em;
-    height: 7em; /* ~105px at 15px font-size */
+    height: 7em;
     padding-bottom: 0.25em;
   }
 
   .rep-line {
-    width: 1em; /* Scales proportionally */
+    width: 1em;
     flex-shrink: 0;
     height: 100%;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 99em; /* Fully rounded relative to width */
+    border-radius: 99em;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -1795,7 +1753,6 @@
     50% { opacity: 0.8; }
   }
 
-  /* Vertical Rep Slide */
   .vertical-rep-slide {
     position: absolute;
     top: 40%;
@@ -1814,15 +1771,15 @@
   .v-slide-track {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.6));
+    backdrop-filter: var(--glass-backdrop, blur(4px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(4px));
     border-radius: 999px;
     position: relative;
-    overflow: visible; /* Ensure bubble can pop out if needed, though bubble is likely inside or on top */
-    border: 3px solid rgba(255, 255, 255, 0.1);
+    overflow: visible;
+    border: 3px solid var(--glass-border, rgba(255, 255, 255, 0.1));
   }
 
-  /* Inner track for masking overflow of fill */
   .v-slide-inner {
     width: 100%;
     height: 100%;
@@ -1836,20 +1793,17 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    background: #ccff00; /* Neon green/lime */
-    /* background: linear-gradient(to top, #ccff00, #aaff00); */
+    background: #ccff00;
     transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 0 15px rgba(204, 255, 0, 0.5);
     border-radius: 28px 28px 0 0;
   }
 
-  /* The top dot/handle of the fill */
-  /* The top handle dot - separated to pop out of track */
   .v-slide-handle {
     position: absolute;
     left: 50%;
-    transform: translate(-50%, 50%); /* Center horizontally, align center vertically to bottom anchor */
-    width: 40px; /* Significantly wider than track (28px) */
+    transform: translate(-50%, 50%);
+    width: 40px;
     height: 40px;
     background: rgba(255, 255, 255, 1);
     border-radius: 50%;
@@ -1858,7 +1812,6 @@
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Countdown Overlay */
   .countdown-overlay {
     position: absolute;
     top: 50%;
@@ -1874,8 +1827,9 @@
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(10px);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.6));
+    backdrop-filter: var(--glass-backdrop, blur(10px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1887,8 +1841,8 @@
   }
 
   .countdown-circle:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.6);
+    background: var(--glass-bg, rgba(0, 0, 0, 0.8));
+    border-color: var(--glass-border, rgba(255, 255, 255, 0.6));
     transform: scale(1.05);
     box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
   }
@@ -1900,13 +1854,13 @@
   .countdown-text {
     font-size: 2rem;
     font-weight: 300;
-    color: white;
+    color: var(--color-text-primary, #fff);
     letter-spacing: 0.05em;
   }
 
   .countdown-circle.pulsing {
     animation: pulse-countdown 1s ease-in-out infinite;
-    background: rgba(0, 0, 0, 0.6); /* Keep consistent glassmorphism */
+    background: rgba(0, 0, 0, 0.6);
     border-color: var(--color-primary-500);
     box-shadow: 0 0 50px var(--color-primary-500);
   }
@@ -1917,7 +1871,7 @@
   }
 
   .countdown-text.is-number {
-    font-size: 5rem; /* Larger font only for numbers */
+    font-size: 5rem;
     font-weight: 300;
   }
 
@@ -1927,8 +1881,6 @@
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 255, 0, 0); }
   }
 
-
-  /* Inner white dot for detail */
   .v-slide-handle::after {
     content: '';
     position: absolute;
@@ -1943,22 +1895,22 @@
 
   .v-slide-bubble {
     position: absolute;
-    right: -95px; /* Offset to the right of the bar */
-    top: 0; /* Will be set dynamically via style or transform */
+    right: -95px;
+    top: 0;
     transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.60);
-    backdrop-filter: blur(10px);
-    color: white;
+    background: var(--glass-bg, rgba(0, 0, 0, 0.60));
+    backdrop-filter: var(--glass-backdrop, blur(10px));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
+    color: var(--color-text-primary, #fff);
     padding: 8px 22px;
     border-radius: 8px;
     font-size: 1.5rem;
     font-weight: 400;
-    font-family: 'Inter', sans-serif; /* or inherit */
+    font-family: 'Inter', sans-serif;
     white-space: nowrap;
     transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
-  /* Triangle pointing let */
+
   .v-slide-bubble::before {
     content: '';
     position: absolute;
@@ -1969,23 +1921,18 @@
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid rgba(0, 0, 0, 0.60);
+    border-right: 6px solid var(--glass-bg, rgba(0, 0, 0, 0.60));
   }
 
-  /* Modifiers for Left Aligned Slide */
   .vertical-rep-slide.left-aligned {
-    left: 2rem; /* Margin from left edge */
+    left: 2rem;
     right: auto;
-    transform: translateY(-50%); /* Remove X centering */
+    transform: translateY(-50%);
   }
-
-  /* Bubble stays on default (right) side for left alignment, so no extra overrides needed */
 
   @media (max-width: 1280px) {
     .split-container.layout-user-centered,
     .split-container.layout-coach-centered {
-      width: 100%;
-      height: auto;
       max-height: 70vh;
     }
   }
@@ -1996,16 +1943,13 @@
     object-fit: cover;
   }
 
-
-
-  /* Side-by-Side Fullscreen Only */
   .split-container.fullscreen.layout-side-by-side {
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
     z-index: 9999 !important;
-    background: black !important;
+    background: var(--color-bg-deep, #000) !important;
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
@@ -2026,7 +1970,6 @@
     aspect-ratio: auto !important;
   }
 
-  /* User/Coach Centered Fullscreen Logic */
   .split-container.fullscreen.layout-user-centered,
   .split-container.fullscreen.layout-coach-centered {
     position: fixed !important;
@@ -2034,14 +1977,13 @@
     width: 100vw !important;
     height: 100vh !important;
     z-index: 9999 !important;
-    background: black !important;
-    display: block !important; /* Or flex if needed */
+    background: var(--color-bg-deep, #000) !important;
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
     max-width: none !important;
   }
 
-  /* Main Container in User-Centered Fullscreen */
   .split-container.fullscreen.layout-user-centered .video-container {
     width: 100vw !important;
     height: 100vh !important;
@@ -2054,7 +1996,6 @@
     left: 0;
   }
 
-  /* Main Container in Coach-Centered Fullscreen */
   .split-container.fullscreen.layout-coach-centered .reference-container {
     width: 100vw !important;
     height: 100vh !important;
@@ -2067,18 +2008,13 @@
     left: 0;
   }
 
-  /* PiP in Fullscreen (Preserve positioning/sizing) */
   .split-container.fullscreen.layout-user-centered .reference-container,
   .split-container.fullscreen.layout-coach-centered .video-container {
-     /* Allow inline styles to dictate position/size (drag) */
-     /* Ensure z-index is high */
-     z-index: 10000 !important;
-     /* Do NOT force width/height 100% */
-     position: absolute !important;
-     max-height: none !important; /* Ensure PiP isn't capped */
+    z-index: 10000 !important;
+    position: absolute !important;
+    max-height: none !important;
   }
 
-  /* Force video/canvas to fill container in fullscreen side-by-side */
   .split-container.fullscreen.layout-side-by-side .video-canvas,
   .split-container.fullscreen.layout-side-by-side .reference-video {
     width: 100% !important;
@@ -2086,12 +2022,11 @@
     object-fit: cover !important;
   }
 
-  /* Force video/canvas to fill container in Centered Fullscreen (Main) */
   .split-container.fullscreen.layout-user-centered .video-canvas,
   .split-container.fullscreen.layout-coach-centered .reference-video {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important; /* Or cover depending on preference */
+    object-fit: contain !important;
   }
 
   .video-canvas {
@@ -2143,7 +2078,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: black !important;
+    background: var(--color-bg-deep, #000) !important;
   }
 
   .video-container.fullscreen.landscape {
@@ -2219,16 +2154,16 @@
     transform-origin: top right;
   }
 
-.feedback-card {
-  background: transparent;
-  border: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-radius: var(--radius-standard);
-  position: relative;
-  padding: clamp(8px, 1.5vh, 12px);
-  display: flex;
-  flex-direction: column;
+  .feedback-card {
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--radius-standard);
+    position: relative;
+    padding: clamp(8px, 1.5vh, 12px);
+    display: flex;
+    flex-direction: column;
     gap: clamp(10px, 1.8vh, 14px);
     align-items: flex-end;
     pointer-events: none;
@@ -2308,12 +2243,7 @@
     left: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.8),
-      transparent,
-      rgba(255, 255, 255, 0.3)
-    );
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), transparent, rgba(255, 255, 255, 0.3));
   }
 
   .feedback-message.success {
@@ -2349,12 +2279,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
   }
 
   .metrics-overlay {
@@ -2600,7 +2526,7 @@
     padding: clamp(10px, 2.5vw, 14px);
     background: var(--color-bg-dark-secondary);
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
     display: flex;
     flex-direction: column;
     gap: clamp(8px, 1.5vh, 12px);
@@ -2775,251 +2701,265 @@
       height: clamp(16px, 2.5vw, 20px) !important;
     }
 
-
-
     .fullscreen-icon {
       font-size: clamp(16px, 2.5vw, 20px);
     }
   }
 
-  /* Settings Panel Styles */
   .settings-panel {
     width: 100%;
-    background: #000;
-    color: #fff;
-    padding: 1.5rem;
-    padding-bottom: 2rem;
+    background: var(--color-bg-deep, #000);
+    color: var(--color-text-primary);
+    padding: clamp(1rem, 4vw, 1.5rem);
+    padding-bottom: clamp(1.5rem, 5vw, 2rem);
     margin-top: 1rem;
     animation: slideUp 0.3s ease-out;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
   .settings-tabs {
-      display: flex;
-      gap: 2rem;
-      margin-bottom: 2rem;
-      padding-bottom: 0.5rem;
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
   }
 
   .tab-btn {
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding-bottom: 0.5rem;
-      position: relative;
-      transition: color 0.2s;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary, #888);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding-bottom: 0.5rem;
+    position: relative;
+    transition: color 0.2s;
   }
 
   .tab-btn:hover {
-      color: #ccc;
+    color: var(--color-text-primary);
   }
 
   .tab-btn.active {
-      color: #fff;
+    color: var(--color-text-primary);
   }
 
   .tab-btn.active::after {
-      content: '';
-      position: absolute;
-      bottom: -0.6rem; /* Align with border-bottom of container */
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: #fff;
-      border-radius: 2px;
+    content: '';
+    position: absolute;
+    bottom: -0.6rem;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--color-primary-500, #fff);
+    border-radius: 2px;
   }
 
   .settings-content {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 3rem;
-      align-items: start;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 3rem;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .settings-content {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .settings-tabs {
+      gap: 1rem;
+    }
+
+    .settings-panel {
+      padding: 1rem;
+    }
   }
 
   .settings-group h4 {
-      font-size: 1rem;
-      color: #fff;
-      margin-bottom: 1.5rem;
-      font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
   }
 
   .layout-options {
-      display: flex;
-      gap: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
   }
 
   .layout-option {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      opacity: 0.5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    opacity: 0.5;
   }
 
   .layout-option.active {
-      opacity: 1;
+    opacity: 1;
   }
 
   .layout-preview {
-      width: 100px;
-      height: 60px;
-      border: 2px solid #555;
-      border-radius: 8px;
-      background: #222;
-      position: relative;
+    width: 100px;
+    height: 60px;
+    border: 2px solid var(--glass-border, #555);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-alt, #222);
+    position: relative;
   }
 
   .layout-option.active .layout-preview {
-      border-color: #fff;
-      /* background: #000; Removed to keep the preview visible */
+    border-color: var(--color-primary-500, #fff);
   }
 
   .layout-preview.side-by-side {
-      background: linear-gradient(90deg, #333 50%, #fff 50%);
+    background: linear-gradient(90deg, #333 50%, #fff 50%);
   }
   
   .layout-preview.user-centered {
-      background: #333;
-      position: relative;
+    background: #333;
+    position: relative;
   }
 
   .layout-preview.user-centered::before {
-      content: '';
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      width: 24px;
-      height: 24px;
-      background: #555;
-      border-radius: 4px;
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 24px;
+    height: 24px;
+    background: #555;
+    border-radius: 4px;
   }
 
   .layout-preview.coach-centered {
-      background: #555;
-      position: relative;
+    background: #555;
+    position: relative;
   }
 
   .layout-preview.coach-centered::before {
-      content: '';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 24px;
-      height: 24px;
-      background: #333;
-      border-radius: 4px;
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: #333;
+    border-radius: 4px;
   }
 
   .toggle-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      min-width: 250px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    min-width: 250px;
   }
 
   .toggle-row span {
-      font-size: 1rem;
-      font-weight: 500;
-      color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
   }
 
   .toggle-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .toggle-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #888;
-      min-width: 28px;
-      text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-secondary, #888);
+    min-width: 28px;
+    text-align: left;
   }
 
-  /* Dev Metrics Styles */
   .dev-metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
   }
 
   .dev-metric-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-sm);
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      align-items: center;
-      text-align: center;
+    background: var(--glass-bg, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    text-align: center;
   }
 
   .dev-metric-label {
-      font-size: 0.85rem;
-      color: #888;
-      font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #888);
+    font-weight: 500;
   }
 
   .dev-metric-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--color-primary-500);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary-500);
   }
 
-  /* iOS-style Toggle Switch - Compact */
   .toggle-btn {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: #39393d;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      padding: 0;
-      flex-shrink: 0;
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--color-bg-dark-secondary, #39393d);
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 0;
+    flex-shrink: 0;
   }
 
   .toggle-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .toggle-btn::before {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 20px;
-      height: 20px;
-      background: #fff;
-      border-radius: 50%;
-      transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      z-index: 2;
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--color-text-primary, #fff);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 2;
   }
 
   .toggle-btn.on {
-      background: var(--color-primary-500);
+    background: var(--color-primary-500);
   }
 
   .toggle-btn.on::before {
-      transform: translateX(20px);
+    transform: translateX(20px);
   }
 
-  /* Landmark Grid Styles */
   .landmark-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -3028,8 +2968,8 @@
   }
 
   .landmark-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
     border-radius: var(--radius-sm);
     padding: 0.75rem;
     display: flex;
@@ -3055,8 +2995,8 @@
 
   .landmark-id {
     font-size: 0.7rem;
-    background: rgba(255, 255, 255, 0.1);
-    color: #aaa;
+    background: var(--glass-bg, rgba(255, 255, 255, 0.1));
+    color: var(--color-text-secondary, #aaa);
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
@@ -3086,7 +3026,7 @@
   }
 
   .val-label {
-    color: #666;
+    color: var(--color-text-secondary, #666);
     font-family: monospace;
   }
 
@@ -3098,38 +3038,36 @@
 
   .landmark-waiting {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--color-text-secondary, #666);
     font-style: italic;
     text-align: center;
     padding: 1rem 0;
   }
 
-  /* Mini controls for Dev panel */
   .mode-buttons-mini {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
   }
   
   .mini-btn {
-      background: #222;
-      border: 1px solid #444;
-      color: #fff;
-      padding: 0.3rem 0.8rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
+    background: var(--color-bg-dark-secondary, #222);
+    border: 1px solid var(--glass-border, #444);
+    color: var(--color-text-primary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
   }
 
   .mini-btn.active {
-      background: #fff;
-      color: #000;
+    background: var(--color-text-primary, #fff);
+    color: var(--color-bg-deep, #000);
   }
 
   .debug-info-mini {
-      font-size: 0.8rem;
-      color: #888;
-      margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary, #888);
+    margin-top: 0.5rem;
   }
-
 </style>
