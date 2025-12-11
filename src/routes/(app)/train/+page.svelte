@@ -817,6 +817,8 @@
           await elem.msRequestFullscreen();
         }
         isFullscreen = true;
+        orientation = 'landscape';
+        void enforceLandscapeOrientation();
       } else {
         if (doc.exitFullscreen) {
           await doc.exitFullscreen();
@@ -828,6 +830,8 @@
           await doc.msExitFullscreen();
         }
         isFullscreen = false;
+        releaseOrientationLock();
+        detectOrientation();
       }
     } catch {}
   }
@@ -856,6 +860,60 @@
       }
     } finally {
       isFullscreen = false;
+      releaseOrientationLock();
+      detectOrientation();
+    }
+  }
+
+  async function enforceLandscapeOrientation() {
+    orientation = 'landscape';
+
+    if (typeof screen === 'undefined') return;
+    const screenWithOrientation = screen as Screen & {
+      orientation?: ScreenOrientation;
+      lockOrientation?: (orientation: string) => Promise<void> | void;
+      mozLockOrientation?: (orientation: string) => Promise<void> | void;
+      msLockOrientation?: (orientation: string) => Promise<void> | void;
+    };
+
+    try {
+      if (screenWithOrientation.orientation?.lock) {
+        await screenWithOrientation.orientation.lock('landscape').catch(() =>
+          screenWithOrientation.orientation?.lock?.('landscape-primary')
+        );
+      } else if (typeof screenWithOrientation.lockOrientation === 'function') {
+        screenWithOrientation.lockOrientation('landscape');
+      } else if (typeof screenWithOrientation.mozLockOrientation === 'function') {
+        screenWithOrientation.mozLockOrientation('landscape');
+      } else if (typeof screenWithOrientation.msLockOrientation === 'function') {
+        screenWithOrientation.msLockOrientation('landscape');
+      }
+    } catch {
+      // Orientation lock may fail without a user gesture
+    }
+  }
+
+  function releaseOrientationLock() {
+    if (typeof screen === 'undefined') return;
+    const screenWithOrientation = screen as Screen & {
+      orientation?: ScreenOrientation;
+      unlockOrientation?: () => void;
+      mozUnlockOrientation?: () => void;
+      msUnlockOrientation?: () => void;
+    };
+
+    try {
+      if (screenWithOrientation.orientation?.unlock) {
+        screenWithOrientation.orientation.unlock();
+      } else if (typeof screenWithOrientation.unlockOrientation === 'function') {
+        screenWithOrientation.unlockOrientation();
+      } else if (typeof screenWithOrientation.mozUnlockOrientation === 'function') {
+        screenWithOrientation.mozUnlockOrientation();
+      } else if (typeof screenWithOrientation.msUnlockOrientation === 'function') {
+        screenWithOrientation.msUnlockOrientation();
+      }
+    } catch {
+      // Ignore unlock failures
     }
   }
 
@@ -897,7 +955,12 @@
   }
 
   function detectOrientation() {
-    orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
+    if (isFullscreen) {
+      orientation = 'landscape';
+      void enforceLandscapeOrientation();
+    } else {
+      orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
+    }
     syncCanvasSize(true);
     clampPipPosition();
   }
@@ -961,14 +1024,20 @@
       const isCurrentlyFullscreen =
         doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
       isFullscreen = Boolean(isCurrentlyFullscreen);
-      clampPipPosition();
 
-      if (!isFullscreen) {
+      if (isFullscreen) {
+        orientation = 'landscape';
+        void enforceLandscapeOrientation();
+      } else {
+        releaseOrientationLock();
+        detectOrientation();
         clearCountdown();
         showCountdown = true;
         countdownActive = false;
         countdownValue = elapsedTime > 0 || $trainingStore.reps > 0 ? 'Retomar' : 'Iniciar';
       }
+
+      clampPipPosition();
     };
     window.addEventListener('keydown', handleKeydown);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -1434,6 +1503,12 @@
 
 <style>
   .train-page {
+    --player-min-width: 320px;
+    --player-max-width: 960px;
+    --player-width: clamp(var(--player-min-width), 45vw, var(--player-max-width));
+    --player-height: calc(var(--player-width) * 0.5625);
+    --player-zoom: 1.06;
+
     min-height: 100vh;
     background: var(--color-bg-dark);
     color: var(--color-text-primary);
@@ -1485,9 +1560,10 @@
     gap: 0;
     width: 100%;
     max-width: 1280px;
-    height: auto;
+    height: calc(100vh - 6rem);
+    min-height: 60vh;
     margin: 0 auto 4rem;
-    align-items: center;
+    align-items: stretch;
     position: relative;
   }
 
@@ -1515,13 +1591,15 @@
     justify-content: center;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     width: 100%;
-    max-height: 80vh;
+    height: 100%;
+    max-height: none;
     aspect-ratio: 16 / 9;
   }
 
   .reference-container {
     position: relative;
     width: 100%;
+    height: 100%;
     aspect-ratio: 16/9;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     overflow: hidden;
@@ -1530,7 +1608,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    max-height: 80vh;
+    max-height: none;
   }
 
   .split-container.layout-user-centered,
@@ -1656,9 +1734,11 @@
     width: 100%;
     max-width: 1280px;
     margin: 0 auto;
-    background: var(--glass-bg, rgba(0, 0, 0, 0.85));
-    backdrop-filter: var(--glass-backdrop, blur(10px));
-    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
@@ -1671,16 +1751,25 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--glass-bg, rgba(0, 0, 0, 0.60));
-    backdrop-filter: var(--glass-backdrop, blur(10px));
-    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.35));
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    border-inline: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     font-size: clamp(9px, 1.35vh, 17px);
     padding: 1em 1.5em;
     display: flex;
     align-items: center;
     gap: 1.5em;
-    z-index: 10;
+    z-index: 20;
+    pointer-events: none;
   }
+
+  .rep-counter-bar-overlay * {
+    pointer-events: auto;
+  }
+
 
   .rep-info {
     display: flex;
@@ -1824,8 +1913,8 @@
   }
 
   .countdown-circle {
-    width: 200px;
-    height: 200px;
+    width: clamp(140px, 28vw, 220px);
+    height: clamp(140px, 28vw, 220px);
     border-radius: 50%;
     background: var(--glass-bg, rgba(0, 0, 0, 0.6));
     backdrop-filter: var(--glass-backdrop, blur(10px));
@@ -1852,7 +1941,7 @@
   }
 
   .countdown-text {
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 4vw, 2rem);
     font-weight: 300;
     color: var(--color-text-primary, #fff);
     letter-spacing: 0.05em;
@@ -1871,8 +1960,21 @@
   }
 
   .countdown-text.is-number {
-    font-size: 5rem;
+    font-size: clamp(3rem, 10vw, 5rem);
     font-weight: 300;
+  }
+
+  .split-container.fullscreen .countdown-circle {
+    width: clamp(180px, 24vh, 320px);
+    height: clamp(180px, 24vh, 320px);
+  }
+
+  .split-container.fullscreen .countdown-text {
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+  }
+
+  .split-container.fullscreen .countdown-text.is-number {
+    font-size: clamp(3.5rem, 12vw, 6rem);
   }
 
   @keyframes pulse-countdown {
@@ -1938,9 +2040,52 @@
   }
 
   .reference-video {
-    width: 100%;
+    width: auto;
+    min-width: 100%;
     height: 100%;
     object-fit: cover;
+    transform: scale(var(--player-zoom));
+    transform-origin: center;
+  }
+
+
+  @media (max-width: 1023px) {
+    .split-container.layout-side-by-side:not(.fullscreen) {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .split-container.layout-side-by-side:not(.fullscreen) .video-container,
+    .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      border-radius: 0;
+    }
+
+    .split-container.layout-side-by-side:not(.fullscreen) .video-container {
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+  }
+
+
+
+  .split-container.layout-side-by-side:not(.fullscreen) {
+    justify-items: center;
+    height: auto;
+    min-height: 0;
+    align-items: start;
+  }
+
+  .split-container.layout-side-by-side:not(.fullscreen) .video-container,
+  .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
+    width: min(100%, var(--player-width));
+    height: var(--player-height);
+    max-height: 80vh;
   }
 
   .split-container.fullscreen.layout-side-by-side {
@@ -1956,18 +2101,19 @@
     max-width: none !important;
     display: grid !important;
     grid-template-columns: 50vw 50vw !important;
-    align-items: stretch !important;
+    align-items: center !important;
+    justify-items: center !important;
     gap: 0 !important;
   }
 
   .split-container.fullscreen.layout-side-by-side .video-container,
   .split-container.fullscreen.layout-side-by-side .reference-container {
     width: 100% !important;
-    height: 100% !important;
-    max-height: 100vh;
+    height: 100vh !important;
     border-radius: 0 !important;
     margin: 0 !important;
-    aspect-ratio: auto !important;
+    align-self: stretch;
+    justify-self: stretch;
   }
 
   .split-container.fullscreen.layout-user-centered,
@@ -2019,22 +2165,33 @@
   .split-container.fullscreen.layout-side-by-side .reference-video {
     width: 100% !important;
     height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: 16 / 9;
     object-fit: cover !important;
+    transform: scale(var(--player-zoom)) !important;
+    transform-origin: center !important;
   }
 
   .split-container.fullscreen.layout-user-centered .video-canvas,
   .split-container.fullscreen.layout-coach-centered .reference-video {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    transform: scale(var(--player-zoom)) !important;
+    transform-origin: center !important;
   }
 
   .video-canvas {
     display: block;
     transition: all 0.3s ease-in-out;
-    width: 100%;
-    height: auto;
-    object-fit: contain;
+    width: auto;
+    min-width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--player-zoom));
+    transform-origin: center;
   }
 
   .video-container.landscape {
@@ -2046,8 +2203,9 @@
 
   .video-container.landscape .video-canvas {
     width: 100%;
-    height: auto;
-    object-fit: contain;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--player-zoom));
   }
 
   .video-container.portrait {
@@ -2062,10 +2220,11 @@
   }
 
   .video-container.portrait .video-canvas {
-    width: auto;
+    width: 100%;
     height: 100%;
     max-width: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    transform: scale(var(--player-zoom));
     object-position: center center;
   }
 
