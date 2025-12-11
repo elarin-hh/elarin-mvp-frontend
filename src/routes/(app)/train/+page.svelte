@@ -102,7 +102,7 @@
   let resizeStartPos = { x: 0, y: 0 };
   let resizeStartSize = { ...pipSize };
   const PIP_MARGIN = 16;
-  const PIP_BOTTOM_BUFFER = 96; // Keep PiP slightly above the reps overlay
+  const PIP_BOTTOM_BUFFER = 0; // Center aligned vertically on the right
   let emulatedFrameId: number | null = null;
 
   const pipStyle = () =>
@@ -128,6 +128,15 @@
       x: Math.max(0, rect.width - pipSize.width - PIP_MARGIN),
       y: centerY
     };
+  }
+
+  function snapPipToCenter() {
+    resetPipPosition();
+    clampPipPosition();
+    requestAnimationFrame(() => {
+      resetPipPosition();
+      clampPipPosition();
+    });
   }
 
   // Countdown State
@@ -1069,13 +1078,13 @@
       if (isFullscreen) {
         orientation = 'landscape';
         void enforceLandscapeOrientation();
-        resetPipPosition();
+        snapPipToCenter();
       } else {
         releaseOrientationLock();
         detectOrientation();
         pauseForFullscreenExit();
         clearCountdown();
-        resetPipPosition();
+        snapPipToCenter();
       }
 
       clampPipPosition();
