@@ -1538,7 +1538,6 @@
 
   .content {
     padding: 1rem;
-    padding-top: 5rem;
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
@@ -1568,12 +1567,6 @@
 
   .inline-alert.info-alert {
     border-left: 4px solid var(--color-warning);
-  }
-
-  @media (min-width: 640px) {
-    .content {
-      padding-top: 6rem;
-    }
   }
 
   .split-container {
