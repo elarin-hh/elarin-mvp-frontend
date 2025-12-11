@@ -2740,8 +2740,9 @@
   .layout-preview.user-centered::before {
     content: '';
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
     width: 24px;
     height: 24px;
     background: #555;
@@ -2756,8 +2757,9 @@
   .layout-preview.coach-centered::before {
     content: '';
     position: absolute;
-    top: 8px;
+    top: 50%;
     right: 8px;
+    transform: translateY(-50%);
     width: 24px;
     height: 24px;
     background: #333;
