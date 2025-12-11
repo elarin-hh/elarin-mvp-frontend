@@ -36,6 +36,7 @@
 
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
+  let referenceVideoElement: HTMLVideoElement;
   let videoContainerElement: HTMLDivElement;
   let splitContainerElement: HTMLDivElement;
   let analyzer: ExerciseAnalyzer | null = $state(null);
@@ -137,8 +138,40 @@
     countdownTimeouts = [];
   }
 
+  function pauseReferenceVideo() {
+    try {
+      referenceVideoElement?.pause();
+    } catch {}
+  }
+
+  function resumeReferenceVideo() {
+    if (!referenceVideoElement) return;
+    const playPromise = referenceVideoElement.play();
+    if (playPromise) {
+      playPromise.catch(() => {});
+    }
+  }
+
+  function handleCountdownComplete() {
+    countdownActive = false;
+    showCountdown = false;
+    resumeReferenceVideo();
+    countdownTimeouts = [];
+  }
+
+  function pauseForFullscreenExit() {
+    pauseReferenceVideo();
+    if (isCameraRunning && !isPaused) {
+      pauseTraining();
+    }
+    countdownValue = elapsedTime > 0 || $trainingStore.reps > 0 ? 'Retomar' : 'Iniciar';
+    showCountdown = true;
+    countdownActive = false;
+  }
+
   function startCountdown() {
     if (countdownActive) return;
+    pauseReferenceVideo();
     
     // Auto-enter fullscreen
     if (!isFullscreen) {
@@ -156,7 +189,7 @@
     const t2 = setTimeout(() => countdownValue = "1", 2000);
     const t3 = setTimeout(() => countdownValue = "Vai!", 3000);
     const t4 = setTimeout(() => {
-        showCountdown = false;
+      handleCountdownComplete();
     }, 4000); // Show "Vai!" for 1s
     
     countdownTimeouts = [t1, t2, t3, t4];
@@ -862,6 +895,8 @@
       isFullscreen = false;
       releaseOrientationLock();
       detectOrientation();
+      pauseForFullscreenExit();
+      clearCountdown();
     }
   }
 
@@ -1031,10 +1066,8 @@
       } else {
         releaseOrientationLock();
         detectOrientation();
+        pauseForFullscreenExit();
         clearCountdown();
-        showCountdown = true;
-        countdownActive = false;
-        countdownValue = elapsedTime > 0 || $trainingStore.reps > 0 ? 'Retomar' : 'Iniciar';
       }
 
       clampPipPosition();
@@ -1323,7 +1356,14 @@
         ontouchstart={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
         class:draggable-pip={layoutMode === 'user-centered'}
       >
-        <video class="reference-video" src="{base}/videos/squat.mp4" playsinline loop autoplay muted>
+        <video
+          class="reference-video"
+          bind:this={referenceVideoElement}
+          src="{base}/videos/squat.mp4"
+          playsinline
+          loop
+          muted
+        >
           <track kind="captions" src="" label="No captions" />
         </video>
 
@@ -2059,13 +2099,6 @@
     left: 2rem;
     right: auto;
     transform: translateY(-50%);
-  }
-
-  @media (max-width: 1280px) {
-    .split-container.layout-user-centered,
-    .split-container.layout-coach-centered {
-      max-height: 70vh;
-    }
   }
 
   .reference-video {
