@@ -28,15 +28,12 @@ const initialState: AuthState = {
   error: null
 };
 
-// Create the store
 export const authStore = writable<AuthState>(initialState);
 
-// Derived stores
 export const currentUser = derived(authStore, ($state) => $state.user);
 export const isAuthenticated = derived(authStore, ($state) => !!$state.session);
 export const isLoading = derived(authStore, ($state) => $state.loading);
 
-// Mutations (no side effects)
 export const setAuthState = (user: User | null, session: AuthSession | null) => {
   authStore.update((state) => ({
     ...state,

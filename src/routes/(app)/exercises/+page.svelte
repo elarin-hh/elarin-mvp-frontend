@@ -1,37 +1,40 @@
 <script lang="ts">
-  import { goto, invalidateAll } from '$app/navigation';
-  import { base } from '$app/paths';
-  import type { PageData } from './$types';
-  import { trainingActions, type ExerciseType } from '$lib/stores/training.store';
-  import { onMount } from 'svelte';
-  import { asset } from '$lib/utils/assets';
-  import type { Exercise } from '$lib/api/exercises.api';
-  import { authActions } from '$lib/services/auth.facade';
-  import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import Loading from '$lib/components/common/Loading.svelte';
-  import ErrorState from '$lib/components/common/ErrorState.svelte';
-  import EmptyState from '$lib/components/common/EmptyState.svelte';
+  import { goto, invalidateAll } from "$app/navigation";
+  import { base } from "$app/paths";
+  import type { PageData } from "./$types";
+  import {
+    trainingActions,
+    type ExerciseType,
+  } from "$lib/stores/training.store";
+  import { onMount } from "svelte";
+  import { asset } from "$lib/utils/assets";
+  import type { Exercise } from "$lib/api/exercises.api";
+  import { authActions } from "$lib/services/auth.facade";
+  import AppHeader from "$lib/components/common/AppHeader.svelte";
+  import Loading from "$lib/components/common/Loading.svelte";
+  import ErrorState from "$lib/components/common/ErrorState.svelte";
+  import EmptyState from "$lib/components/common/EmptyState.svelte";
 
   let { data }: { data: PageData } = $props();
 
   let isScrolled = $state(false);
   let exercises = $state<Exercise[]>(data.exercises ?? []);
-  let errorMessage = $state(data.errorMessage ?? '');
+  let errorMessage = $state(data.errorMessage ?? "");
   let showAvatarMenu = $state(false);
   let isRefreshing = $state(false);
 
   const exerciseImages: Record<string, string> = {
-    bodyweight_squat: asset('/exercisesImages/squat.webp'),
-    standing_hip_abduction: asset('/exercisesImages/squat.webp'),
-    glute_bridge: asset('/exercisesImages/squat.webp'),
-    seated_thoracic_extension: asset('/exercisesImages/squat.webp'),
-    dead_bug_alternating: asset('/exercisesImages/squat.webp'),
-    standing_v_raise: asset('/exercisesImages/squat.webp')
+    bodyweight_squat: asset("/exercisesImages/squat.webp"),
+    standing_hip_abduction: asset("/exercisesImages/squat.webp"),
+    glute_bridge: asset("/exercisesImages/squat.webp"),
+    seated_thoracic_extension: asset("/exercisesImages/squat.webp"),
+    dead_bug_alternating: asset("/exercisesImages/squat.webp"),
+    standing_v_raise: asset("/exercisesImages/squat.webp"),
   };
 
   $effect(() => {
     exercises = data.exercises ?? [];
-    errorMessage = data.errorMessage ?? '';
+    errorMessage = data.errorMessage ?? "";
   });
 
   onMount(() => {
@@ -40,21 +43,21 @@
       isScrolled = target.scrollTop > 50;
     };
 
-    const viewport = document.querySelector('.sa-viewport');
+    const viewport = document.querySelector(".sa-viewport");
 
     if (viewport) {
-      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      viewport.addEventListener("scroll", handleScroll, { passive: true });
       return () => {
-        viewport.removeEventListener('scroll', handleScroll);
+        viewport.removeEventListener("scroll", handleScroll);
       };
     }
 
     const handleWindowScroll = () => {
       isScrolled = window.scrollY > 50;
     };
-    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
     return () => {
-      window.removeEventListener('scroll', handleWindowScroll);
+      window.removeEventListener("scroll", handleWindowScroll);
     };
   });
 
@@ -63,7 +66,8 @@
     try {
       await invalidateAll();
     } catch (err) {
-      errorMessage = (err as Error)?.message || 'Falha ao recarregar exercicios';
+      errorMessage =
+        (err as Error)?.message || "Falha ao recarregar exercicios";
     } finally {
       isRefreshing = false;
     }
@@ -81,7 +85,7 @@
   function getExerciseImage(type: string): string {
     return (
       exerciseImages[type] ||
-      'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop'
+      "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop"
     );
   }
 
@@ -102,7 +106,7 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.avatar-menu-container')) {
+    if (!target.closest(".avatar-menu-container")) {
       showAvatarMenu = false;
     }
   }
@@ -144,14 +148,17 @@
               ? 'exercise-inactive'
               : ''}"
             onclick={() => handleExerciseSelect(exercise)}
-            onkeypress={(e) => e.key === 'Enter' && handleExerciseSelect(exercise)}
+            onkeypress={(e) =>
+              e.key === "Enter" && handleExerciseSelect(exercise)}
             role="button"
             tabindex={exercise.is_active ? 0 : -1}
             aria-label={exercise.is_active
               ? `Selecionar ${exercise.name}`
               : `${exercise.name} - Em Breve`}
           >
-            <div class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10">
+            <div
+              class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
+            >
               <img
                 src={getExerciseImage(exercise.type)}
                 alt={exercise.name_pt}
@@ -160,7 +167,9 @@
 
               <div class="glass-overlay absolute inset-0"></div>
 
-              <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-8">
+              <div
+                class="absolute inset-0 flex items-center justify-center p-4 sm:p-8"
+              >
                 <div
                   class="button-primary px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
                 >
@@ -177,20 +186,18 @@
                       d="M9 5l7 7-7 7"
                     />
                   </svg>
-                  <span class="text-white text-sm sm:text-base font-medium">{exercise.name}</span
+                  <span class="text-white text-sm sm:text-base font-medium"
+                    >{exercise.name}</span
                   >
                 </div>
               </div>
 
               {#if !exercise.is_active}
-                <div class="absolute top-2 right-2 badge-inactive">Em Breve</div>
+                <div class="absolute top-2 right-2 badge-inactive">
+                  Em Breve
+                </div>
               {/if}
             </div>
-
-            <!-- <span
-              class="exercise-name text-white text-sm sm:text-base font-medium px-2 sm:px-3 py-2 pt-4 sm:pt-5 -mt-3 z-0 rounded-b-sm"
-            >
-            </span> -->
           </div>
         {/each}
       </div>
@@ -200,7 +207,6 @@
   {#if isRefreshing}
     <Loading message="Recarregando exercicios..." />
   {/if}
-
 </div>
 
 <style>
@@ -219,17 +225,6 @@
     backdrop-filter: blur(2px);
   }
 
-  .exercise-name {
-    background: transparent;
-    transition: all 0.3s ease;
-  }
-
-  .group:hover .exercise-name {
-    background: var(--color-primary-500);
-    backdrop-filter: blur(var(--blur-md));
-    -webkit-backdrop-filter: blur(var(--blur-md));
-  }
-
   .exercise-inactive {
     opacity: 0.6;
     cursor: not-allowed !important;
@@ -246,10 +241,6 @@
 
   .exercise-inactive .button-primary {
     background: #6c757d !important;
-  }
-
-  .exercise-inactive:hover .exercise-name {
-    background: transparent !important;
   }
 
   .badge-inactive {

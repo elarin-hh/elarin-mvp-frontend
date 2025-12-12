@@ -1,13 +1,3 @@
-/**
- * Feedback System - Integração ML + Heurísticas
- * ==============================================
- *
- * Sistema inteligente que combina:
- * 1. Predições do modelo ML (autoencoder)
- * 2. Validações heurísticas (regras biomecânicas)
- * 3. Geração de feedback contextual e priorizado
- */
-
 import type { FeedbackMode, FeedbackMessage, Severity } from '../types';
 import type { ValidationResult } from '../types/validator.types';
 
@@ -118,9 +108,6 @@ export class FeedbackSystem {
     this.currentFeedback = null;
   }
 
-  /**
-   * Combina resultados ML + Heurísticas
-   */
   integrate(mlResult: MLResult | null, heuristicResult: ValidationResult | null): FeedbackRecord {
     const feedback: FeedbackRecord = {
       timestamp: Date.now(),
@@ -146,7 +133,6 @@ export class FeedbackSystem {
       }
     };
 
-    // Combina resultados baseado no modo
     switch (this.config.feedbackMode) {
       case 'ml_only':
         feedback.combined = this.mlOnlyDecision(feedback.ml);
@@ -161,11 +147,9 @@ export class FeedbackSystem {
         feedback.combined = this.hybridDecision(feedback.ml, feedback.heuristic);
         break;
     }
-    // Gera feedback contextual
     feedback.messages = this.generateMessages(feedback);
     feedback.visualization = this.generateVisualization(feedback);
 
-    // Armazena histórico
     this.feedbackHistory.push(feedback);
     if (this.feedbackHistory.length > this.maxHistorySize) {
       this.feedbackHistory.shift();
@@ -175,9 +159,6 @@ export class FeedbackSystem {
     return feedback;
   }
 
-  /**
-   * Processa resultado do ML
-   */
   private processMLResult(mlResult: MLResult | null): ProcessedMLResult {
     if (!mlResult || mlResult.status === 'waiting' || mlResult.status === 'error') {
       return {
@@ -195,7 +176,6 @@ export class FeedbackSystem {
       };
     }
 
-    // Garante que confidence é válido
     const confidence =
       mlResult.confidence !== undefined && !isNaN(mlResult.confidence) ? mlResult.confidence : 0.7;
 
@@ -210,9 +190,6 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Processa resultado das heurísticas
-   */
   private processHeuristicResult(
     heuristicResult: ValidationResult | null
   ): ProcessedHeuristicResult {
@@ -232,9 +209,6 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Decisão baseada apenas em ML
-   */
   private mlOnlyDecision(mlData: ProcessedMLResult): CombinedDecision {
     if (!mlData.available) {
       return {
@@ -247,13 +221,11 @@ export class FeedbackSystem {
       };
     }
 
-    // Garante que confidence é válido
     const confidence =
       mlData.confidence !== undefined && !isNaN(mlData.confidence)
         ? Math.max(0, Math.min(1, mlData.confidence))
         : 0.7;
 
-    // Razão específica para One-Class Learning
     let reason: string;
     if (mlData.isCorrect) {
       reason = 'Padrão de movimento reconhecido (similar ao treino)';
@@ -278,9 +250,6 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Decisão baseada apenas em heurísticas
-   */
   private heuristicOnlyDecision(heuristicData: ProcessedHeuristicResult): CombinedDecision {
     if (!heuristicData.available) {
       return {
@@ -309,14 +278,10 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Decisão híbrida (ML + Heurísticas)
-   */
   private hybridDecision(
     mlData: ProcessedMLResult,
     heuristicData: ProcessedHeuristicResult
   ): CombinedDecision {
-    // Se nenhum disponível
     if (!mlData.available && !heuristicData.available) {
       return {
         isCorrect: null,
@@ -328,17 +293,14 @@ export class FeedbackSystem {
       };
     }
 
-    // Se apenas ML disponível
     if (mlData.available && !heuristicData.available) {
       return this.mlOnlyDecision(mlData);
     }
 
-    // Se apenas heurísticas disponíveis
     if (!mlData.available && heuristicData.available) {
       return this.heuristicOnlyDecision(heuristicData);
     }
 
-    // Ambos disponíveis - combinar inteligentemente
     const mlConfidence =
       mlData.confidence !== undefined && !isNaN(mlData.confidence) ? mlData.confidence : 0.5;
 
@@ -347,25 +309,19 @@ export class FeedbackSystem {
       ? 0.95
       : this.calculateHeuristicScore(heuristicData);
 
-    // Combina com pesos
     const combinedScore =
       mlScore * this.config.mlWeight + heuristicScore * this.config.heuristicWeight;
 
-    // Regras de priorização
     const criticalIssues = heuristicData.issues?.filter((i) => i.severity === 'critical') || [];
     const hasHeuristicProblems = !heuristicData.isValid || criticalIssues.length > 0;
     const hasMLProblems = !mlData.isCorrect;
 
-    // Se QUALQUER um detectar erro, marca como incorreto
     const isCorrect = !hasMLProblems && !hasHeuristicProblems;
 
-    // Calcula confiança final - usa o maior valor entre ML e heurística
     let confidence = Math.max(mlConfidence, heuristicScore);
 
-    // Garante que confidence está no range [0, 1]
     confidence = Math.max(0, Math.min(1, confidence));
 
-    // Determina razão principal
     let reason: string;
     if (isCorrect) {
       reason = 'Execução correta confirmada (ML + Biomecânica)';
@@ -396,9 +352,6 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Calcula score das heurísticas baseado em severidade
-   */
   private calculateHeuristicScore(heuristicData: ProcessedHeuristicResult): number {
     if (heuristicData.isValid) return 0.95;
 
@@ -417,14 +370,9 @@ export class FeedbackSystem {
     return Math.max(0, 1.0 - totalPenalty);
   }
 
-  /**
-   * Gera mensagens de feedback contextuais
-   */
   private generateMessages(feedback: FeedbackRecord): FeedbackMessage[] {
     const messages: FeedbackMessage[] = [];
 
-    // ML ONLY: Apenas status binário (correto/incorreto)
-    // One-Class Learning não fornece feedback detalhado
     if (feedback.mode === 'ml_only') {
       if (feedback.combined.verdict === 'correct') {
         messages.push({
@@ -440,7 +388,6 @@ export class FeedbackSystem {
           text: 'Anomalia detectada (padrão desconhecido)',
           severity: 'high'
         });
-        // Informação técnica genérica do ML
         if (feedback.ml.available && feedback.ml.error !== undefined) {
           messages.push({
             type: 'info',
@@ -453,14 +400,13 @@ export class FeedbackSystem {
         messages.push({
           type: 'info',
           priority: 1,
-          text: '⏳ Aguardando análise ML...',
+          text: '? Aguardando análise ML...',
           severity: 'low'
         });
       }
       return messages;
     }
 
-    // HEURISTIC ONLY ou HYBRID: Status + feedback detalhado
     if (feedback.combined.verdict === 'correct') {
       messages.push({
         type: 'success',
@@ -477,7 +423,6 @@ export class FeedbackSystem {
       });
     }
 
-    // Adiciona issues heurísticas detalhadas (apenas em heuristic_only ou hybrid)
     if (
       feedback.heuristic.available &&
       feedback.heuristic.issues &&
@@ -496,7 +441,6 @@ export class FeedbackSystem {
       });
     }
 
-    // Adiciona informação de ML se híbrido e desacordo
     if (
       feedback.mode === 'hybrid' &&
       feedback.ml.available &&
@@ -515,9 +459,6 @@ export class FeedbackSystem {
     return messages.sort((a, b) => a.priority - b.priority);
   }
 
-  /**
-   * Prioriza issues por severidade
-   */
   private prioritizeIssues(
     issues: ProcessedHeuristicResult['issues']
   ): NonNullable<ProcessedHeuristicResult['issues']> {
@@ -529,25 +470,19 @@ export class FeedbackSystem {
     });
   }
 
-  /**
-   * Gera texto de feedback amigável para cada tipo de issue
-   */
   private getIssueFeedbackText(
     issue: NonNullable<ProcessedHeuristicResult['issues']>[number]
   ): string {
     const icons: Record<Severity, string> = {
-      critical: '🔴',
-      high: '🟠',
-      medium: '🟡',
-      low: '🟢'
+      critical: '??',
+      high: '??',
+      medium: '??',
+      low: '??'
     };
 
     return `${icons[issue.severity]} ${issue.message}`;
   }
 
-  /**
-   * Gera dados para visualização
-   */
   private generateVisualization(feedback: FeedbackRecord) {
     return {
       color: this.getStatusColor(feedback.combined.verdict, feedback.combined.confidence),
@@ -559,9 +494,6 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Determina cor baseado em status e confiança
-   */
   private getStatusColor(verdict: CombinedDecision['verdict'], confidence: number): string {
     if (verdict === 'unknown') return 'var(--color-skeleton-neutral)';
 
@@ -572,9 +504,6 @@ export class FeedbackSystem {
     return 'var(--color-skeleton-incorrect)';
   }
 
-  /**
-   * Obtém estatísticas do feedback
-   */
   getStatistics(): FeedbackStatistics | null {
     if (this.feedbackHistory.length === 0) {
       return null;
@@ -600,33 +529,21 @@ export class FeedbackSystem {
     };
   }
 
-  /**
-   * Retorna configuracao atual (copia)
-   */
   getConfig(): FeedbackSystemConfig {
     return { ...this.config };
   }
 
-  /**
-   * Reset
-   */
   reset(): void {
     this.feedbackHistory = [];
     this.currentFeedback = null;
   }
 
-  /**
-   * Atualiza modo de feedback
-   */
   setMode(mode: FeedbackMode): void {
     if (['ml_only', 'heuristic_only', 'hybrid'].includes(mode)) {
       this.config.feedbackMode = mode;
     }
   }
 
-  /**
-   * Ajusta pesos ML/Heurística
-   */
   setWeights(mlWeight: number, heuristicWeight: number): void {
     const total = mlWeight + heuristicWeight;
     this.config.mlWeight = mlWeight / total;

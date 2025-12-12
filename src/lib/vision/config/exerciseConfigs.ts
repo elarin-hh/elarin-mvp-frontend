@@ -1,10 +1,3 @@
-/**
- * Exercise Configurations Loader
- * ===============================
- *
- * Carrega configurações de exercícios de arquivos JSON em static/exercises/
- */
-
 import { base } from '$app/paths';
 import type { ExerciseConfig } from '../types/exercise.types';
 
@@ -17,12 +10,8 @@ const DEFAULT_EXERCISES = [
 	'standing_v_raise'
 ];
 
-// Cache de configurações
 const configCache: Record<string, ExerciseConfig> = {};
 
-/**
- * Carrega configuração de um exercício
- */
 export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseConfig | null> {
 	if (configCache[exerciseId]) {
 		return configCache[exerciseId];
@@ -52,16 +41,10 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 	}
 }
 
-/**
- * Obtém config do cache (síncrono)
- */
 export function getExerciseConfig(exerciseId: string): ExerciseConfig | null {
 	return configCache[exerciseId] || null;
 }
 
-/**
- * Lista exercícios disponíveis
- */
 export async function getAvailableExercises(): Promise<string[]> {
 	try {
 		const response = await fetch(`${base}/exercises.json`);
@@ -75,9 +58,6 @@ export async function getAvailableExercises(): Promise<string[]> {
 	}
 }
 
-/**
- * Verifica se exercício existe
- */
 export async function isExerciseAvailable(exerciseId: string): Promise<boolean> {
 	const exercises = await getAvailableExercises();
 	return exercises.includes(exerciseId);

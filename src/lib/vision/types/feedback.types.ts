@@ -1,7 +1,3 @@
-/**
- * Feedback System Types
- */
-
 export type FeedbackMode = 'hybrid' | 'ml_only' | 'heuristic_only';
 export type MessageType = 'success' | 'warning' | 'error' | 'info';
 export type Severity = 'low' | 'medium' | 'high' | 'critical';

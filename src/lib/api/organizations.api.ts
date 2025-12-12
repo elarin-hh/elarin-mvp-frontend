@@ -12,9 +12,6 @@ export interface Organization {
 }
 
 export const organizationsApi = {
-  /**
-   * Get all active organizations
-   */
   async getActiveOrganizations() {
     const response = await restClient.get<Organization[]>('/organizations/active');
 
@@ -28,9 +25,6 @@ export const organizationsApi = {
     return { success: true, data: response.data };
   },
 
-  /**
-   * Link user to organization
-   */
   async linkUserToOrganization(userId: number, organizationId: number) {
     const response = await restClient.post<{ message: string; link: any }>(
       '/organizations/link-user',

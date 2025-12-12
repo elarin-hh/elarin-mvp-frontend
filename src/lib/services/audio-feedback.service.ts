@@ -27,11 +27,6 @@ export interface FeedbackAudioProvider {
   resolveAudioUrl(item: AudioFeedbackItem, tone: AudioFeedbackTone): Promise<string | null> | string | null;
 }
 
-/**
- * Provider that resolves audio files from the static `/audio/feedback` folder.
- * Files are resolved using a slug for the feedback text and an optional tone suffix:
- *   /audio/feedback/<slug>__<tone>.mp3
- */
 export class StaticAudioFeedbackProvider implements FeedbackAudioProvider {
   private basePath: string;
   private includeToneInFilename: boolean;
@@ -95,15 +90,12 @@ export class AudioFeedbackService {
   enqueue(items: AudioFeedbackItem[], options?: { replaceQueue?: boolean }) {
     if (!this.readyForAudio || items.length === 0) return;
 
-    // Se já está tocando, ignora novos áudios
     if (this.isPlaying) {
       return;
     }
 
-    // Pega apenas o primeiro item
     this.queue = [items[0]];
 
-    // Inicia reprodução
     void this.playNext();
     this.notify();
   }
@@ -136,7 +128,7 @@ export class AudioFeedbackService {
 
     if (!next) {
       this.isPlaying = false;
-      this.queue = []; // Garante que a fila está limpa
+      this.queue = [];
       this.notify();
       return;
     }
@@ -146,13 +138,12 @@ export class AudioFeedbackService {
     try {
       src = await this.provider.resolveAudioUrl(next, tone);
     } catch (error) {
-      // Se não conseguir resolver, apenas ignora silenciosamente e vai para o próximo
       console.warn('Audio feedback: não foi possível resolver áudio', error);
     }
 
     if (!src) {
       this.isPlaying = false;
-      this.queue = []; // Limpa a fila se não conseguir resolver o áudio
+      this.queue = [];
       this.notify();
       return;
     }
@@ -167,24 +158,23 @@ export class AudioFeedbackService {
     audio.onended = () => {
       this.isPlaying = false;
       this.current = null;
-      this.queue = []; // Limpa a fila após reproduzir
+      this.queue = [];
       this.notify();
     };
 
     audio.onerror = () => {
       this.isPlaying = false;
       this.current = null;
-      this.queue = []; // Limpa a fila em caso de erro
+      this.queue = [];
       this.notify();
     };
 
     try {
       await audio.play();
     } catch (error) {
-      // Ignora falhas de carregamento/reprodução e limpa a fila
       this.isPlaying = false;
       this.current = null;
-      this.queue = []; // Limpa a fila em caso de erro no play
+      this.queue = [];
       this.notify();
     }
   }
@@ -214,9 +204,6 @@ export class AudioFeedbackService {
   }
 }
 
-/**
- * Converte um FeedbackMessage em uma entrada de áudio pronta para ser enfileirada.
- */
 export function toAudioItem(
   message: FeedbackMessage,
   tone: AudioFeedbackTone,
@@ -235,15 +222,11 @@ export function toAudioItem(
   };
 }
 
-/**
- * Gera um ID de arquivo a partir do texto do feedback (remove acentos e símbolos).
- * O ID é usado como nome do arquivo MP3 na pasta /audio/feedback.
- */
 export function feedbackMessageToId(message: FeedbackMessage): string {
   const base = (message.text || `${message.type}-${message.severity || 'low'}`).trim();
   const normalized = base
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase();

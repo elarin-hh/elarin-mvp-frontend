@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { base } from '$app/paths';
-  import { authActions } from '$lib/services/auth.facade';
-  import { organizationsApi, type Organization } from '$lib/api/organizations.api';
-  import { asset } from '$lib/utils/assets';
-  import Select from '$lib/components/common/Select.svelte';
+  import { goto } from "$app/navigation";
+  import { base } from "$app/paths";
+  import { authActions } from "$lib/services/auth.facade";
+  import {
+    organizationsApi,
+    type Organization,
+  } from "$lib/api/organizations.api";
+  import { asset } from "$lib/utils/assets";
+  import Select from "$lib/components/common/Select.svelte";
   import {
     isValidEmail,
     isValidPassword,
     passwordsMatch,
-    isValidFullName
-  } from '$lib/utils/validation';
+    isValidFullName,
+  } from "$lib/utils/validation";
 
-  // Validate minimum age (13 years - LGPD Art. 14)
   function validateAge(birthDate: string): { valid: boolean; error?: string } {
     if (!birthDate) {
-      return { valid: false, error: 'Data de nascimento é obrigatória' };
+      return { valid: false, error: "Data de nascimento é obrigatória" };
     }
 
     const birthDateObj = new Date(birthDate);
@@ -23,102 +25,101 @@
     const age = today.getFullYear() - birthDateObj.getFullYear();
     const monthDiff = today.getMonth() - birthDateObj.getMonth();
 
-    const actualAge = (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate()))
-      ? age - 1
-      : age;
+    const actualAge =
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDateObj.getDate())
+        ? age - 1
+        : age;
 
     if (actualAge < 13) {
       return {
         valid: false,
-        error: 'Você deve ter pelo menos 13 anos para criar uma conta (LGPD Art. 14)'
+        error:
+          "Você deve ter pelo menos 13 anos para criar uma conta (LGPD Art. 14)",
       };
     }
 
     return { valid: true };
   }
 
-  // Organization selection
   let organizations = $state<Organization[]>([]);
-  let selectedOrganizationId = $state<number | string>('');
+  let selectedOrganizationId = $state<number | string>("");
   let loadingOrganizations = $state(false);
 
-  // User data
-  let fullName = $state('');
-  let email = $state('');
-  let password = $state('');
-  let confirmPassword = $state('');
-  let birthDate = $state('');
+  let fullName = $state("");
+  let email = $state("");
+  let password = $state("");
+  let confirmPassword = $state("");
+  let birthDate = $state("");
   let marketingConsent = $state(false);
   let isLoading = $state(false);
-  let error = $state('');
+  let error = $state("");
 
-  // Load organizations on mount
   async function loadOrganizations() {
     loadingOrganizations = true;
-    error = '';
+    error = "";
 
     try {
       const result = await organizationsApi.getActiveOrganizations();
       if (result.success && result.data) {
         organizations = result.data;
       } else {
-        error = result.error || 'Erro ao carregar organizações';
+        error = result.error || "Erro ao carregar organizações";
       }
     } catch (e: any) {
-      error = e.message || 'Erro ao carregar organizações';
+      error = e.message || "Erro ao carregar organizações";
     } finally {
       loadingOrganizations = false;
     }
   }
 
-  // Load organizations when component mounts
   $effect(() => {
     loadOrganizations();
   });
 
-  // Handle registration with organization partner
   async function handleRegisterWithOrganization() {
-    error = '';
+    error = "";
 
     const nameValidation = isValidFullName(fullName);
     if (!nameValidation.valid) {
-      error = nameValidation.error || 'Nome inválido';
+      error = nameValidation.error || "Nome inválido";
       return;
     }
 
     if (!isValidEmail(email)) {
-      error = 'E-mail inválido';
+      error = "E-mail inválido";
       return;
     }
 
     const passwordValidation = isValidPassword(password);
     if (!passwordValidation.valid) {
-      error = passwordValidation.error || 'Senha inválida';
+      error = passwordValidation.error || "Senha inválida";
       return;
     }
 
     if (!passwordsMatch(password, confirmPassword)) {
-      error = 'As senhas não coincidem';
+      error = "As senhas não coincidem";
       return;
     }
 
     const ageValidation = validateAge(birthDate);
     if (!ageValidation.valid) {
-      error = ageValidation.error || 'Data de nascimento inválida';
+      error = ageValidation.error || "Data de nascimento inválida";
       return;
     }
 
     if (!selectedOrganizationId) {
-      error = 'Organização não selecionada';
+      error = "Organização não selecionada";
       return;
     }
 
     isLoading = true;
 
     try {
-      const organizationId = typeof selectedOrganizationId === 'string'
-        ? parseInt(selectedOrganizationId)
-        : selectedOrganizationId;
+      const organizationId =
+        typeof selectedOrganizationId === "string"
+          ? parseInt(selectedOrganizationId)
+          : selectedOrganizationId;
 
       const result = await authActions.registerWithOrganization(
         email,
@@ -126,17 +127,17 @@
         fullName.trim(),
         birthDate,
         organizationId,
-        'pt-BR',
-        marketingConsent
+        "pt-BR",
+        marketingConsent,
       );
 
       if (!result.success) {
-        error = result.error || 'Erro ao criar conta';
+        error = result.error || "Erro ao criar conta";
       } else {
         goto(`${base}/exercises`);
       }
     } catch (e: any) {
-      error = e.message || 'Erro ao criar conta';
+      error = e.message || "Erro ao criar conta";
     } finally {
       isLoading = false;
     }
@@ -146,46 +147,47 @@
     goto(`${base}/login`);
   }
 
-  // Get organization options for select
   const organizationOptions = $derived(
     organizations.map((org) => ({
       value: org.id,
-      label: org.name
-    }))
+      label: org.name,
+    })),
   );
 </script>
 
-<style>
-  .glass-button {
-    background: var(--color-glass-light);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: var(--radius-standard);
-    position: relative;
-    overflow: hidden;
-  }
-</style>
-
-<div class="min-h-screen bg-black flex flex-col items-center justify-center px-4 py-8">
+<div
+  class="min-h-screen bg-black flex flex-col items-center justify-center px-4 py-8"
+>
   <div class="mb-8 text-center">
     <img
-      src={asset('/logo-elarin-white.png')}
+      src={asset("/logo-elarin-white.png")}
       alt="Elarin"
       class="h-16 md:h-20 mx-auto"
     />
   </div>
 
   <div class="w-full max-w-md space-y-4">
-    <form onsubmit={(e) => { e.preventDefault(); handleRegisterWithOrganization(); }} class="space-y-4">
+    <form
+      onsubmit={(e) => {
+        e.preventDefault();
+        handleRegisterWithOrganization();
+      }}
+      class="space-y-4"
+    >
       {#if error}
-        <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: var(--radius-standard);">
+        <div
+          class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center"
+          style="border-radius: var(--radius-standard);"
+        >
           {error}
         </div>
       {/if}
 
       {#if loadingOrganizations}
         <div class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"
+          ></div>
           <p class="text-white/70 mt-4">Carregando organizações...</p>
         </div>
       {:else}
@@ -199,72 +201,79 @@
       {/if}
 
       <input
-          type="text"
-          bind:value={fullName}
-          required
-          placeholder="Nome Completo"
-          class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: var(--radius-standard); border-width: 0.8px;"
-        />
+        type="text"
+        bind:value={fullName}
+        required
+        placeholder="Nome Completo"
+        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+        style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      />
 
+      <input
+        type="email"
+        bind:value={email}
+        required
+        placeholder="E-mail"
+        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+        style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      />
+
+      <input
+        type="password"
+        bind:value={password}
+        required
+        placeholder="Senha"
+        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+        style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      />
+
+      <input
+        type="password"
+        bind:value={confirmPassword}
+        required
+        placeholder="Confirmar Senha"
+        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
+        style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      />
+
+      <div>
+        <label for="birth-date" class="text-white/70 text-sm mb-2 block"
+          >Data de Nascimento (mínimo 13 anos)</label
+        >
         <input
-          type="email"
-          bind:value={email}
+          type="date"
+          bind:value={birthDate}
           required
-          placeholder="E-mail"
+          id="birth-date"
+          max={new Date(new Date().setFullYear(new Date().getFullYear() - 13))
+            .toISOString()
+            .split("T")[0]}
           class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
           style="border-radius: var(--radius-standard); border-width: 0.8px;"
         />
+      </div>
 
+      <div class="flex items-start space-x-3 px-2">
         <input
-          type="password"
-          bind:value={password}
-          required
-          placeholder="Senha"
-          class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: var(--radius-standard); border-width: 0.8px;"
+          type="checkbox"
+          id="marketing-consent"
+          bind:checked={marketingConsent}
+          class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-white focus:ring-white/50"
         />
-
-        <input
-          type="password"
-          bind:value={confirmPassword}
-          required
-          placeholder="Confirmar Senha"
-          class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: var(--radius-standard); border-width: 0.8px;"
-        />
-
-        <div>
-          <label for="birth-date" class="text-white/70 text-sm mb-2 block">Data de Nascimento (mínimo 13 anos)</label>
-          <input
-            type="date"
-            bind:value={birthDate}
-            required
-            id="birth-date"
-            max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
-            class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-            style="border-radius: var(--radius-standard); border-width: 0.8px;"
-          />
-        </div>
-
-        <div class="flex items-start space-x-3 px-2">
-          <input
-            type="checkbox"
-            id="marketing-consent"
-            bind:checked={marketingConsent}
-            class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-white focus:ring-white/50"
-          />
-          <label for="marketing-consent" class="text-white/70 text-sm cursor-pointer">
-            Desejo receber comunicações sobre novidades e promoções (opcional)
-          </label>
-        </div>
+        <label
+          for="marketing-consent"
+          class="text-white/70 text-sm cursor-pointer"
+        >
+          Desejo receber comunicações sobre novidades e promoções (opcional)
+        </label>
+      </div>
 
       <button
         type="submit"
         disabled={isLoading || loadingOrganizations}
         class="glass-button w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
       >
-        {isLoading ? 'Carregando...' : 'Criar conta'}
+        {isLoading ? "Carregando..." : "Criar conta"}
       </button>
     </form>
 
@@ -278,10 +287,15 @@
       </button>
     </div>
   </div>
-
-  <!-- <div class="absolute bottom-4 md:bottom-8 text-center">
-    <p class="text-white/50 text-xs md:text-sm">
-      Política de Privacidade e Termos de Uso
-    </p>
-  </div> -->
 </div>
+
+<style>
+  .glass-button {
+    background: var(--color-glass-light);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: var(--radius-standard);
+    position: relative;
+    overflow: hidden;
+  }
+</style>

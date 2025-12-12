@@ -4,7 +4,7 @@
 
   let showBanner = false;
   let isVisible = false;
-  const CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 ano
+  const CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
   onMount(() => {
     const consent = localStorage.getItem('elarin_consent');
@@ -94,7 +94,6 @@
   >
     <div class="container mx-auto px-4 py-5 max-w-6xl">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <!-- Texto -->
         <div class="flex-1">
           <h2 id="consent-title" class="text-lg font-bold mb-2 text-white">
             Sua Privacidade Importa
@@ -115,7 +114,6 @@
           </p>
         </div>
 
-        <!-- Botões -->
         <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button
             on:click={rejectConsent}

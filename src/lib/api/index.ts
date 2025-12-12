@@ -1,7 +1,3 @@
-/**
- * Exports centralizados de todas as APIs
- * Evita conflitos de tipos com nomes iguais (Exercise)
- */
 export { restClient, createRestClient } from './rest.client';
 export type { ApiResponse } from './http-client';
 export { authApi } from './auth.api';

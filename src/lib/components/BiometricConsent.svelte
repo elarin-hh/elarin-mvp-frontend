@@ -70,7 +70,7 @@
     overflow-y: auto;
   }
 
-  /* Custom scrollbar */
+  
   .modal-content::-webkit-scrollbar {
     width: 8px;
   }
@@ -134,7 +134,7 @@
   >
     <div class="glass-modal w-full max-w-xl">
       <div class="modal-content p-8">
-        <!-- Header -->
+
         <div class="flex items-start gap-3 mb-6">
           <Lock size={24} style="color: var(--color-primary-500); flex-shrink: 0;" />
           <div>
@@ -147,7 +147,7 @@
           </div>
         </div>
 
-        <!-- Content -->
+
         <div class="space-y-4 mb-6">
           <p class="text-sm text-white/70 leading-relaxed">
             O Elarin processa <strong class="text-white">33 pontos de pose corporal</strong> para análise de movimento.
@@ -155,13 +155,13 @@
           </p>
 
           <div class="space-y-2 text-xs text-white/60">
-            <p>• Você pode revogar este consentimento a qualquer momento</p>
-            <p>• Dados biométricos não são armazenados no servidor</p>
-            <p>• Apenas métricas agregadas são enviadas</p>
+            <p>? Você pode revogar este consentimento a qualquer momento</p>
+            <p>? Dados biométricos não são armazenados no servidor</p>
+            <p>? Apenas métricas agregadas são enviadas</p>
           </div>
         </div>
 
-        <!-- Checkboxes -->
+
         <div class="space-y-3 mb-6 pb-6 border-b border-white/10">
           <label class="flex items-start gap-3 cursor-pointer">
             <input
@@ -188,7 +188,7 @@
           </label>
         </div>
 
-        <!-- Botões -->
+
         <div class="flex gap-3">
           <button
             on:click={handleDeny}
@@ -211,7 +211,7 @@
           </button>
         </div>
 
-        <!-- Link -->
+
         <p class="text-xs text-center text-white/40 mt-4">
           <a href="/privacy" target="_blank" style="color: var(--color-primary-500);" class="hover:underline">
             Ver Política de Privacidade

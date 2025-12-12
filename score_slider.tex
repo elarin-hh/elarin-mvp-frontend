@@ -1,0 +1,351 @@
+% !TEX program = pdflatex
+\documentclass[11pt,a4paper]{article}
+
+% -------------------------
+% Pacotes básicos
+% -------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\geometry{margin=2.2cm}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+
+% -------------------------
+% Macros úteis
+% -------------------------
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+\title{Elarin \;—\; Score Contínuo de Execução (0--100\%)\\
+\large Heurística por frame + Validação por sequência (LSTM) + Slider estável}
+\author{(preencher)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este documento define um método matemático e implementável para estimar, em tempo real, o \emph{quão correto} (0--100\%) um usuário está executando um exercício (\emph{score contínuo para slider}).
+O score é calculado \textbf{por frame} via heurísticas biomecânicas (ângulos e alinhamentos), estabilizado por \textbf{gating de qualidade da pose} e \textbf{suavização temporal}, e opcionalmente ajustado por um termo global de consistência baseado no erro de reconstrução de um modelo \textbf{LSTM}.
+\end{abstract}
+
+\tableofcontents
+
+\section{Objetivo do Score}
+Queremos separar claramente dois problemas:
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Slider em tempo real (frame a frame):} precisa reagir ao movimento \emph{agora} e variar suavemente (sem tremer).
+\item \textbf{Validação global (por repetição / sequência):} decide se a repetição contou (certo/errado) e se o padrão do movimento como um todo foi coerente.
+\end{itemize}
+
+\noindent\textbf{Decisão de arquitetura:}
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Slider} \,$\rightarrow$\, \textbf{Heurística por frame} (interpretável e responsiva).
+\item \textbf{Certo/errado final / consistência} \,$\rightarrow$\, \textbf{LSTM} (erro de reconstrução) e/ou regras de máquina de estados.
+\item \textbf{Fusão leve} \,$\rightarrow$\, LSTM ajusta o slider só como correção global, sem dominar o sinal.
+\end{itemize}
+
+\section{Entradas e Notação}
+\subsection{Pose e KPIs}
+Assuma que a cada frame $t$ (com passo $\Delta t$ em ms) obtemos:
+\begin{itemize}[leftmargin=1.2em]
+\item Landmarks 2D/3D: $\{\ell_{j}(t)\}$ para articulações $j$.
+\item Visibilidade/confiança por landmark: $v_j(t) \in [0,1]$.
+\item Conjunto de KPIs por exercício (ângulos, alinhamentos, simetria etc.):
+\begin{equation}
+\mathbf{x}(t)=\big(x_1(t), x_2(t), \dots, x_n(t)\big).
+\end{equation}
+\end{itemize}
+
+\subsection{Parâmetros}
+Para cada KPI $i$:
+\begin{itemize}[leftmargin=1.2em]
+\item Peso $w_i \ge 0$, com $\sum_i w_i = 1$.
+\item Alvo (valor ideal) $T_i$ \;ou\; faixa ideal $[L_i, U_i]$.
+\item Tolerância $\tau_i > 0$ (escala que define o que é ``muito fora'').
+\end{itemize}
+
+\section{Erro Normalizado por KPI (0 a 1)}
+O coração do slider é transformar ``distância do ideal'' em erro normalizado $e_i(t)\in[0,1]$.
+
+\subsection{Caso A: alvo único}
+\begin{equation}
+ e_i(t) = \clip\left(\frac{|x_i(t)-T_i|}{\tau_i},\,0,\,1\right).
+\end{equation}
+
+\subsection{Caso B: faixa ideal}
+Defina a distância à faixa:
+\begin{equation}
+ d_i(t)=
+ \begin{cases}
+  0, & L_i \le x_i(t) \le U_i,\\
+  L_i-x_i(t), & x_i(t)<L_i,\\
+  x_i(t)-U_i, & x_i(t)>U_i.
+ \end{cases}
+\end{equation}
+Então:
+\begin{equation}
+ e_i(t)=\clip\left(\frac{d_i(t)}{\tau_i},\,0,\,1\right).
+\end{equation}
+
+\subsection{Observação prática}
+$\tau_i$ controla ``o quão rápido'' o score pune erros. Em produto, isso é o \emph{feeling} do slider.
+
+\section{Agregação Ponderada (erro total)}
+\begin{equation}
+E(t)=\sum_{i=1}^{n} w_i\,e_i(t),\qquad \sum_i w_i=1.
+\end{equation}
+Aqui $E(t)\in[0,1]$ se todos $e_i\in[0,1]$.
+
+\section{Mapeamento para Score (0 a 100\%)}
+Transformamos erro em score. O mapeamento linear $S=1-E$ funciona, mas fica ``duro''. Dois mapeamentos mais \emph{human-friendly}:
+
+\subsection{Exponencial (recomendado para slider)}
+\begin{equation}
+S_{\text{heur}}(t)=\exp\big(-\alpha\,E(t)\big),\quad \alpha>0.
+\end{equation}
+\begin{equation}
+\text{Slider}(t)=100\cdot S_{\text{heur}}(t).
+\end{equation}
+\noindent\textbf{Interpretação:} $\alpha$ define a severidade. Valores típicos: $\alpha\in[1,5]$.
+
+\subsection{Logística (boa para ``zona ok'')}
+\begin{equation}
+S_{\text{heur}}(t)=\frac{1}{1+\exp\big(\beta(E(t)-\mu)\big)}.
+\end{equation}
+Com $\mu$ = erro em que o score cruza 50\%, e $\beta$ controla a inclinação.
+
+\section{Qualidade do Frame (Confidence Gating)}
+Pose 2D em navegador sofre com oclusão, blur e falta de profundidade. Para não punir o usuário quando a pose está incerta, definimos um fator de qualidade $q(t)\in[0,1]$.
+
+\subsection{Definição simples de $q(t)$}
+Escolha um conjunto de landmarks-chave $\mathcal{J}$ (ex.: ombro, quadril, joelho, tornozelo). Um baseline:
+\begin{equation}
+q(t)=\mathrm{clip}\left(\frac{1}{|\mathcal{J}|}\sum_{j\in\mathcal{J}} v_j(t),\,0,\,1\right).
+\end{equation}
+Opcional: multiplicar por penalidades de \emph{tracking loss} (saltos bruscos de posição).
+
+\subsection{Uso do gating}
+Se $q(t)$ cai, o slider deve ``congelar'' ao invés de despencar:
+\begin{equation}
+S_{\text{gate}}(t)=q(t)\,S_{\text{heur}}(t) + \big(1-q(t)\big)\,S_{\text{sm}}(t-1).
+\end{equation}
+
+\section{Suavização Temporal (Anti-tremor)}
+Mesmo com bons KPIs, o score por frame treme. Use EMA (média móvel exponencial):
+\begin{equation}
+S_{\text{sm}}(t)=(1-\lambda)\,S_{\text{gate}}(t)+\lambda\,S_{\text{sm}}(t-1),\quad \lambda\in[0,1).
+\end{equation}
+Valores típicos: $\lambda\in[0.7,0.95]$.
+
+\subsection{EMA com passo temporal variável}
+Se o FPS varia, defina uma constante de tempo $\tau_s$ e compute:
+\begin{equation}
+\lambda(t)=\exp\left(-\frac{\Delta t}{\tau_s}\right).
+\end{equation}
+
+\section{Papel do LSTM (Sequência) e por que ele não manda no slider}
+O erro de reconstrução do LSTM é ótimo para dizer se a \textbf{sequência} parece um padrão válido, mas pode ser instável por frame.
+Logo:
+\begin{itemize}[leftmargin=1.2em]
+\item Use LSTM para \textbf{validar repetição} / \textbf{consistência global}.
+\item Use heurística para \textbf{score instantâneo}.
+\item Faça fusão \textbf{leve} para ajustar o slider sem destruir a responsividade.
+\end{itemize}
+
+\subsection{Normalização do erro do LSTM}
+Seja $r(t)$ o erro de reconstrução do LSTM. Transforme para $\hat r(t)\in[0,1]$.
+Exemplo robusto (percentis em janela recente):
+\begin{equation}
+\hat r(t)=\clip\left(\frac{r(t)-P_{10}}{P_{90}-P_{10}+\varepsilon},\,0,\,1\right)
+\end{equation}
+onde $P_{10}$ e $P_{90}$ são percentis do erro em uma janela (ou em dados calibrados) e $\varepsilon$ evita divisão por zero.
+
+\subsection{Fusão multiplicativa (recomendada)}
+\begin{equation}
+S_{\text{final}}(t)=S_{\text{sm}}(t)\cdot \exp\big(-\gamma\,\hat r(t)\big),\quad \gamma\ge 0.
+\end{equation}
+\noindent\textbf{Regra:} escolha $\gamma$ pequeno (ex.: $0.3$ a $1.5$) para que o LSTM só ajuste \emph{um pouco}.
+
+\section{Integração com Máquina de Estados (repetições)}
+Para contagem de repetições, use uma máquina de estados por exercício (ex.: \emph{alto} $\to$ \emph{baixo} $\to$ \emph{alto}), com \textbf{debounce} por frames.
+
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Slider}: roda sempre por frame com $S_{\text{final}}(t)$.
+\item \textbf{Rep válida}: evento emitido quando a máquina de estados completa um ciclo (e opcionalmente quando o LSTM valida a sequência do ciclo).
+\end{itemize}
+
+\section{Tabela de parâmetros (sugestão)}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Parâmetro & Papel & Sugestão inicial \\
+\midrule
+$w_i$ & importância de cada KPI & soma = 1 \\
+$\tau_i$ & tolerância por KPI & calibrar por exercício \\
+$\alpha$ & severidade do mapping & 2.0 (começo) \\
+$\lambda$ & suavização EMA & 0.85 (começo) \\
+$\tau_s$ & constante de tempo EMA & 250--500 ms \\
+$\gamma$ & influência do LSTM & 0.7 (começo) \\
+$\mathcal{J}$ & landmarks-chave p/ qualidade & ombro/quadril/joelho/tornozelo \\
+\bottomrule
+\end{tabular}
+\caption{Parâmetros principais do score.}
+\end{table}
+
+\section{Algoritmo completo (por frame)}
+\begin{algorithm}[h]
+\caption{Cálculo do slider 0--100\% por frame}
+\begin{algorithmic}[1]
+\Require KPIs $\{x_i(t)\}$, visibilidades $\{v_j(t)\}$, parâmetros $\{w_i, T_i/[L_i,U_i], \tau_i, \alpha, \lambda\}$, score anterior $S_{\text{sm}}(t-1)$
+\Ensure Score final $S_{\text{final}}(t)$ em $[0,1]$
+\State Calcular $e_i(t)$ para cada KPI (Eq. 3 ou 6)
+\State $E(t) \gets \sum_i w_i e_i(t)$
+\State $S_{\text{heur}}(t) \gets \exp(-\alpha E(t))$
+\State $q(t) \gets \clip(\frac{1}{|\mathcal{J}|}\sum_{j\in\mathcal{J}} v_j(t), 0, 1)$
+\State $S_{\text{gate}}(t) \gets q(t)S_{\text{heur}}(t) + (1-q(t))S_{\text{sm}}(t-1)$
+\State $S_{\text{sm}}(t) \gets (1-\lambda)S_{\text{gate}}(t) + \lambda S_{\text{sm}}(t-1)$
+\If{usar LSTM}
+\State Normalizar erro do LSTM $\hat r(t)$ (Eq. 13)
+\State $S_{\text{final}}(t) \gets S_{\text{sm}}(t)\exp(-\gamma\hat r(t))$
+\Else
+\State $S_{\text{final}}(t) \gets S_{\text{sm}}(t)$
+\EndIf
+\State \Return $S_{\text{final}}(t)$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Notas de implementação (TypeScript)}
+\subsection{Estrutura de dados}
+\begin{lstlisting}[language=TypeScript, basicstyle=\ttfamily\small]
+export type KPI = {
+  name: string;
+  value: number;          // x_i(t)
+  weight: number;         // w_i
+  target?: number;        // T_i
+  range?: [number, number]; // [L_i, U_i]
+  tol: number;            // tau_i
+};
+
+export type ScoreParams = {
+  alpha: number;          // severidade heuristica
+  gamma?: number;         // influencia LSTM
+  lambda: number;         // EMA fixo
+  eps?: number;
+};
+
+export type FrameQuality = {
+  visibilities: number[]; // v_j(t) dos landmarks chave
+};
+\end{lstlisting}
+
+\subsection{Cálculo do erro normalizado}
+\begin{lstlisting}[language=TypeScript, basicstyle=\ttfamily\small]
+function clamp01(x: number) {
+  return Math.max(0, Math.min(1, x));
+}
+
+function kpiError01(k: KPI): number {
+  const x = k.value;
+  const tau = Math.max(k.tol, 1e-9);
+  if (k.range) {
+    const [L, U] = k.range;
+    const d = x < L ? (L - x) : (x > U ? (x - U) : 0);
+    return clamp01(d / tau);
+  }
+  if (k.target === undefined) throw new Error('KPI sem target nem range');
+  return clamp01(Math.abs(x - k.target) / tau);
+}
+\end{lstlisting}
+
+\subsection{Pipeline do score}
+\begin{lstlisting}[language=TypeScript, basicstyle=\ttfamily\small]
+export function computeScore01(
+  kpis: KPI[],
+  quality: FrameQuality,
+  prevSmoothed: number,
+  params: ScoreParams,
+  lstmErr01?: number
+) {
+  // 1) erro agregado
+  let E = 0;
+  for (const k of kpis) E += k.weight * kpiError01(k);
+
+  // 2) mapping exponencial
+  const Sheur = Math.exp(-params.alpha * E);
+
+  // 3) qualidade do frame (media das visibilidades)
+  const vs = quality.visibilities;
+  const q = vs.length ? clamp01(vs.reduce((a,b)=>a+b,0) / vs.length) : 1;
+
+  // 4) gating: se q baixo, segura no score anterior
+  const Sgate = q * Sheur + (1 - q) * prevSmoothed;
+
+  // 5) EMA anti-tremor
+  const lambda = clamp01(params.lambda);
+  const Ssm = (1 - lambda) * Sgate + lambda * prevSmoothed;
+
+  // 6) fusao leve com LSTM (opcional)
+  if (lstmErr01 !== undefined && params.gamma !== undefined) {
+    return Ssm * Math.exp(-params.gamma * clamp01(lstmErr01));
+  }
+  return Ssm;
+}
+\end{lstlisting}
+
+\section{Exemplo (Agachamento / Squat)}
+\textbf{Observação:} valores exatos variam por indivíduo/câmera. Abaixo é só um \emph{starter pack}.
+
+\begin{itemize}[leftmargin=1.2em]
+\item KPI 1: ângulo do joelho (profundidade) — faixa ideal na parte baixa.
+\item KPI 2: inclinação do tronco — alvo (ou faixa) para evitar tombar demais.
+\item KPI 3: simetria E/D (diferença de ângulos).
+\end{itemize}
+
+Exemplo de pesos (soma 1):
+\begin{equation}
+(w_\text{joelho}, w_\text{tronco}, w_\text{simetria})=(0.5, 0.3, 0.2).
+\end{equation}
+
+\section{Calibração (como ajustar sem dor)}
+\begin{enumerate}[leftmargin=1.2em]
+\item Comece com $\alpha$ e $\lambda$ fixos (Tabela 1).
+\item Para cada exercício, ajuste $\tau_i$ até o slider não ficar ``nervoso'' nem ``mole''.
+\item Ajuste pesos $w_i$ conforme a importância clínica (o que é mais perigoso).
+\item Para o LSTM, normalize $\hat r(t)$ com percentis em dados reais e coloque $\gamma$ pequeno.
+\end{enumerate}
+
+\section{Observações de robustez (mundo real)}
+Em web/pose 2D, erros comuns:
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Oclusão:} landmarks somem \,$\rightarrow$\, $q(t)$ cai, congela slider.
+\item \textbf{Sem profundidade (Z):} vista frontal limita certos feedbacks \,$\rightarrow$\, priorize ângulos mais confiáveis e instruções de câmera.
+\item \textbf{Motion blur / tracking loss:} movimentos rápidos \,$\rightarrow$\, debounce + EMA + gating.
+\item \textbf{Variação de FPS/hardware:} use EMA com $\Delta t$ e degrade resolução quando necessário.
+\end{itemize}
+
+\section{Checklist de integração no sistema}
+\begin{enumerate}[leftmargin=1.2em]
+\item Definir KPIs por exercício (mínimo 2--5 no MVP).
+\item Definir $w_i$, $T_i$ ou $[L_i,U_i]$ e $\tau_i$ por KPI.
+\item Implementar cálculo por frame: $e_i\to E\to S_{heur}\to q\to EMA$.
+\item Implementar máquina de estados por exercício (contagem de repetições).
+\item (Opcional) Normalizar erro do LSTM e aplicar fusão multiplicativa com $\gamma$ pequeno.
+\item Logar métricas: FPS médio, score médio, tempo com $q(t)$ baixo.
+\end{enumerate}
+
+\end{document}

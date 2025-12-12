@@ -1,7 +1,3 @@
-/**
- * MediaPipe Pose Types
- */
-
 export interface Landmark {
   x: number;
   y: number;
