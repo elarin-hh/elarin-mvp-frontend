@@ -18,7 +18,11 @@
       "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-backend-api\" /B)",
       "Read(//c/Users/notebook-guilherme/Documents/Elarin-projects/elarin-backend-api/src/**)",
       "Read(//c/Users/notebook-guilherme/Documents/Elarin-projects/elarin-backend-api/**)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(taskkill /PID 8840 /F)",
+      "Bash(taskkill:*)",
+      "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-mvp-frontend\\static\\audio\\feedback\" /B)",
+      "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-mvp-frontend\\static\\audio\\feedback\")"
     ],
     "deny": [],
     "ask": []

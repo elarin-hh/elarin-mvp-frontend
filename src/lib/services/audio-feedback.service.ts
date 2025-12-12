@@ -95,15 +95,16 @@ export class AudioFeedbackService {
   enqueue(items: AudioFeedbackItem[], options?: { replaceQueue?: boolean }) {
     if (!this.readyForAudio || items.length === 0) return;
 
-    if (options?.replaceQueue) {
-      this.queue = [...items];
-    } else {
-      this.queue.push(...items);
+    // Se já está tocando, ignora novos áudios
+    if (this.isPlaying) {
+      return;
     }
 
-    if (!this.isPlaying) {
-      void this.playNext();
-    }
+    // Pega apenas o primeiro item
+    this.queue = [items[0]];
+
+    // Inicia reprodução
+    void this.playNext();
     this.notify();
   }
 
@@ -135,6 +136,7 @@ export class AudioFeedbackService {
 
     if (!next) {
       this.isPlaying = false;
+      this.queue = []; // Garante que a fila está limpa
       this.notify();
       return;
     }
@@ -149,7 +151,10 @@ export class AudioFeedbackService {
     }
 
     if (!src) {
-      return this.playNext();
+      this.isPlaying = false;
+      this.queue = []; // Limpa a fila se não conseguir resolver o áudio
+      this.notify();
+      return;
     }
 
     const audioSrc = this.resolveAssetUrl(src);
@@ -162,25 +167,25 @@ export class AudioFeedbackService {
     audio.onended = () => {
       this.isPlaying = false;
       this.current = null;
+      this.queue = []; // Limpa a fila após reproduzir
       this.notify();
-      void this.playNext();
     };
 
     audio.onerror = () => {
       this.isPlaying = false;
       this.current = null;
+      this.queue = []; // Limpa a fila em caso de erro
       this.notify();
-      void this.playNext();
     };
 
     try {
       await audio.play();
     } catch (error) {
-      // Ignora falhas de carregamento/reprodução e segue
+      // Ignora falhas de carregamento/reprodução e limpa a fila
       this.isPlaying = false;
       this.current = null;
+      this.queue = []; // Limpa a fila em caso de erro no play
       this.notify();
-      void this.playNext();
     }
   }
 
