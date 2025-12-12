@@ -305,23 +305,29 @@ export class GenericExerciseClassifier {
       // Decide if correct or incorrect
       const isCorrect = reconstructionError <= this.threshold;
 
-      // Calculate confidence based on distance to threshold
-      let confidence: number;
-      if (isCorrect) {
-        const errorRatio = reconstructionError / this.threshold;
-        confidence = Math.max(0.7, Math.min(0.95, 0.8 + (1.0 - errorRatio) * 0.15));
+      // Calculate quality score (0-100%)
+      // If error <= threshold: 100% to 70% (Acceptable limit)
+      // If error > threshold: 70% to 0%  (Decay)
+      const ratio = reconstructionError / this.threshold;
+      let qualityScore = 0;
+      const toleranceMultiplier = 1.5; // Margin of 50% extra error allowed
+
+      if (ratio <= 1.0) {
+        // Safe Zone: Error is within the threshold -> 100% Score
+        qualityScore = 1.0;
+      } else if (ratio <= toleranceMultiplier) {
+        // Tolerance Zone: Error is between 1.0x and 1.5x threshold
+        // Decays linearly from 1.0 (100%) down to 0.0 (0%)
+        // Normalized position in tolerance zone (0.0 to 1.0)
+        const tolerancePos = (ratio - 1.0) / (toleranceMultiplier - 1.0);
+        qualityScore = 1.0 - tolerancePos;
       } else {
-        const errorRatio = reconstructionError / this.threshold;
-        confidence = Math.max(0.7, Math.min(0.95, 0.8 + (errorRatio - 1.0) * 0.15));
+        // Fail Zone: Error exceeded tolerance
+        qualityScore = 0;
       }
 
-      // Garante que confidence está no range válido [0, 1]
-      confidence = Math.max(0, Math.min(1, confidence));
-
-      // Validação extra para garantir que não há NaN
-      if (isNaN(confidence)) {
-        confidence = 0.7;
-      }
+      // Calculate confidence based on qualityScore (simplified)
+      const confidence = Math.max(0, Math.min(1, qualityScore));
 
       // Get metrics
       const metrics = this.getBasicMetrics();
@@ -336,6 +342,7 @@ export class GenericExerciseClassifier {
           ? 'Execução correta! Continue assim!'
           : 'Atenção! Movimento incorreto detectado.',
         details: {
+          qualityScore: (qualityScore * 100).toFixed(1), // Expose raw score for Analyzer
           error: reconstructionError.toFixed(6),
           threshold: this.threshold.toFixed(6),
           confidence: (confidence * 100).toFixed(1) + '%',

@@ -102,7 +102,12 @@ export class ExerciseAnalyzer {
     this.onFeedback = null;
     this.onMetricsUpdate = null;
     this.onError = null;
+
+    this.scoreHistory = []; // Rolling window buffer for quality scores (0-100)
   }
+
+  private scoreHistory: number[];
+  private readonly HISTORY_WINDOW_SIZE = 6; // ~0.2 seconds at 30fps (Ultra-sudden response)
 
   /**
    * Inicializa todos os componentes
@@ -252,10 +257,27 @@ export class ExerciseAnalyzer {
    * Atualiza métricas
    */
   private updateMetrics(feedback: FeedbackRecord): void {
-    if (feedback.combined.verdict === 'correct') {
+    const isCorrect = feedback.combined.verdict === 'correct';
+    if (isCorrect) {
       this.metrics.correctFrames++;
-    } else if (feedback.combined.verdict === 'incorrect') {
+    } else {
       this.metrics.incorrectFrames++;
+    }
+
+    // Update rolling window history with Quality Score if available, otherwise fallback to 100/0
+    let frameScore = 0;
+
+    // Check if we have a detailed quality score from ML
+    if (feedback.ml?.details && typeof feedback.ml.details === 'object' && 'qualityScore' in feedback.ml.details) {
+      frameScore = parseFloat(feedback.ml.details.qualityScore as string) || 0;
+    } else {
+      // Fallback for heuristics or missing ML data
+      frameScore = isCorrect ? 100 : 0;
+    }
+
+    this.scoreHistory.push(frameScore);
+    if (this.scoreHistory.length > this.HISTORY_WINDOW_SIZE) {
+      this.scoreHistory.shift();
     }
 
     // Atualiza confiança média com validação robusta
@@ -297,16 +319,26 @@ export class ExerciseAnalyzer {
    * Obtém métricas atuais
    */
   getMetrics(): ExtendedMetrics {
-    const total = this.metrics.correctFrames + this.metrics.incorrectFrames;
-    const accuracy = total > 0 ? (this.metrics.correctFrames / total) * 100 : 0;
+    // Session (All-time) Metrics
+    const totalFrames = this.metrics.correctFrames + this.metrics.incorrectFrames;
+    // const sessionAccuracy = totalFrames > 0 ? (this.metrics.correctFrames / totalFrames) * 100 : 0; // Not used currently
+
+    // Real-time (Rolling Window) Metrics for UI - Using Continuous Quality Score
+    let rollingAccuracy = 0;
+    if (this.scoreHistory.length > 0) {
+      const sum = this.scoreHistory.reduce((a, b) => a + b, 0);
+      rollingAccuracy = sum / this.scoreHistory.length;
+    } else {
+      rollingAccuracy = 0; // Starts at 0
+    }
 
     // Obtém número de repetições válidas do validator
     const validReps = (this.heuristicValidator as { validReps?: number })?.validReps || 0;
 
     return {
       ...this.metrics,
-      accuracy: accuracy.toFixed(1),
-      formQualityScore: this.calculateFormQualityScore(),
+      accuracy: rollingAccuracy.toFixed(1), // UI uses this weighted score
+      formQualityScore: this.calculateFormQualityScore(rollingAccuracy),
       validReps: validReps,
       mlStats: this.mlClassifier?.getStatistics() || null,
       heuristicStats: this.heuristicValidator?.getStatistics() || null,
@@ -317,11 +349,15 @@ export class ExerciseAnalyzer {
   /**
    * Calcula score de qualidade de forma
    */
-  private calculateFormQualityScore(): string {
-    const accuracy =
-      this.metrics.correctFrames + this.metrics.incorrectFrames > 0
-        ? this.metrics.correctFrames / (this.metrics.correctFrames + this.metrics.incorrectFrames)
-        : 0;
+  private calculateFormQualityScore(accuracyValue?: number): string {
+    let accuracy = 0;
+
+    if (accuracyValue !== undefined) {
+      accuracy = accuracyValue / 100;
+    } else {
+      const total = this.metrics.correctFrames + this.metrics.incorrectFrames;
+      accuracy = total > 0 ? this.metrics.correctFrames / total : 0;
+    }
 
     const confidenceWeight = this.metrics.avgConfidence || 0;
 
@@ -334,6 +370,7 @@ export class ExerciseAnalyzer {
   reset(): void {
     this.frameCount = 0;
     this.lastAnalysisTime = 0;
+    this.scoreHistory = [];
 
     if (this.mlClassifier) {
       this.mlClassifier.reset();

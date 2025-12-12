@@ -80,8 +80,8 @@
   let confidence = $state(0);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
-  let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('hybrid');
-  let modeIndicator = $state('Híbrido (ML + Heurística)');
+  let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('ml_only');
+  let modeIndicator = $state('ML Only (Autoencoder)');
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
@@ -1237,17 +1237,16 @@
 {/snippet}
 
 {#snippet verticalRepSlide(cssClass = '')}
-  {@const progress = 92}
   <div class="vertical-rep-slide {cssClass}">
     <div class="v-slide-track">
       <div class="v-slide-inner">
-        <div class="v-slide-fill" style:height="{progress}%"></div>
+        <div class="v-slide-fill" style:height="{accuracy}%"></div>
       </div>
 
-      <div class="v-slide-handle" style:bottom="{progress}%"></div>
+      <div class="v-slide-handle" style:bottom="{accuracy}%"></div>
 
-      <div class="v-slide-bubble" style:top="{100 - progress}%">
-        92
+      <div class="v-slide-bubble" style:top="{100 - accuracy}%">
+        {Math.round(accuracy)}
       </div>
     </div>
   </div>
