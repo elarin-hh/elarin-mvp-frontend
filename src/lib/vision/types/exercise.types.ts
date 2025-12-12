@@ -1,7 +1,3 @@
-/**
- * Exercise Configuration Types
- */
-
 import type { FeedbackConfig } from './feedback.types';
 
 export interface MLConfig {

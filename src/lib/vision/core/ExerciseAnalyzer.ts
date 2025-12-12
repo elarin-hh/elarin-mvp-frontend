@@ -1,15 +1,3 @@
-/**
- * Exercise Analyzer - Orquestrador Principal
- * ===========================================
- *
- * Orquestra toda a análise de exercícios combinando:
- * 1. ML Classifier (autoencoder one-class)
- * 2. Heuristic Validator (regras biomecânicas)
- * 3. Feedback System (integração inteligente)
- *
- * Esta é a classe principal que deve ser usada pelas páginas.
- */
-
 import type { PoseLandmarks } from '../types';
 import type { ValidationResult } from '../types/validator.types';
 import type { ExerciseConfig } from '../types/exercise.types';
@@ -103,24 +91,18 @@ export class ExerciseAnalyzer {
     this.onMetricsUpdate = null;
     this.onError = null;
 
-    this.scoreHistory = []; // Rolling window buffer for quality scores (0-100)
+    this.scoreHistory = [];
   }
 
   private scoreHistory: number[];
-  private readonly HISTORY_WINDOW_SIZE = 3; // ~0.1 seconds at 30fps (Hyper-sudden response)
+  private readonly HISTORY_WINDOW_SIZE = 3;
 
-  /**
-   * Inicializa todos os componentes
-   */
   async initialize(): Promise<boolean> {
     try {
-      // 1. Inicializa ML Classifier
       await this.initializeMLClassifier();
 
-      // 2. Inicializa Heuristic Validator
       await this.initializeHeuristicValidator();
 
-      // 3. Inicializa Feedback System
       this.initializeFeedbackSystem();
 
       this.isInitialized = true;
@@ -135,9 +117,6 @@ export class ExerciseAnalyzer {
     }
   }
 
-  /**
-   * Inicializa ML Classifier
-   */
   private async initializeMLClassifier(): Promise<void> {
     this.mlClassifier = new GenericExerciseClassifier(this.config.mlConfig || {});
 
@@ -156,43 +135,30 @@ export class ExerciseAnalyzer {
     await this.mlClassifier.loadModel(modelPath, metadataFile);
   }
 
-  /**
-   * Inicializa Heuristic Validator
-   * Usa o validator registry para carregar o validator correto
-   */
   private async initializeHeuristicValidator(): Promise<void> {
     try {
       const exerciseId = this.config.exerciseName;
 
-      // Verifica se existe validator registrado para este exercício
       if (!hasValidator(exerciseId)) {
         this.heuristicValidator = null;
         return;
       }
 
-      // Cria instância do validator usando o registry
       this.heuristicValidator = createValidator(exerciseId, this.config.heuristicConfig || {});
     } catch (error) {
       this.heuristicValidator = null;
     }
   }
 
-  /**
-   * Inicializa Feedback System
-   */
   private initializeFeedbackSystem(): void {
     this.feedbackSystem = new FeedbackSystem(this.config.feedbackConfig || {});
   }
 
-  /**
-   * Analisa frame de pose
-   */
   async analyzeFrame(landmarks: PoseLandmarks): Promise<FeedbackRecord | null> {
     if (!this.isInitialized) {
       return null;
     }
 
-    // Throttle para não sobrecarregar
     const now = performance.now();
     if (now - this.lastAnalysisTime < this.analysisInterval) {
       return null;
@@ -203,19 +169,14 @@ export class ExerciseAnalyzer {
     this.metrics.totalFrames++;
 
     try {
-      // 1. Análise ML
       const mlResult = await this.analyzeWithML(landmarks);
 
-      // 2. Validação Heurística
       const heuristicResult = this.analyzeWithHeuristics(landmarks);
 
-      // 3. Integra resultados
       const feedback = this.feedbackSystem!.integrate(mlResult, heuristicResult);
 
-      // 4. Atualiza métricas
       this.updateMetrics(feedback);
 
-      // 5. Callback
       if (this.onFeedback) {
         this.onFeedback(feedback);
       }
@@ -229,9 +190,6 @@ export class ExerciseAnalyzer {
     }
   }
 
-  /**
-   * Análise com ML
-   */
   private async analyzeWithML(landmarks: PoseLandmarks): Promise<MLResult | null> {
     if (!this.mlClassifier) {
       return { status: 'unavailable' };
@@ -241,9 +199,6 @@ export class ExerciseAnalyzer {
     return result;
   }
 
-  /**
-   * Análise com Heurísticas
-   */
   private analyzeWithHeuristics(landmarks: PoseLandmarks): ValidationResult | null {
     if (!this.heuristicValidator) {
       return null;
@@ -253,9 +208,6 @@ export class ExerciseAnalyzer {
     return result;
   }
 
-  /**
-   * Atualiza métricas
-   */
   private updateMetrics(feedback: FeedbackRecord): void {
     const isCorrect = feedback.combined.verdict === 'correct';
     if (isCorrect) {
@@ -264,14 +216,11 @@ export class ExerciseAnalyzer {
       this.metrics.incorrectFrames++;
     }
 
-    // Update rolling window history with Quality Score if available, otherwise fallback to 100/0
     let frameScore = 0;
 
-    // Check if we have a detailed quality score from ML
     if (feedback.ml?.details && typeof feedback.ml.details === 'object' && 'qualityScore' in feedback.ml.details) {
       frameScore = parseFloat(feedback.ml.details.qualityScore as string) || 0;
     } else {
-      // Fallback for heuristics or missing ML data
       frameScore = isCorrect ? 100 : 0;
     }
 
@@ -280,7 +229,6 @@ export class ExerciseAnalyzer {
       this.scoreHistory.shift();
     }
 
-    // Atualiza confiança média com validação robusta
     const total = this.metrics.correctFrames + this.metrics.incorrectFrames;
 
     const newConfidence = feedback.combined.confidence;
@@ -304,40 +252,31 @@ export class ExerciseAnalyzer {
       }
     }
 
-    // Duração da sessão
     if (this.metrics.sessionStart) {
       this.metrics.sessionDuration = Date.now() - this.metrics.sessionStart;
     }
 
-    // Callback
     if (this.onMetricsUpdate) {
       this.onMetricsUpdate(this.getMetrics());
     }
   }
 
-  /**
-   * Obtém métricas atuais
-   */
   getMetrics(): ExtendedMetrics {
-    // Session (All-time) Metrics
     const totalFrames = this.metrics.correctFrames + this.metrics.incorrectFrames;
-    // const sessionAccuracy = totalFrames > 0 ? (this.metrics.correctFrames / totalFrames) * 100 : 0; // Not used currently
 
-    // Real-time (Rolling Window) Metrics for UI - Using Continuous Quality Score
     let rollingAccuracy = 0;
     if (this.scoreHistory.length > 0) {
       const sum = this.scoreHistory.reduce((a, b) => a + b, 0);
       rollingAccuracy = sum / this.scoreHistory.length;
     } else {
-      rollingAccuracy = 0; // Starts at 0
+      rollingAccuracy = 0;
     }
 
-    // Obtém número de repetições válidas do validator
     const validReps = (this.heuristicValidator as { validReps?: number })?.validReps || 0;
 
     return {
       ...this.metrics,
-      accuracy: rollingAccuracy.toFixed(1), // UI uses this weighted score
+      accuracy: rollingAccuracy.toFixed(1),
       formQualityScore: this.calculateFormQualityScore(rollingAccuracy),
       validReps: validReps,
       mlStats: this.mlClassifier?.getStatistics() || null,
@@ -346,9 +285,6 @@ export class ExerciseAnalyzer {
     };
   }
 
-  /**
-   * Calcula score de qualidade de forma
-   */
   private calculateFormQualityScore(accuracyValue?: number): string {
     let accuracy = 0;
 
@@ -364,9 +300,6 @@ export class ExerciseAnalyzer {
     return ((accuracy * 0.7 + confidenceWeight * 0.3) * 100).toFixed(1);
   }
 
-  /**
-   * Reseta analisador
-   */
   reset(): void {
     this.frameCount = 0;
     this.lastAnalysisTime = 0;
@@ -394,9 +327,6 @@ export class ExerciseAnalyzer {
     };
   }
 
-  /**
-   * Calibra threshold do ML automaticamente
-   */
   autoCalibrate(): number | null {
     if (this.mlClassifier && typeof this.mlClassifier.autoCalibrate === 'function') {
       return this.mlClassifier.autoCalibrate();
@@ -404,36 +334,24 @@ export class ExerciseAnalyzer {
     return null;
   }
 
-  /**
-   * Configura callbacks
-   */
   setCallbacks({ onFeedback, onMetricsUpdate, onError }: AnalyzerCallbacks): void {
     if (onFeedback) this.onFeedback = onFeedback;
     if (onMetricsUpdate) this.onMetricsUpdate = onMetricsUpdate;
     if (onError) this.onError = onError;
   }
 
-  /**
-   * Muda modo de feedback
-   */
   setFeedbackMode(mode: string): void {
     if (this.feedbackSystem) {
       this.feedbackSystem.setMode(mode as 'hybrid' | 'ml_only' | 'heuristic_only');
     }
   }
 
-  /**
-   * Ajusta pesos ML/Heurística
-   */
   setFeedbackWeights(mlWeight: number, heuristicWeight: number): void {
     if (this.feedbackSystem) {
       this.feedbackSystem.setWeights(mlWeight, heuristicWeight);
     }
   }
 
-  /**
-   * Obtém configuração atual
-   */
   getConfig(): AnalyzerConfig {
     const feedbackConfig = this.feedbackSystem?.getConfig();
     return {
@@ -447,9 +365,6 @@ export class ExerciseAnalyzer {
     };
   }
 
-  /**
-   * Exporta relatório da sessão
-   */
   exportReport(): SessionReport {
     return {
       exercise: this.config.exerciseName,
@@ -460,9 +375,6 @@ export class ExerciseAnalyzer {
     };
   }
 
-  /**
-   * Cleanup
-   */
   destroy(): void {
     this.reset();
     this.isInitialized = false;

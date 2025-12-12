@@ -1,7 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { trainingApi } from '$lib/api/training.api';
 
-// Merge legacy and integrated exercise types in a single union
 export type ExerciseType =
   | 'bodyweight_squat'
   | 'standing_hip_abduction'

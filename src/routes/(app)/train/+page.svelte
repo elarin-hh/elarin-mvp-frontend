@@ -1,22 +1,37 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { trainingStore, trainingActions } from '$lib/stores/training.store';
-  import { authActions } from '$lib/services/auth.facade';
-  import { goto } from '$app/navigation';
-  import { base } from '$app/paths';
-  import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import { isDeveloper } from '$lib/config/env.config';
-  import { Bot, Ruler, Microscope } from 'lucide-svelte';
-  import { ExerciseAnalyzer, loadExerciseConfig, type FeedbackRecord, type FeedbackMessage } from '$lib/vision';
-  import { LANDMARK_GROUPS, MEDIAPIPE_LANDMARKS } from '$lib/vision/constants/mediapipe.constants';
-  import Loading from '$lib/components/common/Loading.svelte';
-  import BiometricConsent from '$lib/components/BiometricConsent.svelte';
-  import { getPoseAssetUrl, loadPoseModules, MEDIAPIPE_VERSIONS } from '$lib/services/mediapipe-loader';
-  import { audioFeedbackActions, audioFeedbackStore } from '$lib/stores/audio-feedback.store';
+  import { onMount, onDestroy } from "svelte";
+  import { trainingStore, trainingActions } from "$lib/stores/training.store";
+  import { authActions } from "$lib/services/auth.facade";
+  import { goto } from "$app/navigation";
+  import { base } from "$app/paths";
+  import AppHeader from "$lib/components/common/AppHeader.svelte";
+  import { isDeveloper } from "$lib/config/env.config";
+  import { Bot, Ruler, Microscope } from "lucide-svelte";
+  import {
+    ExerciseAnalyzer,
+    loadExerciseConfig,
+    type FeedbackRecord,
+    type FeedbackMessage,
+  } from "$lib/vision";
+  import {
+    LANDMARK_GROUPS,
+    MEDIAPIPE_LANDMARKS,
+  } from "$lib/vision/constants/mediapipe.constants";
+  import Loading from "$lib/components/common/Loading.svelte";
+  import BiometricConsent from "$lib/components/BiometricConsent.svelte";
+  import {
+    getPoseAssetUrl,
+    loadPoseModules,
+    MEDIAPIPE_VERSIONS,
+  } from "$lib/services/mediapipe-loader";
+  import {
+    audioFeedbackActions,
+    audioFeedbackStore,
+  } from "$lib/stores/audio-feedback.store";
 
-  const BIOMETRIC_CONSENT_KEY = 'elarin_biometric_consent';
-  const BIOMETRIC_CONSENT_TS_KEY = 'elarin_biometric_consent_ts';
-  const BIOMETRIC_CONSENT_EXP_KEY = 'elarin_biometric_consent_exp';
+  const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
+  const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
+  const BIOMETRIC_CONSENT_EXP_KEY = "elarin_biometric_consent_exp";
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -30,7 +45,12 @@
   };
 
   type PoseResults = {
-    poseLandmarks?: Array<{ x: number; y: number; z: number; visibility?: number }>;
+    poseLandmarks?: Array<{
+      x: number;
+      y: number;
+      z: number;
+      visibility?: number;
+    }>;
     image: HTMLVideoElement | HTMLCanvasElement;
   };
 
@@ -43,33 +63,38 @@
   let pose: MediaPipePose | null = $state(null);
   let camera: MediaPipeCamera | null = $state(null);
   let isLoading = $state(false);
-  let errorMessage = $state('');
+  let errorMessage = $state("");
   let isCameraEmulated = $state(false);
-  let cameraFallbackReason = $state('');
+  let cameraFallbackReason = $state("");
   let debugMode = $state(false);
   let isScrolled = $state(false);
   let scriptsLoaded = $state(false);
-  let loadingStage = $state('Inicializando...');
+  let loadingStage = $state("Inicializando...");
   let isCameraRunning = $state(false);
-  let currentLandmarks = $state<Array<{ x: number; y: number; z: number; visibility?: number }>>([]);
+  let currentLandmarks = $state<
+    Array<{ x: number; y: number; z: number; visibility?: number }>
+  >([]);
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
-  let orientation = $state<'portrait' | 'landscape'>('landscape');
+  let orientation = $state<"portrait" | "landscape">("landscape");
   let currentFeedback: FeedbackRecord | null = $state(null);
   let isPaused = $state(false);
   let reconstructionError = $state<number | null>(null);
   const SKELETON_COLORS = {
-    correct: 'var(--color-skeleton-correct)',
-    incorrect: 'var(--color-skeleton-incorrect)',
-    neutral: 'var(--color-skeleton-neutral)'
+    correct: "var(--color-skeleton-correct)",
+    incorrect: "var(--color-skeleton-incorrect)",
+    neutral: "var(--color-skeleton-neutral)",
   };
   const EMULATED_VIDEO_SRC = `${base}/videos/squat.mp4`;
 
   const resolveCssColor = (value: string): string => {
-    if (!value.startsWith('var(') || typeof document === 'undefined') return value;
+    if (!value.startsWith("var(") || typeof document === "undefined")
+      return value;
     const varName = value.slice(4, -1);
-    const resolved = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    const resolved = getComputedStyle(document.documentElement)
+      .getPropertyValue(varName)
+      .trim();
     return resolved || value;
   };
 
@@ -80,53 +105,53 @@
   let confidence = $state(0);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
-  let feedbackMode = $state<'hybrid' | 'ml_only' | 'heuristic_only'>('ml_only');
-  let modeIndicator = $state('ML Only (Autoencoder)');
+  let feedbackMode = $state<"hybrid" | "ml_only" | "heuristic_only">("ml_only");
+  let modeIndicator = $state("ML Only (Autoencoder)");
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
   let fps = $state(0);
   let showTimer = $state(true);
   let showReps = $state(true);
-  let activeTab = $state<'display' | 'skeleton' | 'sound' | 'dev'>('display');
-  let layoutMode = $state<'side-by-side' | 'user-centered' | 'coach-centered'>('side-by-side');
-  
-  // PiP dragging state
-  let pipPosition = $state({ x: 0, y: 0 }); // Position recalculated per layout
+  let activeTab = $state<"display" | "skeleton" | "sound" | "dev">("display");
+  let layoutMode = $state<"side-by-side" | "user-centered" | "coach-centered">(
+    "side-by-side",
+  );
+
+  let pipPosition = $state({ x: 0, y: 0 });
   let isDraggingPip = $state(false);
   let dragOffset = { x: 0, y: 0 };
-  
-  // PiP resizing state
-  let pipSize = $state({ width: 260, height: 146.25 }); // Default larger width, 16:9 ratio
+
+  let pipSize = $state({ width: 260, height: 146.25 });
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
   let resizeStartSize = { ...pipSize };
   const PIP_MARGIN = 16;
-  const PIP_BOTTOM_BUFFER = 0; // Center aligned vertically on the right
+  const PIP_BOTTOM_BUFFER = 0;
   let emulatedFrameId: number | null = null;
 
   const pipStyle = () =>
     `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;`;
 
   function clampPipPosition() {
-    if (!splitContainerElement || layoutMode === 'side-by-side') return;
+    if (!splitContainerElement || layoutMode === "side-by-side") return;
     const rect = splitContainerElement.getBoundingClientRect();
     const maxX = Math.max(0, rect.width - pipSize.width);
     const maxY = Math.max(0, rect.height - pipSize.height - PIP_BOTTOM_BUFFER);
     pipPosition = {
       x: Math.min(Math.max(0, pipPosition.x), maxX),
-      y: Math.min(Math.max(0, pipPosition.y), maxY)
+      y: Math.min(Math.max(0, pipPosition.y), maxY),
     };
   }
 
   function resetPipPosition() {
-    if (!splitContainerElement || layoutMode === 'side-by-side') return;
+    if (!splitContainerElement || layoutMode === "side-by-side") return;
     const rect = splitContainerElement.getBoundingClientRect();
     const availableHeight = Math.max(0, rect.height - PIP_BOTTOM_BUFFER);
     const centerY = Math.max(0, (availableHeight - pipSize.height) / 2);
     pipPosition = {
       x: Math.max(0, rect.width - pipSize.width - PIP_MARGIN),
-      y: centerY
+      y: centerY,
     };
   }
 
@@ -139,9 +164,8 @@
     });
   }
 
-  // Countdown State
   let showCountdown = $state(true);
-  let countdownValue = $state('Iniciar');
+  let countdownValue = $state("Iniciar");
   let countdownActive = $state(false);
   let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
 
@@ -179,7 +203,8 @@
     if (isCameraRunning && !isPaused) {
       pauseTraining();
     }
-    countdownValue = elapsedTime > 0 || $trainingStore.reps > 0 ? 'Retomar' : 'Iniciar';
+    countdownValue =
+      elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
     showCountdown = true;
     countdownActive = false;
   }
@@ -187,26 +212,23 @@
   function startCountdown() {
     if (countdownActive) return;
     pauseReferenceVideo();
-    
-    // Auto-enter fullscreen
+
     if (!isFullscreen) {
       toggleFullscreen();
     }
 
     clearCountdown();
     countdownActive = true;
-    
-    // Sequence: 3 -> 2 -> 1 -> Go!
+
     countdownValue = "3";
-    
-    // Schedule all steps with explicit delays
-    const t1 = setTimeout(() => countdownValue = "2", 1000);
-    const t2 = setTimeout(() => countdownValue = "1", 2000);
-    const t3 = setTimeout(() => countdownValue = "Vai!", 3000);
+
+    const t1 = setTimeout(() => (countdownValue = "2"), 1000);
+    const t2 = setTimeout(() => (countdownValue = "1"), 2000);
+    const t3 = setTimeout(() => (countdownValue = "Vai!"), 3000);
     const t4 = setTimeout(() => {
       handleCountdownComplete();
-    }, 4000); // Show "Vai!" for 1s
-    
+    }, 4000);
+
     countdownTimeouts = [t1, t2, t3, t4];
   }
 
@@ -214,24 +236,40 @@
     lineWidth: 5,
     pointRadius: 7,
     opacity: 0.9,
-    glow: 0
+    glow: 0,
   };
 
   const TORSO_LINE = {
     enabled: true,
     lineWidth: 5,
-    color: ''
+    color: "",
   };
-  let drawConnectors: ((ctx: CanvasRenderingContext2D, landmarks: unknown, connections: unknown, options: { color: string; lineWidth: number }) => void) | null = null;
-  let drawLandmarks: ((ctx: CanvasRenderingContext2D, landmarks: unknown, options: { color: string; lineWidth: number; radius: number }) => void) | null = null;
+  let drawConnectors:
+    | ((
+        ctx: CanvasRenderingContext2D,
+        landmarks: unknown,
+        connections: unknown,
+        options: { color: string; lineWidth: number },
+      ) => void)
+    | null = null;
+  let drawLandmarks:
+    | ((
+        ctx: CanvasRenderingContext2D,
+        landmarks: unknown,
+        options: { color: string; lineWidth: number; radius: number },
+      ) => void)
+    | null = null;
   let POSE_CONNECTIONS: unknown = null;
   let POSE_CONNECTIONS_NO_FACE: unknown = null;
 
   let lastFrameTime = 0;
-  const FRAME_THROTTLE_MS = 0; // no throttle, process every frame
+  const FRAME_THROTTLE_MS = 0;
   let animationFrameId: number | null = null;
 
-  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number,
+  ): (...args: Parameters<T>) => void {
     let timeout: number | null = null;
     return (...args: Parameters<T>) => {
       if (timeout) clearTimeout(timeout);
@@ -246,11 +284,13 @@
       drawConnectors = modules.drawConnectors;
       drawLandmarks = modules.drawLandmarks;
       POSE_CONNECTIONS = modules.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(filterFaceConnections(POSE_CONNECTIONS));
+      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(
+        filterFaceConnections(POSE_CONNECTIONS),
+      );
       pose = new modules.Pose({
         locateFile: (file: string) => {
           return getPoseAssetUrl(file);
-        }
+        },
       });
       loadingStage = "Dependencias carregadas";
       scriptsLoaded = true;
@@ -269,7 +309,8 @@
 
     if (!width || !height) return;
 
-    const needsResize = force || canvasElement.width !== width || canvasElement.height !== height;
+    const needsResize =
+      force || canvasElement.width !== width || canvasElement.height !== height;
     if (needsResize) {
       canvasElement.width = width;
       canvasElement.height = height;
@@ -278,12 +319,13 @@
   }
 
   function setEmulatedState(reason?: string) {
-    cameraFallbackReason = reason || 'Modo demonstra√ß√£o: usando v√≠deo de exemplo.';
+    cameraFallbackReason =
+      reason || "Modo demonstraÁ„o: usando vÌdeo de exemplo.";
     isCameraEmulated = true;
   }
 
   function clearEmulatedState() {
-    cameraFallbackReason = '';
+    cameraFallbackReason = "";
     isCameraEmulated = false;
   }
 
@@ -292,9 +334,9 @@
 
     return new Promise((resolve, reject) => {
       const cleanup = () => {
-        video.removeEventListener('loadeddata', handleReady);
-        video.removeEventListener('canplay', handleReady);
-        video.removeEventListener('error', handleError);
+        video.removeEventListener("loadeddata", handleReady);
+        video.removeEventListener("canplay", handleReady);
+        video.removeEventListener("error", handleError);
       };
 
       const handleReady = () => {
@@ -304,25 +346,28 @@
 
       const handleError = () => {
         cleanup();
-        reject(new Error('Falha ao carregar v√≠deo de demonstra√ß√£o'));
+        reject(new Error("Falha ao carregar vÌdeo de demonstraÁ„o"));
       };
 
-      video.addEventListener('loadeddata', handleReady, { once: true });
-      video.addEventListener('canplay', handleReady, { once: true });
-      video.addEventListener('error', handleError, { once: true });
+      video.addEventListener("loadeddata", handleReady, { once: true });
+      video.addEventListener("canplay", handleReady, { once: true });
+      video.addEventListener("error", handleError, { once: true });
     });
   }
 
   async function hasVideoInputAvailable(): Promise<boolean> {
     try {
-      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.mediaDevices?.enumerateDevices
+      ) {
         return false;
       }
 
       const devices = await navigator.mediaDevices.enumerateDevices();
-      return devices.some((device) => device.kind === 'videoinput');
+      return devices.some((device) => device.kind === "videoinput");
     } catch (error) {
-      console.warn('vision_warning:enumerate_devices_failed', error);
+      console.warn("vision_warning:enumerate_devices_failed", error);
       return false;
     }
   }
@@ -330,8 +375,8 @@
   function createEmulatedCamera(reason?: string): MediaPipeCamera {
     return {
       async start() {
-        if (!videoElement) throw new Error('Elemento de v√≠deo indispon√≠vel');
-        if (!pose) throw new Error('Pose n√£o inicializado');
+        if (!videoElement) throw new Error("Elemento de vÌdeo indisponÌvel");
+        if (!pose) throw new Error("Pose n„o inicializado");
 
         setEmulatedState(reason);
 
@@ -357,7 +402,7 @@
           try {
             await pose.send({ image: videoElement });
           } catch (err) {
-            console.error('vision_error:emulated_frame', err);
+            console.error("vision_error:emulated_frame", err);
           }
 
           emulatedFrameId = requestAnimationFrame(renderFrame);
@@ -378,21 +423,21 @@
         }
 
         clearEmulatedState();
-      }
+      },
     };
   }
 
   function clearBiometricConsentFlags() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     localStorage.removeItem(BIOMETRIC_CONSENT_KEY);
     localStorage.removeItem(BIOMETRIC_CONSENT_TS_KEY);
     localStorage.removeItem(BIOMETRIC_CONSENT_EXP_KEY);
   }
 
   function hasValidBiometricConsent(): boolean {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === "undefined") return false;
     const consent = localStorage.getItem(BIOMETRIC_CONSENT_KEY);
-    if (consent !== 'true') return false;
+    if (consent !== "true") return false;
 
     const expiresAt = localStorage.getItem(BIOMETRIC_CONSENT_EXP_KEY);
     if (!expiresAt) return false;
@@ -419,22 +464,25 @@
   async function startCamera() {
     try {
       isLoading = true;
-      errorMessage = '';
+      errorMessage = "";
       hasSyncedCanvas = false;
       isPaused = false;
 
-      // LGPD Art. 11: Check biometric consent before accessing camera
       if (!ensureBiometricConsent()) {
         return;
       }
 
       if (!scriptsLoaded) {
-        throw new Error('Depend√™ncias ainda n√£o foram carregadas completamente. Aguarde...');
+        throw new Error(
+          "DependÍncias ainda n„o foram carregadas completamente. Aguarde...",
+        );
       }
 
       const selectedExercise = $trainingStore.exerciseType;
       if (!selectedExercise) {
-        throw new Error('Nenhum exerc√≠cio selecionado. Por favor, volte e selecione um exerc√≠cio.');
+        throw new Error(
+          "Nenhum exercÌcio selecionado. Por favor, volte e selecione um exercÌcio.",
+        );
       }
 
       if (!$trainingStore.backendSessionId) {
@@ -443,30 +491,31 @@
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
-        throw new Error('Falha ao carregar configura√ß√£o do exerc√≠cio');
+        throw new Error("Falha ao carregar configuraÁ„o do exercÌcio");
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
       analyzer.setCallbacks({
         onFeedback: handleFeedback,
         onMetricsUpdate: handleMetricsUpdate,
-        onError: handleError
+        onError: handleError,
       });
 
       const success = await analyzer.initialize();
       if (!success) {
-        throw new Error('Falha ao inicializar analyzer');
+        throw new Error("Falha ao inicializar analyzer");
       }
 
       if (!videoElement) {
-        throw new Error('Elemento de v√≠deo n√£o foi carregado corretamente.');
+        throw new Error("Elemento de vÌdeo n„o foi carregado corretamente.");
       }
 
-      const Pose = (window as unknown as Record<string, unknown>).Pose as new (config: {
+      const Pose = (window as unknown as Record<string, unknown>)
+        .Pose as new (config: {
         locateFile: (file: string) => string;
       }) => MediaPipePose;
       pose = new Pose({
-        locateFile: getPoseAssetUrl
+        locateFile: getPoseAssetUrl,
       });
 
       pose.setOptions({
@@ -475,7 +524,7 @@
         enableSegmentation: false,
         smoothSegmentation: false,
         minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+        minTrackingConfidence: 0.5,
       });
 
       pose.onResults(onPoseResults);
@@ -484,15 +533,24 @@
       drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
       drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(filterFaceConnections(POSE_CONNECTIONS));
+      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(
+        filterFaceConnections(POSE_CONNECTIONS),
+      );
 
       const Camera = globalScope.Camera as
-        | (new (video: HTMLVideoElement, config: { onFrame: () => Promise<void>; width: number; height: number }) => MediaPipeCamera)
+        | (new (
+            video: HTMLVideoElement,
+            config: {
+              onFrame: () => Promise<void>;
+              width: number;
+              height: number;
+            },
+          ) => MediaPipeCamera)
         | undefined;
 
       const hasPhysicalCamera = await hasVideoInputAvailable();
       const startWithRealCamera = async () => {
-        if (!Camera) throw new Error('Biblioteca de c√¢mera n√£o encontrada.');
+        if (!Camera) throw new Error("Biblioteca de c‚mera n„o encontrada.");
 
         clearEmulatedState();
         camera = new Camera(videoElement, {
@@ -502,7 +560,7 @@
             }
           },
           width: 1280,
-          height: 720
+          height: 720,
         });
 
         await camera.start();
@@ -518,11 +576,18 @@
         try {
           await startWithRealCamera();
         } catch (cameraError) {
-          console.warn('vision_warning:camera_start_failed_fallback_to_emulation', cameraError);
-          await startWithEmulatedCamera('N√£o conseguimos acessar a c√¢mera. Usando v√≠deo de demonstra√ß√£o para testar.');
+          console.warn(
+            "vision_warning:camera_start_failed_fallback_to_emulation",
+            cameraError,
+          );
+          await startWithEmulatedCamera(
+            "N„o conseguimos acessar a c‚mera. Usando vÌdeo de demonstraÁ„o para testar.",
+          );
         }
       } else {
-        await startWithEmulatedCamera('Nenhuma c√¢mera detectada. Usando v√≠deo de demonstra√ß√£o para testar.');
+        await startWithEmulatedCamera(
+          "Nenhuma c‚mera detectada. Usando vÌdeo de demonstraÁ„o para testar.",
+        );
       }
 
       trainingActions.start();
@@ -535,7 +600,7 @@
       clearEmulatedState();
       isCameraRunning = false;
       isLoading = false;
-      console.error('vision_error:start_camera', error);
+      console.error("vision_error:start_camera", error);
     }
   }
 
@@ -557,10 +622,9 @@
       syncCanvasSize(true);
     }
 
-    const ctx = canvasElement.getContext('2d');
+    const ctx = canvasElement.getContext("2d");
     if (!ctx) return;
 
-    // Usar requestAnimationFrame para sincronizar com refresh rate
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId);
     }
@@ -570,11 +634,22 @@
       ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       ctx.translate(canvasElement.width, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      ctx.drawImage(
+        results.image,
+        0,
+        0,
+        canvasElement.width,
+        canvasElement.height,
+      );
 
       const renderLandmarks = hideFaceLandmarks(landmarks);
 
-      if (renderLandmarks && drawConnectors && drawLandmarks && POSE_CONNECTIONS_NO_FACE) {
+      if (
+        renderLandmarks &&
+        drawConnectors &&
+        drawLandmarks &&
+        POSE_CONNECTIONS_NO_FACE
+      ) {
         ctx.save();
         ctx.globalAlpha = SKELETON_STYLE.opacity;
         ctx.shadowBlur = SKELETON_STYLE.glow;
@@ -582,23 +657,22 @@
 
         drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
           color: skeletonColor,
-          lineWidth: SKELETON_STYLE.lineWidth
+          lineWidth: SKELETON_STYLE.lineWidth,
         });
 
-        // Outer circle (glow)
         ctx.save();
         ctx.globalAlpha = 0.3;
         drawLandmarks(ctx, renderLandmarks, {
           color: skeletonColor,
           lineWidth: 0,
-          radius: SKELETON_STYLE.pointRadius * 2.2
+          radius: SKELETON_STYLE.pointRadius * 2.2,
         });
         ctx.restore();
 
         drawLandmarks(ctx, renderLandmarks, {
           color: skeletonColor,
           lineWidth: Math.max(1, SKELETON_STYLE.lineWidth / 2),
-          radius: SKELETON_STYLE.pointRadius
+          radius: SKELETON_STYLE.pointRadius,
         });
 
         if (TORSO_LINE.enabled) {
@@ -617,13 +691,12 @@
       });
     }
 
-    // Update real-time landmarks for Dev tab
-    if (activeTab === 'dev' && landmarks) {
+    if (activeTab === "dev" && landmarks) {
       currentLandmarks = landmarks;
     }
   }
 
-  function hideFaceLandmarks(landmarks: PoseResults['poseLandmarks']) {
+  function hideFaceLandmarks(landmarks: PoseResults["poseLandmarks"]) {
     if (!landmarks) return landmarks;
     const clone = landmarks.map((lm) => ({ ...lm }));
     for (const idx of LANDMARK_GROUPS.FACE) {
@@ -636,13 +709,13 @@
     if (!connections || !Array.isArray(connections)) return connections;
     const face = new Set(LANDMARK_GROUPS.FACE);
     return (connections as Array<[number, number]>).filter(
-      ([a, b]) => !face.has(a as number) && !face.has(b as number)
+      ([a, b]) => !face.has(a as number) && !face.has(b as number),
     );
   }
 
   function removeTorsoSideLines(connections: unknown) {
     if (!connections || !Array.isArray(connections)) return connections;
-    const blocked = new Set(['11-23', '12-24']);
+    const blocked = new Set(["11-23", "12-24"]);
     return (connections as Array<[number, number]>).filter(([a, b]) => {
       const key = `${a}-${b}`;
       const keyAlt = `${b}-${a}`;
@@ -650,7 +723,10 @@
     });
   }
 
-  function drawTorsoLine(ctx: CanvasRenderingContext2D, landmarks: PoseResults['poseLandmarks']) {
+  function drawTorsoLine(
+    ctx: CanvasRenderingContext2D,
+    landmarks: PoseResults["poseLandmarks"],
+  ) {
     if (!landmarks) return;
 
     const leftShoulder = landmarks[11];
@@ -670,19 +746,22 @@
 
     const shoulderMid = {
       x: (leftShoulder.x + rightShoulder.x) / 2,
-      y: (leftShoulder.y + rightShoulder.y) / 2
+      y: (leftShoulder.y + rightShoulder.y) / 2,
     };
     const hipMid = {
       x: (leftHip.x + rightHip.x) / 2,
-      y: (leftHip.y + rightHip.y) / 2
+      y: (leftHip.y + rightHip.y) / 2,
     };
 
     ctx.save();
     ctx.strokeStyle = skeletonColor;
     ctx.lineWidth = TORSO_LINE.lineWidth;
-    ctx.lineCap = 'round';
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(shoulderMid.x * ctx.canvas.width, shoulderMid.y * ctx.canvas.height);
+    ctx.moveTo(
+      shoulderMid.x * ctx.canvas.width,
+      shoulderMid.y * ctx.canvas.height,
+    );
     ctx.lineTo(hipMid.x * ctx.canvas.width, hipMid.y * ctx.canvas.height);
     ctx.stroke();
     ctx.restore();
@@ -691,36 +770,36 @@
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
-    if (feedback.combined.verdict === 'correct') {
+    if (feedback.combined.verdict === "correct") {
       skeletonColor = resolveCssColor(SKELETON_COLORS.correct);
-    } else if (feedback.combined.verdict === 'incorrect') {
+    } else if (feedback.combined.verdict === "incorrect") {
       skeletonColor = resolveCssColor(SKELETON_COLORS.incorrect);
     } else {
       skeletonColor = resolveCssColor(SKELETON_COLORS.neutral);
     }
 
-    // Memoiza√ß√£o: s√≥ atualiza se as mensagens mudaram
     const newMessages = feedback.messages || [];
-    const hasNewMessages = JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages);
+    const hasNewMessages =
+      JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages);
 
     if (hasNewMessages) {
       feedbackMessages = newMessages;
       if (isFeedbackEnabled) {
-        // Filtra apenas mensagens do tipo 'warning' para reprodu√ß√£o de √°udio
-        const warningMessages = newMessages.filter(msg => msg.type === 'warning');
+        const warningMessages = newMessages.filter(
+          (msg) => msg.type === "warning",
+        );
         if (warningMessages.length > 0) {
           audioFeedbackActions.playFeedback(warningMessages, {
             mode: feedbackMode,
-            exercise: $trainingStore.exerciseType
+            exercise: $trainingStore.exerciseType,
           });
         }
       }
     }
 
-    // Detecta repeti√ß√µes v√°lidas
     if (feedback.heuristic?.details) {
       const repResult = feedback.heuristic.details.find(
-        (d: unknown) => (d as { type?: string }).type === 'valid_repetition'
+        (d: unknown) => (d as { type?: string }).type === "valid_repetition",
       );
 
       if (repResult && (repResult as { isValid?: boolean }).isValid) {
@@ -733,14 +812,18 @@
     }
   }
 
-  function handleMetricsUpdate(metrics: { validReps?: number; accuracy?: string; avgConfidence?: number }) {
-    accuracy = parseFloat(metrics.accuracy || '0') || 0;
+  function handleMetricsUpdate(metrics: {
+    validReps?: number;
+    accuracy?: string;
+    avgConfidence?: number;
+  }) {
+    accuracy = parseFloat(metrics.accuracy || "0") || 0;
     confidence = (metrics.avgConfidence ? metrics.avgConfidence * 100 : 0) || 0;
   }
 
   function handleError(error: Error) {
-    errorMessage = error.message || 'Erro desconhecido';
-    console.error('vision_error:processing', error);
+    errorMessage = error.message || "Erro desconhecido";
+    console.error("vision_error:processing", error);
   }
 
   function startTimer(reset = true) {
@@ -763,7 +846,7 @@
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   async function finishTraining() {
@@ -820,15 +903,15 @@
     }
   }
 
-  function changeFeedbackMode(mode: 'hybrid' | 'ml_only' | 'heuristic_only') {
+  function changeFeedbackMode(mode: "hybrid" | "ml_only" | "heuristic_only") {
     feedbackMode = mode;
 
-    if (mode === 'ml_only') {
-      modeIndicator = 'ML Only (Autoencoder)';
-    } else if (mode === 'heuristic_only') {
-      modeIndicator = 'Heur√≠stica Only (Biomec√¢nica)';
+    if (mode === "ml_only") {
+      modeIndicator = "ML Only (Autoencoder)";
+    } else if (mode === "heuristic_only") {
+      modeIndicator = "HeurÌstica Only (Biomec‚nica)";
     } else {
-      modeIndicator = 'H√≠brido (ML + Heur√≠stica)';
+      modeIndicator = "HÌbrido (ML + HeurÌstica)";
     }
 
     analyzer?.setFeedbackMode(mode);
@@ -856,7 +939,10 @@
       };
 
       const isCurrentlyFullscreen =
-        doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement;
 
       if (!isCurrentlyFullscreen) {
         if (elem.requestFullscreen) {
@@ -869,7 +955,7 @@
           await elem.msRequestFullscreen();
         }
         isFullscreen = true;
-        orientation = 'landscape';
+        orientation = "landscape";
         void enforceLandscapeOrientation();
       } else {
         if (doc.exitFullscreen) {
@@ -920,9 +1006,9 @@
   }
 
   async function enforceLandscapeOrientation() {
-    orientation = 'landscape';
+    orientation = "landscape";
 
-    if (typeof screen === 'undefined') return;
+    if (typeof screen === "undefined") return;
     const screenWithOrientation = screen as Screen & {
       orientation?: ScreenOrientation;
       lockOrientation?: (orientation: string) => Promise<void> | void;
@@ -932,15 +1018,21 @@
 
     try {
       if (screenWithOrientation.orientation?.lock) {
-        await screenWithOrientation.orientation.lock('landscape').catch(() =>
-          screenWithOrientation.orientation?.lock?.('landscape-primary')
-        );
-      } else if (typeof screenWithOrientation.lockOrientation === 'function') {
-        screenWithOrientation.lockOrientation('landscape');
-      } else if (typeof screenWithOrientation.mozLockOrientation === 'function') {
-        screenWithOrientation.mozLockOrientation('landscape');
-      } else if (typeof screenWithOrientation.msLockOrientation === 'function') {
-        screenWithOrientation.msLockOrientation('landscape');
+        await screenWithOrientation.orientation
+          .lock("landscape")
+          .catch(() =>
+            screenWithOrientation.orientation?.lock?.("landscape-primary"),
+          );
+      } else if (typeof screenWithOrientation.lockOrientation === "function") {
+        screenWithOrientation.lockOrientation("landscape");
+      } else if (
+        typeof screenWithOrientation.mozLockOrientation === "function"
+      ) {
+        screenWithOrientation.mozLockOrientation("landscape");
+      } else if (
+        typeof screenWithOrientation.msLockOrientation === "function"
+      ) {
+        screenWithOrientation.msLockOrientation("landscape");
       }
     } catch {
       // Orientation lock may fail without a user gesture
@@ -948,7 +1040,7 @@
   }
 
   function releaseOrientationLock() {
-    if (typeof screen === 'undefined') return;
+    if (typeof screen === "undefined") return;
     const screenWithOrientation = screen as Screen & {
       orientation?: ScreenOrientation;
       unlockOrientation?: () => void;
@@ -959,11 +1051,17 @@
     try {
       if (screenWithOrientation.orientation?.unlock) {
         screenWithOrientation.orientation.unlock();
-      } else if (typeof screenWithOrientation.unlockOrientation === 'function') {
+      } else if (
+        typeof screenWithOrientation.unlockOrientation === "function"
+      ) {
         screenWithOrientation.unlockOrientation();
-      } else if (typeof screenWithOrientation.mozUnlockOrientation === 'function') {
+      } else if (
+        typeof screenWithOrientation.mozUnlockOrientation === "function"
+      ) {
         screenWithOrientation.mozUnlockOrientation();
-      } else if (typeof screenWithOrientation.msUnlockOrientation === 'function') {
+      } else if (
+        typeof screenWithOrientation.msUnlockOrientation === "function"
+      ) {
         screenWithOrientation.msUnlockOrientation();
       }
     } catch {
@@ -988,7 +1086,7 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.avatar-menu-container')) {
+    if (!target.closest(".avatar-menu-container")) {
       showAvatarMenu = false;
     }
   }
@@ -1002,7 +1100,8 @@
   function handleBiometricConsentDenied() {
     clearBiometricConsentFlags();
     showBiometricConsent = false;
-    errorMessage = 'Consentimento biom√©trico negado. A c√¢mera n√£o pode ser iniciada sem sua autoriza√ß√£o.';
+    errorMessage =
+      "Consentimento biomÈtrico negado. A c‚mera n„o pode ser iniciada sem sua autorizaÁ„o.";
     setTimeout(() => {
       goto(`${base}/exercises`);
     }, 3000);
@@ -1010,10 +1109,12 @@
 
   function detectOrientation() {
     if (isFullscreen) {
-      orientation = 'landscape';
+      orientation = "landscape";
       void enforceLandscapeOrientation();
     } else {
-      orientation = window.matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape';
+      orientation = window.matchMedia("(orientation: portrait)").matches
+        ? "portrait"
+        : "landscape";
     }
     syncCanvasSize(true);
     clampPipPosition();
@@ -1049,7 +1150,7 @@
   });
 
   $effect(() => {
-    if (layoutMode !== 'side-by-side') {
+    if (layoutMode !== "side-by-side") {
       resetPipPosition();
     }
   });
@@ -1061,10 +1162,10 @@
       detectOrientation();
     })();
 
-    window.addEventListener('orientationchange', debouncedDetectOrientation);
-    window.addEventListener('resize', debouncedDetectOrientation);
+    window.addEventListener("orientationchange", debouncedDetectOrientation);
+    window.addEventListener("resize", debouncedDetectOrientation);
     const handleKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' || event.key === 'Esc') {
+      if (event.key === "Escape" || event.key === "Esc") {
         exitFullscreenExplicit();
       }
     };
@@ -1076,11 +1177,14 @@
         msFullscreenElement?: Element;
       };
       const isCurrentlyFullscreen =
-        doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement;
       isFullscreen = Boolean(isCurrentlyFullscreen);
 
       if (isFullscreen) {
-        orientation = 'landscape';
+        orientation = "landscape";
         void enforceLandscapeOrientation();
         snapPipToCenter();
       } else {
@@ -1093,11 +1197,11 @@
 
       clampPipPosition();
     };
-    window.addEventListener('keydown', handleKeydown);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    window.addEventListener("keydown", handleKeydown);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
     const handleScroll = debounce((e: Event) => {
       const target = e.target as HTMLElement;
@@ -1108,25 +1212,37 @@
       isScrolled = window.scrollY > 50;
     }, 100);
 
-    const viewport = document.querySelector('.sa-viewport');
+    const viewport = document.querySelector(".sa-viewport");
     if (viewport) {
-      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      viewport.addEventListener("scroll", handleScroll, { passive: true });
     } else {
-      window.addEventListener('scroll', handleWindowScroll, { passive: true });
+      window.addEventListener("scroll", handleWindowScroll, { passive: true });
     }
 
     return () => {
-      window.removeEventListener('orientationchange', debouncedDetectOrientation);
-      window.removeEventListener('resize', debouncedDetectOrientation);
-      window.removeEventListener('keydown', handleKeydown);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      window.removeEventListener(
+        "orientationchange",
+        debouncedDetectOrientation,
+      );
+      window.removeEventListener("resize", debouncedDetectOrientation);
+      window.removeEventListener("keydown", handleKeydown);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange,
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange,
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange,
+      );
       if (viewport) {
-        viewport.removeEventListener('scroll', handleScroll);
+        viewport.removeEventListener("scroll", handleScroll);
       } else {
-        window.removeEventListener('scroll', handleWindowScroll);
+        window.removeEventListener("scroll", handleWindowScroll);
       }
     };
   });
@@ -1140,7 +1256,7 @@
   }
 
   function handlePipMouseDown(e: MouseEvent | TouchEvent) {
-    if (layoutMode === 'side-by-side') return;
+    if (layoutMode === "side-by-side") return;
 
     isDraggingPip = true;
     const target = e.currentTarget as HTMLElement;
@@ -1148,7 +1264,7 @@
     const { x, y } = getClientPosition(e);
     dragOffset = {
       x: x - rect.left,
-      y: y - rect.top
+      y: y - rect.top,
     };
     e.preventDefault();
   }
@@ -1213,14 +1329,42 @@
 </script>
 
 {#snippet fullscreenButton()}
-  <button class="fullscreen-btn-floating" onclick={toggleFullscreen} aria-label="Tela cheia">
+  <button
+    class="fullscreen-btn-floating"
+    onclick={toggleFullscreen}
+    aria-label="Tela cheia"
+  >
     {#if isFullscreen}
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"
+        />
       </svg>
     {:else}
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+        />
       </svg>
     {/if}
   </button>
@@ -1234,13 +1378,17 @@
     </div>
     <div class="rep-progress">
       {#each Array(30) as _, i}
-        <div class="rep-line" class:completed={i < $trainingStore.reps} class:current={i === $trainingStore.reps}></div>
+        <div
+          class="rep-line"
+          class:completed={i < $trainingStore.reps}
+          class:current={i === $trainingStore.reps}
+        ></div>
       {/each}
     </div>
   </div>
 {/snippet}
 
-{#snippet verticalRepSlide(cssClass = '')}
+{#snippet verticalRepSlide(cssClass = "")}
   <div class="vertical-rep-slide {cssClass}">
     <div class="v-slide-track">
       <div class="v-slide-inner">
@@ -1262,9 +1410,15 @@
 
 <main
   class="train-page"
-  onmousemove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }}
+  onmousemove={(e) => {
+    handlePipMouseMove(e);
+    handleResizeMouseMove(e);
+  }}
   onmouseup={handlePipMouseUp}
-  ontouchmove={(e) => { handlePipMouseMove(e); handleResizeMouseMove(e); }}
+  ontouchmove={(e) => {
+    handlePipMouseMove(e);
+    handleResizeMouseMove(e);
+  }}
   ontouchend={handlePipMouseUp}
   ontouchcancel={handlePipMouseUp}
 >
@@ -1285,7 +1439,7 @@
 
     {#if isCameraEmulated}
       <div class="inline-alert info-alert">
-        <span class="inline-alert-strong">Modo demonstra√ß√£o:</span>
+        <span class="inline-alert-strong">Modo demonstraÁ„o:</span>
         <span>{cameraFallbackReason}</span>
       </div>
     {/if}
@@ -1294,32 +1448,49 @@
       class="split-container"
       bind:this={splitContainerElement}
       class:fullscreen={isFullscreen}
-      class:layout-side-by-side={layoutMode === 'side-by-side'}
-      class:layout-user-centered={layoutMode === 'user-centered'}
-      class:layout-coach-centered={layoutMode === 'coach-centered'}
+      class:layout-side-by-side={layoutMode === "side-by-side"}
+      class:layout-user-centered={layoutMode === "user-centered"}
+      class:layout-coach-centered={layoutMode === "coach-centered"}
     >
       <div
         class="video-container"
-        class:portrait={orientation === 'portrait'}
-        class:landscape={orientation === 'landscape'}
+        class:portrait={orientation === "portrait"}
+        class:landscape={orientation === "landscape"}
         bind:this={videoContainerElement}
-        style={layoutMode === 'coach-centered' ? pipStyle() : undefined}
-        onmousedown={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
-        ontouchstart={layoutMode === 'coach-centered' ? handlePipMouseDown : undefined}
-        class:draggable-pip={layoutMode === 'coach-centered'}
+        style={layoutMode === "coach-centered" ? pipStyle() : undefined}
+        onmousedown={layoutMode === "coach-centered"
+          ? handlePipMouseDown
+          : undefined}
+        ontouchstart={layoutMode === "coach-centered"
+          ? handlePipMouseDown
+          : undefined}
+        class:draggable-pip={layoutMode === "coach-centered"}
       >
-        <video bind:this={videoElement} class="video-input" playsinline style="display: none;">
+        <video
+          bind:this={videoElement}
+          class="video-input"
+          playsinline
+          style="display: none;"
+        >
           <track kind="captions" src="" label="No captions" />
         </video>
 
-        <canvas bind:this={canvasElement} class="video-canvas" width="1280" height="720"></canvas>
+        <canvas
+          bind:this={canvasElement}
+          class="video-canvas"
+          width="1280"
+          height="720"
+        ></canvas>
 
-        {#if layoutMode === 'coach-centered'}
-          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown}></div>
+        {#if layoutMode === "coach-centered"}
+          <div
+            class="pip-resize-handle"
+            onmousedown={handleResizeMouseDown}
+          ></div>
         {/if}
 
         <div class="overlays-container">
-          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === 'user-centered'}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === "user-centered"}
             <div class="timer-overlay card">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
@@ -1329,9 +1500,9 @@
             <div class="feedback-card">
               {#if isDevMode}
                 <div class="mode-indicator in-card card">
-                  {#if feedbackMode === 'hybrid'}
+                  {#if feedbackMode === "hybrid"}
                     <Microscope />
-                  {:else if feedbackMode === 'ml_only'}
+                  {:else if feedbackMode === "ml_only"}
                     <Bot />
                   {:else}
                     <Ruler />
@@ -1343,7 +1514,11 @@
               {#if reconstructionError !== null}
                 <div class="feedback-overlay">
                   <div class="feedback-message info card">
-                    <span>Erro de reconstru√ß√£o: {reconstructionError.toFixed(4)}</span>
+                    <span
+                      >Erro de reconstruÁ„o: {reconstructionError.toFixed(
+                        4,
+                      )}</span
+                    >
                   </div>
                 </div>
               {/if}
@@ -1351,9 +1526,14 @@
               {#if feedbackMessages.length > 0}
                 <div class="feedback-overlay">
                   {#each feedbackMessages
-                    .filter((m) => !(m.text || '').toLowerCase().startsWith('erro de reconstru√ß√£o'))
+                    .filter((m) => !(m.text || "")
+                          .toLowerCase()
+                          .startsWith("erro de reconstruÁ„o"))
                     .slice(0, 3) as message}
-                    <div class="feedback-message card {message.type}" class:critical={message.severity === 'critical'}>
+                    <div
+                      class="feedback-message card {message.type}"
+                      class:critical={message.severity === "critical"}
+                    >
                       <span>{message.text}</span>
                     </div>
                   {/each}
@@ -1364,12 +1544,12 @@
         </div>
 
         {#if isCameraRunning || isPaused}
-          {#if layoutMode === 'user-centered' && !showCountdown && showReps}
-            {@render repCounter('rep-counter-bar-overlay')}
-            {@render verticalRepSlide('left-aligned')}
+          {#if layoutMode === "user-centered" && !showCountdown && showReps}
+            {@render repCounter("rep-counter-bar-overlay")}
+            {@render verticalRepSlide("left-aligned")}
           {/if}
 
-          {#if layoutMode !== 'coach-centered'}
+          {#if layoutMode !== "coach-centered"}
             {@render fullscreenButton()}
           {/if}
         {/if}
@@ -1377,10 +1557,14 @@
 
       <div
         class="reference-container"
-        style={layoutMode === 'user-centered' ? pipStyle() : undefined}
-        onmousedown={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
-        ontouchstart={layoutMode === 'user-centered' ? handlePipMouseDown : undefined}
-        class:draggable-pip={layoutMode === 'user-centered'}
+        style={layoutMode === "user-centered" ? pipStyle() : undefined}
+        onmousedown={layoutMode === "user-centered"
+          ? handlePipMouseDown
+          : undefined}
+        ontouchstart={layoutMode === "user-centered"
+          ? handlePipMouseDown
+          : undefined}
+        class:draggable-pip={layoutMode === "user-centered"}
       >
         <video
           class="reference-video"
@@ -1394,21 +1578,25 @@
         </video>
 
         <div class="overlays-container">
-          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === 'side-by-side' || layoutMode === 'coach-centered')}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
             <div class="timer-overlay card">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
           {/if}
         </div>
 
-        {#if layoutMode === 'user-centered'}
-          <div class="pip-resize-handle" onmousedown={handleResizeMouseDown} ontouchstart={handleResizeMouseDown}></div>
+        {#if layoutMode === "user-centered"}
+          <div
+            class="pip-resize-handle"
+            onmousedown={handleResizeMouseDown}
+            ontouchstart={handleResizeMouseDown}
+          ></div>
         {/if}
 
-        {#if (isCameraRunning || isPaused) && layoutMode === 'coach-centered' && !showCountdown}
+        {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered" && !showCountdown}
           {#if showReps}
-            {@render repCounter('rep-counter-bar-overlay')}
-            {@render verticalRepSlide('left-aligned')}
+            {@render repCounter("rep-counter-bar-overlay")}
+            {@render verticalRepSlide("left-aligned")}
           {/if}
           {@render fullscreenButton()}
         {/if}
@@ -1417,12 +1605,21 @@
       {#if isCameraRunning || isPaused}
         {#if showCountdown}
           <div class="countdown-overlay">
-            <button class="countdown-circle" class:pulsing={countdownActive} onclick={startCountdown} disabled={countdownActive && countdownValue !== 'Iniciar'}>
-              <span class="countdown-text" class:is-number={['3', '2', '1'].includes(countdownValue)}>{countdownValue}</span>
+            <button
+              class="countdown-circle"
+              class:pulsing={countdownActive}
+              onclick={startCountdown}
+              disabled={countdownActive && countdownValue !== "Iniciar"}
+            >
+              <span
+                class="countdown-text"
+                class:is-number={["3", "2", "1"].includes(countdownValue)}
+                >{countdownValue}</span
+              >
             </button>
           </div>
-        {:else if layoutMode === 'side-by-side' && showReps}
-          {@render repCounter('rep-counter-bar-overlay')}
+        {:else if layoutMode === "side-by-side" && showReps}
+          {@render repCounter("rep-counter-bar-overlay")}
           {@render verticalRepSlide()}
         {/if}
       {/if}
@@ -1431,74 +1628,120 @@
     {#if isCameraRunning || isPaused}
       <div class="settings-panel">
         <div class="settings-tabs">
-          <button class="tab-btn" class:active={activeTab === 'display'} onclick={() => (activeTab = 'display')}>Exibi√ß√£o</button>
-          <button class="tab-btn" class:active={activeTab === 'skeleton'} onclick={() => (activeTab = 'skeleton')}>Esqueleto</button>
-          <button class="tab-btn" class:active={activeTab === 'sound'} onclick={() => (activeTab = 'sound')}>Som e Efeitos</button>
+          <button
+            class="tab-btn"
+            class:active={activeTab === "display"}
+            onclick={() => (activeTab = "display")}>ExibiÁ„o</button
+          >
+          <button
+            class="tab-btn"
+            class:active={activeTab === "skeleton"}
+            onclick={() => (activeTab = "skeleton")}>Esqueleto</button
+          >
+          <button
+            class="tab-btn"
+            class:active={activeTab === "sound"}
+            onclick={() => (activeTab = "sound")}>Som e Efeitos</button
+          >
 
           {#if isDevMode}
-            <button class="tab-btn" class:active={activeTab === 'dev'} onclick={() => (activeTab = 'dev')}>Dev</button>
+            <button
+              class="tab-btn"
+              class:active={activeTab === "dev"}
+              onclick={() => (activeTab = "dev")}>Dev</button
+            >
           {/if}
         </div>
 
         <div class="settings-content">
-          {#if activeTab === 'display'}
+          {#if activeTab === "display"}
             <div class="settings-group">
-              <h4>Escolher Layout de Exibi√ß√£o</h4>
+              <h4>Escolher Layout de ExibiÁ„o</h4>
               <div class="layout-options">
-                <div class="layout-option" class:active={layoutMode === 'side-by-side'} onclick={() => (layoutMode = 'side-by-side')}>
+                <div
+                  class="layout-option"
+                  class:active={layoutMode === "side-by-side"}
+                  onclick={() => (layoutMode = "side-by-side")}
+                >
                   <div class="layout-preview side-by-side"></div>
                   <span>Lado a Lado</span>
                 </div>
-                <div class="layout-option" class:active={layoutMode === 'user-centered'} onclick={() => (layoutMode = 'user-centered')}>
+                <div
+                  class="layout-option"
+                  class:active={layoutMode === "user-centered"}
+                  onclick={() => (layoutMode = "user-centered")}
+                >
                   <div class="layout-preview user-centered"></div>
-                  <span>Usu√°rio Centralizado</span>
+                  <span>Usu·rio Centralizado</span>
                 </div>
-                <div class="layout-option" class:active={layoutMode === 'coach-centered'} onclick={() => (layoutMode = 'coach-centered')}>
+                <div
+                  class="layout-option"
+                  class:active={layoutMode === "coach-centered"}
+                  onclick={() => (layoutMode = "coach-centered")}
+                >
                   <div class="layout-preview coach-centered"></div>
                   <span>Treinador Centralizado</span>
                 </div>
               </div>
             </div>
             <div class="settings-group">
-              <h4>Mais op√ß√µes</h4>
+              <h4>Mais opÁıes</h4>
               <div class="toggle-row">
-                <span>Cron√¥metro</span>
+                <span>CronÙmetro</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={showTimer} onclick={() => (showTimer = !showTimer)}></button>
-                  <span class="toggle-label">{showTimer ? 'On' : 'Off'}</span>
+                  <button
+                    class="toggle-btn"
+                    class:on={showTimer}
+                    onclick={() => (showTimer = !showTimer)}
+                  ></button>
+                  <span class="toggle-label">{showTimer ? "On" : "Off"}</span>
                 </div>
               </div>
               <div class="toggle-row">
                 <span>Contador</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={showReps} onclick={() => (showReps = !showReps)}></button>
-                  <span class="toggle-label">{showReps ? 'On' : 'Off'}</span>
+                  <button
+                    class="toggle-btn"
+                    class:on={showReps}
+                    onclick={() => (showReps = !showReps)}
+                  ></button>
+                  <span class="toggle-label">{showReps ? "On" : "Off"}</span>
                 </div>
               </div>
               <div class="toggle-row">
                 <span>Feedback Visual</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={isFeedbackEnabled} onclick={toggleFeedback}></button>
-                  <span class="toggle-label">{isFeedbackEnabled ? 'On' : 'Off'}</span>
+                  <button
+                    class="toggle-btn"
+                    class:on={isFeedbackEnabled}
+                    onclick={toggleFeedback}
+                  ></button>
+                  <span class="toggle-label"
+                    >{isFeedbackEnabled ? "On" : "Off"}</span
+                  >
                 </div>
               </div>
             </div>
-
-          {:else if activeTab === 'sound'}
+          {:else if activeTab === "sound"}
             <div class="settings-group">
-              <h4>Configura√ß√µes de Som</h4>
+              <h4>ConfiguraÁıes de Som</h4>
               <div class="toggle-row">
-                <span>Feedback de √Åudio</span>
+                <span>Feedback de ¡udio</span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={$audioFeedbackStore.isEnabled} onclick={toggleAudio}></button>
-                  <span class="toggle-label">{$audioFeedbackStore.isEnabled ? 'On' : 'Off'}</span>
+                  <button
+                    class="toggle-btn"
+                    class:on={$audioFeedbackStore.isEnabled}
+                    onclick={toggleAudio}
+                  ></button>
+                  <span class="toggle-label"
+                    >{$audioFeedbackStore.isEnabled ? "On" : "Off"}</span
+                  >
                 </div>
               </div>
             </div>
-
-          {:else if activeTab === 'skeleton'}
+          {:else if activeTab === "skeleton"}
             <div class="settings-group">
-              <h4>Sobreposi√ß√£o de Esqueleto</h4>
+              <h4>SobreposiÁ„o de Esqueleto</h4>
               <div class="toggle-row">
                 <span>Mostrar Esqueleto</span>
                 <div class="toggle-wrapper">
@@ -1507,17 +1750,16 @@
                 </div>
               </div>
             </div>
-
-          {:else if activeTab === 'dev'}
+          {:else if activeTab === "dev"}
             <div class="settings-group settings-group-full">
-              <h4>M√©tricas de Desenvolvimento</h4>
+              <h4>MÈtricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Precis√£o</span>
+                  <span class="dev-metric-label">Precis„o</span>
                   <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Confian√ßa</span>
+                  <span class="dev-metric-label">ConfianÁa</span>
                   <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
@@ -1528,9 +1770,23 @@
 
               <h4 class="dev-section-title">Controle de Feedback</h4>
               <div class="mode-buttons-mini">
-                <button class="mini-btn" class:active={feedbackMode === 'hybrid'} onclick={() => changeFeedbackMode('hybrid')}>H√≠brido</button>
-                <button class="mini-btn" class:active={feedbackMode === 'ml_only'} onclick={() => changeFeedbackMode('ml_only')}>ML Apenas</button>
-                <button class="mini-btn" class:active={feedbackMode === 'heuristic_only'} onclick={() => changeFeedbackMode('heuristic_only')}>Heur√≠stica</button>
+                <button
+                  class="mini-btn"
+                  class:active={feedbackMode === "hybrid"}
+                  onclick={() => changeFeedbackMode("hybrid")}>HÌbrido</button
+                >
+                <button
+                  class="mini-btn"
+                  class:active={feedbackMode === "ml_only"}
+                  onclick={() => changeFeedbackMode("ml_only")}
+                  >ML Apenas</button
+                >
+                <button
+                  class="mini-btn"
+                  class:active={feedbackMode === "heuristic_only"}
+                  onclick={() => changeFeedbackMode("heuristic_only")}
+                  >HeurÌstica</button
+                >
               </div>
               <div class="debug-info-mini">{modeIndicator}</div>
             </div>
@@ -1561,7 +1817,12 @@
                         </div>
                         <div class="val-row">
                           <span class="val-label">Vis:</span>
-                          <span class="val-data" style:color={lm.visibility && lm.visibility > 0.5 ? 'var(--color-success)' : 'var(--color-error)'}>
+                          <span
+                            class="val-data"
+                            style:color={lm.visibility && lm.visibility > 0.5
+                              ? "var(--color-success)"
+                              : "var(--color-error)"}
+                          >
                             {(lm.visibility ?? 0).toFixed(2)}
                           </span>
                         </div>
@@ -1594,13 +1855,18 @@
       on:accepted={handleBiometricConsentAccepted}
       on:denied={handleBiometricConsentDenied}
     />
+  </div>
 </main>
 
 <style>
   .train-page {
     --player-min-width: 320px;
     --player-max-width: 960px;
-    --player-width: clamp(var(--player-min-width), 45vw, var(--player-max-width));
+    --player-width: clamp(
+      var(--player-min-width),
+      45vw,
+      var(--player-max-width)
+    );
     --player-height: calc(var(--player-width) * 0.5625);
     --player-zoom: 1.06;
     --layout-max-width: 1280px;
@@ -1648,7 +1914,7 @@
     --container-gap: 0;
     --container-max-width: var(--layout-max-width);
     --container-height: calc(100vh - 6rem);
-    
+
     display: grid;
     width: min(100%, var(--container-max-width));
     max-width: var(--container-max-width);
@@ -1658,7 +1924,7 @@
     gap: var(--container-gap);
     position: relative;
     justify-self: center;
-    
+
     /* Default: single column for mobile */
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
@@ -1787,7 +2053,7 @@
   }
 
   .pip-resize-handle::before {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 4px;
     right: 4px;
@@ -1837,11 +2103,17 @@
     width: 100%;
     max-width: 1280px;
     margin: 0 auto;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.02)
+    );
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 0.75rem 1rem;
     display: flex;
     align-items: center;
@@ -1854,12 +2126,18 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.35));
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.55),
+      rgba(0, 0, 0, 0.35)
+    );
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     border-top: 1px solid rgba(255, 255, 255, 0.14);
     border-inline: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    box-shadow:
+      0 -10px 30px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
     font-size: clamp(9px, 1.35vh, 17px);
     padding: 1em 1.5em;
     display: flex;
@@ -1872,7 +2150,6 @@
   .rep-counter-bar-overlay * {
     pointer-events: auto;
   }
-
 
   .rep-info {
     display: flex;
@@ -1917,13 +2194,17 @@
   }
 
   .rep-line::before {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     height: 0%;
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+    background: linear-gradient(
+      to top,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
     border-radius: 99em;
     transition: height 0.3s ease;
   }
@@ -1935,14 +2216,26 @@
 
   .rep-line.current::before {
     height: 100%;
-    background: linear-gradient(to top, var(--color-primary-600) 0%, var(--color-primary-400) 50%, var(--color-primary-500) 100%);
-    box-shadow: 0 0 12px var(--color-primary-500), inset 0 2px 8px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(
+      to top,
+      var(--color-primary-600) 0%,
+      var(--color-primary-400) 50%,
+      var(--color-primary-500) 100%
+    );
+    box-shadow:
+      0 0 12px var(--color-primary-500),
+      inset 0 2px 8px rgba(255, 255, 255, 0.3);
     animation: pulse-tube 1.5s ease-in-out infinite;
   }
 
   @keyframes pulse-tube {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   .vertical-rep-slide {
@@ -2081,13 +2374,22 @@
   }
 
   @keyframes pulse-countdown {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 255, 0, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 30px rgba(204, 255, 0, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 255, 0, 0); }
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(204, 255, 0, 0.7);
+    }
+    70% {
+      transform: scale(1.1);
+      box-shadow: 0 0 0 30px rgba(204, 255, 0, 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(204, 255, 0, 0);
+    }
   }
 
   .v-slide-handle::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -2103,7 +2405,7 @@
     right: -95px;
     top: 0;
     transform: translateY(-50%);
-    background: var(--glass-bg, rgba(0, 0, 0, 0.60));
+    background: var(--glass-bg, rgba(0, 0, 0, 0.6));
     backdrop-filter: var(--glass-backdrop, blur(10px));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
     color: var(--color-text-primary, #fff);
@@ -2111,13 +2413,13 @@
     border-radius: 8px;
     font-size: 1.5rem;
     font-weight: 400;
-    font-family: 'Inter', sans-serif;
+    font-family: "Inter", sans-serif;
     white-space: nowrap;
     transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .v-slide-bubble::before {
-    content: '';
+    content: "";
     position: absolute;
     left: -6px;
     top: 50%;
@@ -2126,7 +2428,7 @@
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid var(--glass-bg, rgba(0, 0, 0, 0.60));
+    border-right: 6px solid var(--glass-bg, rgba(0, 0, 0, 0.6));
   }
 
   .vertical-rep-slide.left-aligned {
@@ -2143,7 +2445,6 @@
     transform: scale(var(--player-zoom));
     transform-origin: center;
   }
-
 
   @media (max-width: 1023px) {
     .split-container {
@@ -2165,8 +2466,6 @@
       border-radius: 0 0 var(--radius-md) var(--radius-md);
     }
   }
-
-
 
   .split-container.layout-side-by-side:not(.fullscreen) {
     justify-items: stretch;
@@ -2459,24 +2758,34 @@
 
   .feedback-message::before,
   .mode-indicator::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.8),
+      transparent
+    );
   }
 
   .feedback-message::after,
   .mode-indicator::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), transparent, rgba(255, 255, 255, 0.3));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.8),
+      transparent,
+      rgba(255, 255, 255, 0.3)
+    );
   }
 
   .feedback-message.success {
@@ -2512,8 +2821,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 
   .card {
@@ -2616,8 +2930,14 @@
   }
 
   @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   .settings-tabs {
@@ -2650,7 +2970,7 @@
   }
 
   .tab-btn.active::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -0.6rem;
     left: 0;
@@ -2718,14 +3038,13 @@
   }
 
   .layout-option.active .layout-preview::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 1px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: calc(var(--radius-md) - 3px);
     pointer-events: none;
   }
-
 
   .layout-preview {
     width: 100px;
@@ -2743,14 +3062,14 @@
   .layout-preview.side-by-side {
     background: linear-gradient(90deg, #333 50%, #fff 50%);
   }
-  
+
   .layout-preview.user-centered {
     background: #333;
     position: relative;
   }
 
   .layout-preview.user-centered::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     right: 8px;
@@ -2767,7 +3086,7 @@
   }
 
   .layout-preview.coach-centered::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     right: 8px;
@@ -2856,7 +3175,7 @@
   }
 
   .toggle-btn::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 2px;
     left: 2px;
@@ -2864,7 +3183,7 @@
     height: 20px;
     background: var(--color-text-primary, #fff);
     border-radius: 50%;
-    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     z-index: 2;
   }
@@ -2892,7 +3211,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    transition: transform 0.2s ease, background 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      background 0.2s ease;
   }
 
   .landmark-card:hover {
@@ -2966,7 +3287,7 @@
     gap: 0.5rem;
     margin-top: 1rem;
   }
-  
+
   .mini-btn {
     background: var(--color-bg-dark-secondary, #222);
     border: 1px solid var(--glass-border, #444);

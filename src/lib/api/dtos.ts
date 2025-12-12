@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Auth DTOs
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6)
@@ -18,7 +17,6 @@ export const registerSchema = z.object({
 export type LoginDto = z.infer<typeof loginSchema>;
 export type RegisterDto = z.infer<typeof registerSchema>;
 
-// Training Metric DTOs
 export const trainingMetricSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
@@ -40,7 +38,6 @@ export const trainingMetricSchema = z.object({
 
 export type TrainingMetricDto = z.infer<typeof trainingMetricSchema>;
 
-// User DTOs
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -50,7 +47,6 @@ export const userSchema = z.object({
 
 export type UserDto = z.infer<typeof userSchema>;
 
-// Stats DTOs
 export const userStatsSchema = z.object({
   totalWorkouts: z.number().int().nonnegative(),
   currentStreak: z.number().int().nonnegative(),
@@ -58,4 +54,3 @@ export const userStatsSchema = z.object({
 });
 
 export type UserStatsDto = z.infer<typeof userStatsSchema>;
-

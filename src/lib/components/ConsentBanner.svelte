@@ -94,28 +94,26 @@
   >
     <div class="container mx-auto px-4 py-5 max-w-6xl">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <!-- Texto -->
         <div class="flex-1">
           <h2 id="consent-title" class="text-lg font-bold mb-2 text-white">
             Sua Privacidade Importa
           </h2>
           <p id="consent-description" class="text-white/70 text-sm leading-relaxed">
-            Usamos cookies essenciais para autenticaÃ§Ã£o e processamos
-            <strong class="text-white">dados biomÃ©tricos localmente</strong> (33 pontos corporais)
-            para anÃ¡lise de exercÃ­cios.
-            <strong class="text-white">Seu vÃ­deo NUNCA Ã© armazenado ou transmitido.</strong>
+            Usamos cookies essenciais para autenticação e processamos
+            <strong class="text-white">dados biométricos localmente</strong> (33 pontos corporais)
+            para análise de exercícios.
+            <strong class="text-white">Seu vídeo NUNCA é armazenado ou transmitido.</strong>
             <br />
-            Ao continuar, vocÃª concorda com nossos
+            Ao continuar, você concorda com nossos
             <a href="/terms" style="color: var(--color-primary-500);" class="hover:underline font-semibold" target="_blank">
               Termos de Uso
             </a> e
             <a href="/privacy" style="color: var(--color-primary-500);" class="hover:underline font-semibold" target="_blank">
-              PolÃ­tica de Privacidade
+              Política de Privacidade
             </a>.
           </p>
         </div>
 
-        <!-- BotÃµes -->
         <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button
             on:click={rejectConsent}

@@ -1,17 +1,6 @@
-/**
- * MediaPipe Pose Landmarks Constants
- * ===================================
- *
- * Índices dos landmarks do MediaPipe Pose.
- * Compartilhado por todos os validadores para evitar duplicação.
- *
- * Referência: https://google.github.io/mediapipe/solutions/pose.html
- */
-
 import type { Landmark, PoseLandmarks } from '../types';
 
 export const MEDIAPIPE_LANDMARKS = {
-  // Face
   NOSE: 0,
   LEFT_EYE_INNER: 1,
   LEFT_EYE: 2,
@@ -24,7 +13,6 @@ export const MEDIAPIPE_LANDMARKS = {
   MOUTH_LEFT: 9,
   MOUTH_RIGHT: 10,
 
-  // Upper Body
   LEFT_SHOULDER: 11,
   RIGHT_SHOULDER: 12,
   LEFT_ELBOW: 13,
@@ -32,7 +20,6 @@ export const MEDIAPIPE_LANDMARKS = {
   LEFT_WRIST: 15,
   RIGHT_WRIST: 16,
 
-  // Hands
   LEFT_PINKY: 17,
   RIGHT_PINKY: 18,
   LEFT_INDEX: 19,
@@ -40,7 +27,6 @@ export const MEDIAPIPE_LANDMARKS = {
   LEFT_THUMB: 21,
   RIGHT_THUMB: 22,
 
-  // Lower Body
   LEFT_HIP: 23,
   RIGHT_HIP: 24,
   LEFT_KNEE: 25,
@@ -48,16 +34,12 @@ export const MEDIAPIPE_LANDMARKS = {
   LEFT_ANKLE: 27,
   RIGHT_ANKLE: 28,
 
-  // Feet
   LEFT_HEEL: 29,
   RIGHT_HEEL: 30,
   LEFT_FOOT_INDEX: 31,
   RIGHT_FOOT_INDEX: 32
 } as const;
 
-/**
- * Grupos de landmarks por região do corpo
- */
 export const LANDMARK_GROUPS = {
   FACE: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   UPPER_BODY: [11, 12, 13, 14, 15, 16],
@@ -65,28 +47,21 @@ export const LANDMARK_GROUPS = {
   LOWER_BODY: [23, 24, 25, 26, 27, 28],
   FEET: [29, 30, 31, 32],
 
-  // Grupos funcionais
   LEFT_ARM: [11, 13, 15, 17, 19, 21],
   RIGHT_ARM: [12, 14, 16, 18, 20, 22],
   LEFT_LEG: [23, 25, 27, 29, 31],
   RIGHT_LEG: [24, 26, 28, 30, 32],
 
-  CORE: [11, 12, 23, 24], // Shoulders + Hips
-  TORSO: [11, 12, 23, 24] // Alias
+  CORE: [11, 12, 23, 24],
+  TORSO: [11, 12, 23, 24]
 } as const;
 
-/**
- * Par bilateral (esquerda-direita)
- */
 export interface BilateralPair {
   left: number;
   right: number;
   name: string;
 }
 
-/**
- * Pares bilaterais (esquerda-direita)
- */
 export const BILATERAL_PAIRS: BilateralPair[] = [
   { left: MEDIAPIPE_LANDMARKS.LEFT_SHOULDER, right: MEDIAPIPE_LANDMARKS.RIGHT_SHOULDER, name: 'SHOULDER' },
   { left: MEDIAPIPE_LANDMARKS.LEFT_ELBOW, right: MEDIAPIPE_LANDMARKS.RIGHT_ELBOW, name: 'ELBOW' },
@@ -98,9 +73,6 @@ export const BILATERAL_PAIRS: BilateralPair[] = [
   { left: MEDIAPIPE_LANDMARKS.LEFT_FOOT_INDEX, right: MEDIAPIPE_LANDMARKS.RIGHT_FOOT_INDEX, name: 'FOOT_INDEX' }
 ];
 
-/**
- * Landmarks de perna
- */
 export interface LegLandmarks {
   hip: Landmark;
   knee: Landmark;
@@ -109,9 +81,6 @@ export interface LegLandmarks {
   footIndex: Landmark;
 }
 
-/**
- * Landmarks de braço
- */
 export interface ArmLandmarks {
   shoulder: Landmark;
   elbow: Landmark;
@@ -121,9 +90,6 @@ export interface ArmLandmarks {
   thumb: Landmark;
 }
 
-/**
- * Landmarks do core (ombros + quadris)
- */
 export interface CoreLandmarks {
   leftShoulder: Landmark;
   rightShoulder: Landmark;
@@ -131,9 +97,6 @@ export interface CoreLandmarks {
   rightHip: Landmark;
 }
 
-/**
- * Helper: Obtém landmarks da perna esquerda
- */
 export function getLeftLegLandmarks(landmarks: PoseLandmarks): LegLandmarks {
   return {
     hip: landmarks[MEDIAPIPE_LANDMARKS.LEFT_HIP],
@@ -144,9 +107,6 @@ export function getLeftLegLandmarks(landmarks: PoseLandmarks): LegLandmarks {
   };
 }
 
-/**
- * Helper: Obtém landmarks da perna direita
- */
 export function getRightLegLandmarks(landmarks: PoseLandmarks): LegLandmarks {
   return {
     hip: landmarks[MEDIAPIPE_LANDMARKS.RIGHT_HIP],
@@ -157,9 +117,6 @@ export function getRightLegLandmarks(landmarks: PoseLandmarks): LegLandmarks {
   };
 }
 
-/**
- * Helper: Obtém landmarks do braço esquerdo
- */
 export function getLeftArmLandmarks(landmarks: PoseLandmarks): ArmLandmarks {
   return {
     shoulder: landmarks[MEDIAPIPE_LANDMARKS.LEFT_SHOULDER],
@@ -171,9 +128,6 @@ export function getLeftArmLandmarks(landmarks: PoseLandmarks): ArmLandmarks {
   };
 }
 
-/**
- * Helper: Obtém landmarks do braço direito
- */
 export function getRightArmLandmarks(landmarks: PoseLandmarks): ArmLandmarks {
   return {
     shoulder: landmarks[MEDIAPIPE_LANDMARKS.RIGHT_SHOULDER],
@@ -185,9 +139,6 @@ export function getRightArmLandmarks(landmarks: PoseLandmarks): ArmLandmarks {
   };
 }
 
-/**
- * Helper: Obtém landmarks do core (ombros + quadris)
- */
 export function getCoreLandmarks(landmarks: PoseLandmarks): CoreLandmarks {
   return {
     leftShoulder: landmarks[MEDIAPIPE_LANDMARKS.LEFT_SHOULDER],

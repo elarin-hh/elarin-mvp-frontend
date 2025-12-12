@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { base } from '$app/paths';
-  import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import { authActions } from '$lib/services/auth.facade';
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { base } from "$app/paths";
+  import AppHeader from "$lib/components/common/AppHeader.svelte";
+  import { authActions } from "$lib/services/auth.facade";
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
@@ -25,7 +25,7 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.avatar-menu-container')) {
+    if (!target.closest(".avatar-menu-container")) {
       showAvatarMenu = false;
     }
   }
@@ -36,24 +36,133 @@
       isScrolled = target.scrollTop > 50;
     };
 
-    const viewport = document.querySelector('.sa-viewport');
+    const viewport = document.querySelector(".sa-viewport");
 
     if (viewport) {
-      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      viewport.addEventListener("scroll", handleScroll, { passive: true });
       return () => {
-        viewport.removeEventListener('scroll', handleScroll);
+        viewport.removeEventListener("scroll", handleScroll);
       };
     } else {
       const handleWindowScroll = () => {
         isScrolled = window.scrollY > 50;
       };
-      window.addEventListener('scroll', handleWindowScroll, { passive: true });
+      window.addEventListener("scroll", handleWindowScroll, { passive: true });
       return () => {
-        window.removeEventListener('scroll', handleWindowScroll);
+        window.removeEventListener("scroll", handleWindowScroll);
       };
     }
   });
 </script>
+
+<div class="bg-black">
+  <AppHeader
+    bind:isScrolled
+    bind:showAvatarMenu
+    hasDropdownMenu={true}
+    onToggleAvatarMenu={toggleAvatarMenu}
+    onSettings={handleSettings}
+    onLogout={handleLogout}
+    onClickOutside={handleClickOutside}
+  />
+
+  <main class="min-h-screen w-full px-4 pt-8">
+    <div class="max-w-2xl mx-auto">
+      <div class="flex justify-center mb-8">
+        <div
+          class="w-20 h-20 rounded-full bg-primary-500/10 flex items-center justify-center"
+        >
+          <svg
+            class="w-10 h-10 text-primary-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="text-2xl sm:text-3xl font-bold text-white text-center mb-8">
+        Antes de ComeÁar
+      </h1>
+
+      <div
+        class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20"
+      >
+        <div class="flex items-start gap-3">
+          <div
+            class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5"
+          >
+            <svg
+              class="w-4 h-4 text-blue-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-white font-semibold mb-2">Aviso</h2>
+            <p class="text-white/70 text-sm">
+              Nosso app demonstra o fluxo da interface. A captura de c‚mera e
+              detecÁ„o de exercÌcios em tempo real ser„o habilitadas na prÛxima
+              fase.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20"
+      >
+        <div class="flex items-start gap-3">
+          <div
+            class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5"
+          >
+            <svg
+              class="w-4 h-4 text-green-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-white font-semibold mb-2">Privacidade</h2>
+            <p class="text-white/70 text-sm">
+              Sua privacidade È importante. Todo o processamento acontecer·
+              localmente no seu dispositivo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center">
+        <button
+          type="button"
+          class="button-primary px-8 py-3 text-white font-semibold text-lg"
+          onclick={() => goto(`${base}/train`)}
+        >
+          ComeÁar
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
 
 <style>
   .glass-card {
@@ -78,75 +187,3 @@
     background: var(--color-primary-600);
   }
 </style>
-
-<div class="bg-black">
-  <AppHeader
-    bind:isScrolled
-    bind:showAvatarMenu
-    hasDropdownMenu={true}
-    onToggleAvatarMenu={toggleAvatarMenu}
-    onSettings={handleSettings}
-    onLogout={handleLogout}
-    onClickOutside={handleClickOutside}
-  />
-  
-  <main class="min-h-screen w-full px-4 pt-8">
-    <div class="max-w-2xl mx-auto">
-      <!-- Icon -->
-      <div class="flex justify-center mb-8">
-        <div class="w-20 h-20 rounded-full bg-primary-500/10 flex items-center justify-center">
-          <svg class="w-10 h-10 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        </div>
-      </div>
-
-      <h1 class="text-2xl sm:text-3xl font-bold text-white text-center mb-8">
-        Antes de Come√ßar
-      </h1>
-
-      <div class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20">
-        <div class="flex items-start gap-3">
-          <div class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
-            <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-white font-semibold mb-2">Aviso</h2>
-            <p class="text-white/70 text-sm">
-              Nosso app demonstra o fluxo da interface. A captura de c√¢mera e detec√ß√£o de exerc√≠cios em tempo real ser√£o habilitadas na pr√≥xima fase.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20">
-        <div class="flex items-start gap-3">
-          <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
-            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-white font-semibold mb-2">Privacidade</h2>
-            <p class="text-white/70 text-sm">
-              Sua privacidade √© importante. Todo o processamento acontecer√° localmente no seu dispositivo.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-center">
-        <button
-          type="button"
-          class="button-primary px-8 py-3 text-white font-semibold text-lg"
-          onclick={() => goto(`${base}/train`)}
-        >
-          Come√ßar
-        </button>
-      </div>
-    </div>
-  </main>
-</div>
-

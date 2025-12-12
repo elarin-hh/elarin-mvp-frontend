@@ -32,7 +32,6 @@ const initialState: AudioFeedbackState = {
 
 const store = writable<AudioFeedbackState>(initialState);
 
-// Provider resolves audio files from /audio/feedback/<slug>__<tone>.mp3
 const provider = new StaticAudioFeedbackProvider({
   basePath: '/audio/feedback',
   includeToneInFilename: true
@@ -40,7 +39,6 @@ const provider = new StaticAudioFeedbackProvider({
 
 const service = new AudioFeedbackService(provider);
 
-// Evita repetir o mesmo áudio em sequência (debounce).
 const recentlyQueued = new Map<string, number>();
 const RECENT_MESSAGE_WINDOW_MS = 1500;
 
@@ -107,9 +105,6 @@ export const audioFeedbackActions = {
     }));
   },
 
-  /**
-   * Converte mensagens de feedback em áudio e toca na ordem de prioridade.
-   */
   playFeedback(
     messages: FeedbackMessage[],
     options?: { mode?: FeedbackMode; exercise?: ExerciseType | null; replaceQueue?: boolean; tone?: AudioFeedbackTone }

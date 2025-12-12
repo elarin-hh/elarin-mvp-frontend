@@ -1,31 +1,39 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { base } from '$app/paths';
-  import { authActions } from '$lib/services/auth.facade';
-  import { authStore } from '$lib/stores/auth.store';
-  import { authApi } from '$lib/api/auth.api';
-  import AppHeader from '$lib/components/common/AppHeader.svelte';
-  import Modal from '$lib/components/common/Modal.svelte';
-  import Loading from '$lib/components/common/Loading.svelte';
-  import { User, CreditCard, HelpCircle, Trash2, Camera, TriangleAlert, Building2, Shield, CheckCircle } from 'lucide-svelte';
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { base } from "$app/paths";
+  import { authActions } from "$lib/services/auth.facade";
+  import { authStore } from "$lib/stores/auth.store";
+  import { authApi } from "$lib/api/auth.api";
+  import AppHeader from "$lib/components/common/AppHeader.svelte";
+  import Modal from "$lib/components/common/Modal.svelte";
+  import Loading from "$lib/components/common/Loading.svelte";
+  import {
+    User,
+    CreditCard,
+    HelpCircle,
+    Trash2,
+    Camera,
+    TriangleAlert,
+    Building2,
+    Shield,
+    CheckCircle,
+  } from "lucide-svelte";
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
-  let activeTab = $state<'account' | 'subscription' | 'help'>('account');
+  let activeTab = $state<"account" | "subscription" | "help">("account");
 
-  // Account tab
-  let userName = $state('');
-  let userEmail = $state('');
-  let avatarUrl = $state('');
+  let userName = $state("");
+  let userEmail = $state("");
+  let avatarUrl = $state("");
   let showDeleteModal = $state(false);
   let isDeleting = $state(false);
-  let deleteError = $state('');
+  let deleteError = $state("");
 
-  // Subscription tab - B2B Model
-  let organizationName = $state('Academia FitLife');
-  let organizationPlan = $state('Partner');
-  // Privacy/consent
+  let organizationName = $state("Academia FitLife");
+  let organizationPlan = $state("Partner");
+
   let generalConsentExp = $state<string | null>(null);
   let biometricConsentExp = $state<string | null>(null);
 
@@ -46,34 +54,34 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.avatar-menu-container')) {
+    if (!target.closest(".avatar-menu-container")) {
       showAvatarMenu = false;
     }
   }
 
-  function changeTab(tab: 'account' | 'subscription' | 'help') {
+  function changeTab(tab: "account" | "subscription" | "help") {
     activeTab = tab;
   }
 
   function openDeleteModal() {
     showDeleteModal = true;
-    deleteError = '';
+    deleteError = "";
   }
 
   function closeDeleteModal() {
     showDeleteModal = false;
-    deleteError = '';
+    deleteError = "";
   }
 
   async function confirmDeleteAccount() {
     try {
       isDeleting = true;
-      deleteError = '';
+      deleteError = "";
 
       const response = await authApi.deleteAccount();
 
       if (!response.success) {
-        deleteError = response.error?.message || 'Falha ao excluir conta';
+        deleteError = response.error?.message || "Falha ao excluir conta";
         return;
       }
 
@@ -81,51 +89,49 @@
       await authActions.logout();
       goto(`${base}/`);
     } catch (error) {
-      deleteError = error instanceof Error ? error.message : 'Erro desconhecido';
+      deleteError =
+        error instanceof Error ? error.message : "Erro desconhecido";
     } finally {
       isDeleting = false;
     }
   }
 
   function loadConsentStatus() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const consentExp = localStorage.getItem('elarin_consent_exp');
+    const consentExp = localStorage.getItem("elarin_consent_exp");
     generalConsentExp = consentExp || null;
 
-    const biometricExp = localStorage.getItem('elarin_biometric_consent_exp');
+    const biometricExp = localStorage.getItem("elarin_biometric_consent_exp");
     biometricConsentExp = biometricExp || null;
   }
 
-
   onMount(() => {
-    // Load user data
     const user = $authStore.user;
     if (user) {
-      userName = user.full_name || '';
-      userEmail = user.email || '';
+      userName = user.full_name || "";
+      userEmail = user.email || "";
     }
 
-    // Handle scroll for header effect
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       isScrolled = target.scrollTop > 50;
     };
 
-    const viewport = document.querySelector('.sa-viewport');
+    const viewport = document.querySelector(".sa-viewport");
 
     if (viewport) {
-      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      viewport.addEventListener("scroll", handleScroll, { passive: true });
       return () => {
-        viewport.removeEventListener('scroll', handleScroll);
+        viewport.removeEventListener("scroll", handleScroll);
       };
     } else {
       const handleWindowScroll = () => {
         isScrolled = window.scrollY > 50;
       };
-      window.addEventListener('scroll', handleWindowScroll, { passive: true });
+      window.addEventListener("scroll", handleWindowScroll, { passive: true });
       return () => {
-        window.removeEventListener('scroll', handleWindowScroll);
+        window.removeEventListener("scroll", handleWindowScroll);
       };
     }
 
@@ -134,7 +140,7 @@
 </script>
 
 <svelte:head>
-  <title>ConfiguraÃ§Ãµes - Elarin</title>
+  <title>Configurações - Elarin</title>
 </svelte:head>
 
 <main class="settings-page">
@@ -150,45 +156,40 @@
 
   <div class="content">
     <div class="settings-container">
-      <h1 class="page-title">ConfiguraÃ§Ãµes</h1>
+      <h1 class="page-title">Configurações</h1>
 
       <div class="settings-layout">
-        <!-- Tabs Navigation -->
         <nav class="tabs-nav">
           <button
             type="button"
             class="tab-button"
-            class:active={activeTab === 'account'}
-            onclick={() => changeTab('account')}
+            class:active={activeTab === "account"}
+            onclick={() => changeTab("account")}
           >
             <User class="tab-icon" />
-            <!-- <span>Conta</span> -->
           </button>
           <button
             type="button"
             class="tab-button"
-            class:active={activeTab === 'subscription'}
-            onclick={() => changeTab('subscription')}
+            class:active={activeTab === "subscription"}
+            onclick={() => changeTab("subscription")}
           >
             <CreditCard class="tab-icon" />
-            <!-- <span>Assinatura</span> -->
           </button>
           <button
             type="button"
             class="tab-button"
-            class:active={activeTab === 'help'}
-            onclick={() => changeTab('help')}
+            class:active={activeTab === "help"}
+            onclick={() => changeTab("help")}
           >
             <HelpCircle class="tab-icon" />
-            <!-- <span>Ajuda</span> -->
           </button>
         </nav>
 
-        <!-- Tab Content -->
         <div class="tab-content">
-          {#if activeTab === 'account'}
+          {#if activeTab === "account"}
             <div class="tab-panel">
-              <h2 class="section-title">InformaÃ§Ãµes da Conta</h2>
+              <h2 class="section-title">Informações da Conta</h2>
 
               <div class="avatar-section">
                 <div class="avatar-preview">
@@ -238,18 +239,22 @@
                 />
               </div>
 
-
               <div class="privacy-card">
                 <div class="privacy-header">
                   <h3 class="section-subtitle">Privacidade e Consentimentos</h3>
-                  <p class="privacy-hint">Visualize consentimentos ativos para cookies essenciais e biometria.</p>
+                  <p class="privacy-hint">
+                    Visualize consentimentos ativos para cookies essenciais e
+                    biometria.
+                  </p>
                 </div>
 
                 <div class="consent-row static">
                   <div>
                     <p class="consent-label">Cookies essenciais</p>
                     <p class="consent-meta">
-                      {generalConsentExp ? `Valido ate ${generalConsentExp}` : 'Pendente/expirado'}
+                      {generalConsentExp
+                        ? `Valido ate ${generalConsentExp}`
+                        : "Pendente/expirado"}
                     </p>
                   </div>
                 </div>
@@ -258,28 +263,35 @@
                   <div>
                     <p class="consent-label">Consentimento biometrico</p>
                     <p class="consent-meta">
-                      {biometricConsentExp ? `Valido ate ${biometricConsentExp}` : 'Solicitado ao iniciar camera'}
+                      {biometricConsentExp
+                        ? `Valido ate ${biometricConsentExp}`
+                        : "Solicitado ao iniciar camera"}
                     </p>
                   </div>
                 </div>
 
                 <p class="privacy-note">
-                  Consentimentos sao armazenados localmente e podem expirar conforme as politicas aplicaveis.
+                  Consentimentos sao armazenados localmente e podem expirar
+                  conforme as politicas aplicaveis.
                 </p>
               </div>
 
               <div class="danger-zone">
                 <h3 class="danger-title">Deletar Conta</h3>
                 <p class="danger-description">
-                  Uma vez que vocÃª excluir sua conta, nÃ£o hÃ¡ como voltar atrÃ¡s. Para excluir <button type="button" class="delete-link" onclick={openDeleteModal}>clique aqui</button>.
+                  Uma vez que você excluir sua conta, não há como voltar atrás.
+                  Para excluir <button
+                    type="button"
+                    class="delete-link"
+                    onclick={openDeleteModal}>clique aqui</button
+                  >.
                 </p>
               </div>
             </div>
-          {:else if activeTab === 'subscription'}
+          {:else if activeTab === "subscription"}
             <div class="tab-panel">
               <h2 class="section-title">Assinatura</h2>
 
-              <!-- Organization Card -->
               <div class="organization-card">
                 <div class="organization-header">
                   <div class="org-icon-wrapper">
@@ -287,7 +299,7 @@
                   </div>
                   <div class="org-info">
                     <h3 class="org-name">{organizationName}</h3>
-                    <p class="org-subtitle">Sua organizaÃ§Ã£o parceira</p>
+                    <p class="org-subtitle">Sua organização parceira</p>
                   </div>
                   <div class="status-badge active">
                     <CheckCircle class="status-icon" />
@@ -296,7 +308,6 @@
                 </div>
               </div>
 
-              <!-- Plan Information -->
               <div class="plan-card">
                 <div class="plan-header">
                   <div class="plan-icon-wrapper">
@@ -304,41 +315,50 @@
                   </div>
                   <div>
                     <h3 class="plan-title">Plano {organizationPlan}</h3>
-                    <p class="plan-description">Acesso fornecido pela sua organizaÃ§Ã£o</p>
+                    <p class="plan-description">
+                      Acesso fornecido pela sua organização
+                    </p>
                   </div>
                 </div>
 
                 <div class="plan-divider"></div>
                 <div class="plan-notice">
                   <p>
-                    Sua assinatura Ã© gerenciada pela organizaÃ§Ã£o <strong>{organizationName}</strong>.
-                    Para alteraÃ§Ãµes ou dÃºvidas sobre seu acesso, entre em contato com o administrador da sua organizaÃ§Ã£o.
+                    Sua assinatura é gerenciada pela organização <strong
+                      >{organizationName}</strong
+                    >. Para alterações ou dúvidas sobre seu acesso, entre em
+                    contato com o administrador da sua organização.
                   </p>
                 </div>
               </div>
             </div>
-          {:else if activeTab === 'help'}
+          {:else if activeTab === "help"}
             <div class="tab-panel">
               <h2 class="section-title">Ajuda e Suporte</h2>
 
-              <!-- Contact Section -->
               <div class="help-section">
                 <h3 class="subsection-title">Entre em Contato</h3>
                 <p class="help-text">
-                  Precisa de ajuda? Nossa equipe de suporte estÃ¡ pronta para ajudÃ¡-lo.
+                  Precisa de ajuda? Nossa equipe de suporte está pronta para
+                  ajudá-lo.
                 </p>
 
                 <div class="contact-options">
                   <a href="mailto:elarinfit@gmail.com" class="contact-card">
-                    <div class="contact-icon">ðŸ“§</div>
+                    <div class="contact-icon">??</div>
                     <div class="contact-info">
                       <div class="contact-title">Email</div>
                       <div class="contact-detail">elarinfit@gmail.com</div>
                     </div>
                   </a>
 
-                  <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" class="contact-card">
-                    <div class="contact-icon">ðŸ’¬</div>
+                  <a
+                    href="https://wa.me/5511999999999"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="contact-card"
+                  >
+                    <div class="contact-icon">??</div>
                     <div class="contact-info">
                       <div class="contact-title">WhatsApp</div>
                       <div class="contact-detail">+55 41 97890787</div>
@@ -347,23 +367,31 @@
                 </div>
               </div>
 
-              <!-- Resources Section -->
               <div class="help-section">
-                <h3 class="subsection-title">Recursos Ãšteis</h3>
+                <h3 class="subsection-title">Recursos Úteis</h3>
                 <ul class="resources-list">
-                  <li><a href="/faq" class="resource-link">Perguntas Frequentes (FAQ)</a></li>
-                  <!-- <li><a href="/docs" class="resource-link">DocumentaÃ§Ã£o</a></li> -->
-                  <li><a href="/privacy" class="resource-link">PolÃ­tica de Privacidade</a></li>
-                  <li><a href="/terms" class="resource-link">Termos de Uso</a></li>
+                  <li>
+                    <a href="/faq" class="resource-link"
+                      >Perguntas Frequentes (FAQ)</a
+                    >
+                  </li>
+
+                  <li>
+                    <a href="/privacy" class="resource-link"
+                      >Política de Privacidade</a
+                    >
+                  </li>
+                  <li>
+                    <a href="/terms" class="resource-link">Termos de Uso</a>
+                  </li>
                 </ul>
               </div>
 
-              <!-- About Section -->
               <div class="help-section">
                 <h3 class="subsection-title">Sobre o Elarin</h3>
                 <div class="about-content">
                   <p class="about-item">
-                    <span class="about-label">VersÃ£o:</span>
+                    <span class="about-label">Versão:</span>
                     <span class="about-value">1.0.0</span>
                   </p>
                   <p class="about-item">
@@ -371,7 +399,7 @@
                     <span class="about-value">Equipe Elarin</span>
                   </p>
                   <p class="about-copyright">
-                    Â© 2025 Elarin. Todos os direitos reservados.
+                    © 2025 Elarin. Todos os direitos reservados.
                   </p>
                 </div>
               </div>
@@ -383,19 +411,24 @@
   </div>
 </main>
 
-<!-- Delete Account Modal -->
-<Modal isOpen={showDeleteModal} onClose={closeDeleteModal} showCloseButton={false} class="delete-modal-wrapper">
+<Modal
+  isOpen={showDeleteModal}
+  onClose={closeDeleteModal}
+  showCloseButton={false}
+  class="delete-modal-wrapper"
+>
   {#snippet children()}
     <div class="delete-modal-content">
       <h2 class="delete-modal-title">Excluir Conta</h2>
 
       <p class="delete-modal-description">
-        VocÃª tem certeza que deseja excluir sua conta permanentemente e todos os dados vinculados a ela?
+        Você tem certeza que deseja excluir sua conta permanentemente e todos os
+        dados vinculados a ela?
       </p>
 
       <div class="delete-modal-warning">
         <TriangleAlert class="warning-icon" />
-        <span>Esta aÃ§Ã£o nÃ£o pode ser desfeita!</span>
+        <span>Esta ação não pode ser desfeita!</span>
       </div>
 
       {#if deleteError}
@@ -579,7 +612,7 @@
     border-radius: var(--radius-full);
     overflow: hidden;
     background: var(--color-border-light);
-    border: 1px solid var(--color-border-light);    
+    border: 1px solid var(--color-border-light);
     cursor: not-allowed;
     transition: all 0.2s ease;
     opacity: 0.6;
@@ -904,7 +937,7 @@
 
   .slider:before {
     position: absolute;
-    content: '';
+    content: "";
     height: 18px;
     width: 18px;
     left: 3px;
@@ -1089,7 +1122,7 @@
     background: var(--color-border-light);
     margin-bottom: 1.5rem;
   }
-.plan-notice {
+  .plan-notice {
     padding: 1rem;
     background: rgba(159, 246, 59, 0.08);
     border-left: 3px solid var(--color-primary-500);
@@ -1199,7 +1232,7 @@
   }
 
   .resources-list li::before {
-    content: 'â†’';
+    content: "?";
     position: absolute;
     left: 0;
     color: var(--color-primary-500);

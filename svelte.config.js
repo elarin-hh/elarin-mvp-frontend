@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 
 const dev = process.env.NODE_ENV === 'development';
-// Allow disabling HTTPS upgrade for plain HTTP/static hosting (e.g., S3 website endpoint)
+
 const forceHttps = process.env.FORCE_HTTPS === 'true';
 const apiBase = (() => {
   const raw = process.env.VITE_API_BASE_URL || '';
@@ -15,14 +15,14 @@ const basePath = dev ? '' : process.env.BASE_PATH || '';
 const apiOrigin = (() => {
   try {
     if (apiBase) return new URL(apiBase).origin;
-    // Defaults for local dev if env is missing
+
     return dev ? 'http://localhost:3001' : null;
   } catch {
     return null;
   }
 })();
 
-/** @type {import('@sveltejs/kit').Config} */
+
 const config = {
   kit: {
     adapter: adapter({
@@ -30,7 +30,7 @@ const config = {
       fallback: 'index.html'
     }),
     csp: {
-      // Use hash mode so prerender/fallback generation works on static hosting
+
       mode: 'hash',
       directives: {
         'default-src': ["'self'"],

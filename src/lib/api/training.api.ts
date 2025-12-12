@@ -1,5 +1,3 @@
-// Training API - Elarin NestJS Backend Integration
-// Uses NestJS endpoints: /training/save, /training/history
 import { restClient, type ApiResponse } from './rest.client';
 
 export interface Exercise {
@@ -36,44 +34,24 @@ export interface SaveTrainingRequest {
 }
 
 export const trainingApi = {
-  /**
-   * Get all available exercises
-   * @deprecated Use exercisesApi.getAll() instead
-   */
   async getExercises(): Promise<ApiResponse<Exercise[]>> {
     return restClient.get<Exercise[]>('/exercises');
   },
 
-  /**
-   * Get a specific exercise by type
-   * @deprecated Use exercisesApi.getByType() instead
-   */
   async getExerciseByType(type: string): Promise<ApiResponse<Exercise>> {
     return restClient.get<Exercise>(`/exercises/${type}`);
   },
 
-  /**
-   * Save completed training session
-   * POST /training/save
-   */
   async saveTraining(data: SaveTrainingRequest): Promise<ApiResponse<TrainingMetric>> {
     return restClient.post<TrainingMetric>('/training/save', data);
   },
 
-  /**
-   * Get training history
-   * GET /training/history?limit=20&offset=0
-   */
   async getHistory(limit = 20, offset = 0): Promise<ApiResponse<TrainingMetric[]>> {
     return restClient.get<TrainingMetric[]>(
       `/training/history?limit=${limit}&offset=${offset}`
     );
   },
 
-  /**
-   * Get details of a specific training
-   * GET /training/:id
-   */
   async getTrainingDetails(metricId: number): Promise<ApiResponse<TrainingMetric>> {
     return restClient.get<TrainingMetric>(`/training/${metricId}`);
   }

@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => ({
         enabled: false
       }
     }),
-    // Aplicar obfuscation apenas em produção
+
     mode === 'production' && obfuscatorPlugin({
       include: ['**/*.js', '**/*.ts', '**/*.svelte'],
       exclude: [
@@ -98,16 +98,16 @@ export default defineConfig(({ mode }) => ({
       '.ngrok-free.app'
     ],
     fs: {
-      // Allow serving files from static folder
+
       allow: ['..']
     }
   },
   build: {
-    // Otimizações de build
+
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.log em produção
+        drop_console: true,
         drop_debugger: true
       }
     }

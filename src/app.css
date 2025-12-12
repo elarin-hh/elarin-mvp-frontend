@@ -1,4 +1,3 @@
-/* Import Design Tokens */
 @import './lib/styles/tokens.css';
 @import '@fontsource/nunito-sans/300.css';
 @import '@fontsource/nunito-sans/400.css';
@@ -43,7 +42,6 @@
     }
   }
 
-  /* Glassmorphism Utilities */
   .glass {
     background: var(--glass-bg);
     backdrop-filter: var(--glass-backdrop);
@@ -61,14 +59,12 @@
     border-color: rgba(255, 255, 255, 0.5);
   }
 
-  /* Global input styles */
   input,
   textarea,
   select {
     border-radius: var(--radius-sm);
   }
 
-  /* Minimal scrollbar */
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.06);

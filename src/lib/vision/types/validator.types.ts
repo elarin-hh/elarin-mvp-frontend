@@ -1,7 +1,3 @@
-/**
- * Validator Types
- */
-
 import type { Severity } from './feedback.types';
 
 export interface ValidationIssue {

@@ -1,28 +1,13 @@
-/**
- * Generic Exercise Classifier - One-Class Anomaly Detection
- * ==========================================================
- *
- * This is a generic classifier that can work with any exercise model.
- * It uses the One-Class Learning approach trained only with correct examples.
- *
- * How it works:
- * 1. Model reconstructs the movement
- * 2. Calculates reconstruction error (MSE)
- * 3. If error > threshold → INCORRECT
- * 4. If error ≤ threshold → CORRECT
- */
-
 import type { PoseLandmarks } from '../types';
 import type { MLResult } from '../core/FeedbackSystem';
 import { assets } from '$app/paths';
 import * as ort from 'onnxruntime-web';
 
-// Configure ONNX Runtime Web to load WASM from self-hosted static assets
 if (typeof window !== 'undefined') {
   ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0/dist/';
-  ort.env.wasm.numThreads = 1; // evita requisito de COOP/COEP para threads
-  ort.env.wasm.proxy = false; // executa no main thread para reduzir dependências de worker
-  ort.env.wasm.simd = false; // força build single-thread sem SIMD para maximizar compatibilidade/CSP
+  ort.env.wasm.numThreads = 1;
+  ort.env.wasm.proxy = false;
+  ort.env.wasm.simd = false;
 }
 
 export interface ClassifierConfig {
@@ -93,23 +78,16 @@ export class GenericExerciseClassifier {
     this.maxMetricHistory = 50;
   }
 
-  /**
-   * Loads ONNX model and metadata
-   */
   async loadModel(
     modelPath: string = './models/autoencoder.onnx',
     metadataFile: string | null = null
   ): Promise<void> {
     try {
-      // Load model
       this.session = await ort.InferenceSession.create(modelPath);
 
-      // Try to load metadata
       try {
-        // Use metadataFile from config or derive from modelPath
         let metadataPath: string;
         if (metadataFile) {
-          // Extract directory from modelPath
           const modelDir = modelPath.substring(0, modelPath.lastIndexOf('/'));
           metadataPath = `${modelDir}/${metadataFile}`;
         } else {
@@ -123,7 +101,6 @@ export class GenericExerciseClassifier {
           this.config.threshold = metadata.threshold;
         }
       } catch (metadataError) {
-        // Metadata file not found or invalid, using default threshold
       }
 
       this.isLoaded = true;
@@ -133,13 +110,9 @@ export class GenericExerciseClassifier {
     }
   }
 
-  /**
-   * Prepares MediaPipe landmarks into feature array
-   */
   private prepareLandmarks(landmarks: PoseLandmarks): number[] {
     const features: number[] = [];
     for (const landmark of landmarks) {
-      // Ensure landmarks are normalized (0-1 range)
       const x = Math.max(0, Math.min(1, landmark.x || 0));
       const y = Math.max(0, Math.min(1, landmark.y || 0));
       const z = Math.max(0, Math.min(1, landmark.z || 0));
@@ -147,7 +120,6 @@ export class GenericExerciseClassifier {
       features.push(x, y, z);
     }
 
-    // Ensure we have exactly 99 features (33 landmarks * 3 coordinates)
     while (features.length < 99) {
       features.push(0);
     }
@@ -155,14 +127,10 @@ export class GenericExerciseClassifier {
     return features.slice(0, 99);
   }
 
-  /**
-   * Adds frame to buffer
-   */
   private addFrame(landmarks: PoseLandmarks): void {
     const features = this.prepareLandmarks(landmarks);
     this.frameBuffer.push(features);
 
-    // Track frame timing for FPS
     const now = performance.now();
     if (this.lastFrameTime !== null) {
       this.frameTimestamps.push(now - this.lastFrameTime);
@@ -172,59 +140,38 @@ export class GenericExerciseClassifier {
     }
     this.lastFrameTime = now;
 
-    // Maintain buffer size
     if (this.frameBuffer.length > this.config.maxFrames) {
       this.frameBuffer.shift();
     }
   }
 
-  /**
-   * Calculates reconstruction error (MSE)
-   * IMPORTANT: Must match Python training code exactly!
-   * Python: torch.mean((x - reconstruction) ** 2, dim=[1, 2])
-   * This means: mean over frames AND features dimensions
-   */
   private calculateReconstructionError(input: number[], reconstruction: number[]): number {
-    // Input/reconstruction are already flattened from [60, 99] to [5940]
-    // We need to calculate MSE per frame, then average across frames
-    // to match the Python implementation: mean(dim=[1,2])
-
-    const numFrames = this.config.maxFrames;  // 60
+    const numFrames = this.config.maxFrames;
     const numFeatures = 99;
 
     let totalFrameError = 0;
 
-    // Calculate error for each frame
     for (let frame = 0; frame < numFrames; frame++) {
       let frameSquaredError = 0;
 
-      // Calculate squared error for all features in this frame
       for (let feature = 0; feature < numFeatures; feature++) {
         const idx = frame * numFeatures + feature;
         const diff = input[idx] - reconstruction[idx];
         frameSquaredError += diff * diff;
       }
 
-      // Average error for this frame
       const frameError = frameSquaredError / numFeatures;
       totalFrameError += frameError;
     }
 
-    // Average across all frames (matching PyTorch's mean(dim=[1,2]))
     return totalFrameError / numFrames;
   }
 
-  /**
-   * Calculates average from array
-   */
   private calculateAverage(arr: number[]): number {
     if (arr.length === 0) return 0;
     return arr.reduce((a, b) => a + b, 0) / arr.length;
   }
 
-  /**
-   * Gets current FPS metrics
-   */
   private getBasicMetrics(): PerformanceMetrics {
     const avgFrameTime = this.calculateAverage(this.frameTimestamps);
     const currentFps = avgFrameTime > 0 ? 1000 / avgFrameTime : 0;
@@ -242,9 +189,6 @@ export class GenericExerciseClassifier {
     };
   }
 
-  /**
-   * Makes prediction using autoencoder
-   */
   private async predict(): Promise<MLResult> {
     if (!this.isLoaded) {
       throw new Error('Model not loaded');
@@ -261,75 +205,56 @@ export class GenericExerciseClassifier {
     try {
       const inferenceStart = performance.now();
 
-      // Prepare input (padding if necessary)
       const input = [...this.frameBuffer];
 
-      // Ensure we have exactly maxFrames (60)
       while (input.length < this.config.maxFrames) {
         input.push(new Array(99).fill(0));
       }
 
-      // Truncate if we have more than maxFrames
       if (input.length > this.config.maxFrames) {
         input.splice(this.config.maxFrames);
       }
 
-      // Convert to ONNX tensor: [1, maxFrames, 99]
       const inputFlat = input.flat();
       const inputTensor = new ort.Tensor('float32', inputFlat, [1, this.config.maxFrames, 99]);
 
-      // Prediction (autoencoder reconstructs the input)
       const feeds = { input: inputTensor };
       const results = await this.session!.run(feeds);
       const reconstruction = results.reconstruction;
 
-      // Calculate reconstruction error
       const reconstructionError = this.calculateReconstructionError(
         inputFlat,
         Array.from(reconstruction.data as Float32Array)
       );
 
-      // Track inference time
       const inferenceTime = performance.now() - inferenceStart;
       this.inferenceTimesMs.push(inferenceTime);
       if (this.inferenceTimesMs.length > this.maxMetricHistory) {
         this.inferenceTimesMs.shift();
       }
 
-      // Add to history
       this.errorHistory.push(reconstructionError);
       if (this.errorHistory.length > this.config.maxHistorySize) {
         this.errorHistory.shift();
       }
 
-      // Decide if correct or incorrect
       const isCorrect = reconstructionError <= this.threshold;
 
-      // Calculate quality score (0-100%)
-      // If error <= threshold: 100% to 70% (Acceptable limit)
-      // If error > threshold: 70% to 0%  (Decay)
       const ratio = reconstructionError / this.threshold;
       let qualityScore = 0;
-      const toleranceMultiplier = 1.1; // Margin of 10% extra error allowed
+      const toleranceMultiplier = 1.1;
 
       if (ratio <= 1.0) {
-        // Safe Zone: Error is within the threshold -> 100% Score
         qualityScore = 1.0;
       } else if (ratio <= toleranceMultiplier) {
-        // Tolerance Zone: Error is between 1.0x and 1.5x threshold
-        // Decays linearly from 1.0 (100%) down to 0.0 (0%)
-        // Normalized position in tolerance zone (0.0 to 1.0)
         const tolerancePos = (ratio - 1.0) / (toleranceMultiplier - 1.0);
         qualityScore = 1.0 - tolerancePos;
       } else {
-        // Fail Zone: Error exceeded tolerance
         qualityScore = 0;
       }
 
-      // Calculate confidence based on qualityScore (simplified)
       const confidence = Math.max(0, Math.min(1, qualityScore));
 
-      // Get metrics
       const metrics = this.getBasicMetrics();
 
       return {
@@ -339,10 +264,10 @@ export class GenericExerciseClassifier {
         threshold: this.threshold,
         status: isCorrect ? 'correct' : 'incorrect',
         message: isCorrect
-          ? 'Execução correta! Continue assim!'
-          : 'Atenção! Movimento incorreto detectado.',
+          ? 'Execu��o correta! Continue assim!'
+          : 'Aten��o! Movimento incorreto detectado.',
         details: {
-          qualityScore: (qualityScore * 100).toFixed(1), // Expose raw score for Analyzer
+          qualityScore: (qualityScore * 100).toFixed(1),
           error: reconstructionError.toFixed(6),
           threshold: this.threshold.toFixed(6),
           confidence: (confidence * 100).toFixed(1) + '%',
@@ -360,18 +285,14 @@ export class GenericExerciseClassifier {
     } catch (error) {
       return {
         status: 'error',
-        message: 'Erro na análise'
+        message: 'Erro na an�lise'
       };
     }
   }
 
-  /**
-   * Real-time analysis
-   */
   async analyzeFrame(landmarks: PoseLandmarks): Promise<MLResult> {
     this.addFrame(landmarks);
 
-    // Prediction every N frames (configurable)
     if (
       this.frameBuffer.length % this.config.predictionInterval === 0 &&
       this.frameBuffer.length >= this.config.minFrames
@@ -385,9 +306,6 @@ export class GenericExerciseClassifier {
     };
   }
 
-  /**
-   * Resets buffer and history
-   */
   reset(): void {
     this.frameBuffer = [];
     this.errorHistory = [];
@@ -396,18 +314,11 @@ export class GenericExerciseClassifier {
     this.lastFrameTime = null;
   }
 
-  /**
-   * Manually adjusts threshold (calibration)
-   */
   setThreshold(newThreshold: number): void {
     this.threshold = newThreshold;
     this.config.threshold = newThreshold;
   }
 
-  /**
-   * Automatic calibration based on history
-   * Uses 95th percentile of observed errors
-   */
   autoCalibrate(): number {
     if (this.errorHistory.length < 20) {
       return this.threshold;
@@ -421,17 +332,11 @@ export class GenericExerciseClassifier {
     return newThreshold;
   }
 
-  /**
-   * Ajusta threshold para ser mais tolerante
-   */
   adjustThresholdForTolerance(factor: number = 1.5): number {
     this.threshold = this.threshold * factor;
     return this.threshold;
   }
 
-  /**
-   * Gets detailed statistics
-   */
   getStatistics(): ErrorStatistics | null {
     if (this.errorHistory.length === 0) {
       return null;
