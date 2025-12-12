@@ -2088,7 +2088,7 @@
     max-width: var(--container-max-width);
     height: var(--container-height);
     min-height: 60vh;
-    margin: 0 auto 4rem;
+    margin: 0 auto 2rem;
     gap: var(--container-gap);
     position: relative;
     justify-self: center;
@@ -2145,21 +2145,21 @@
     max-height: none;
   }
 
-  .split-container.layout-user-centered,
-  .split-container.layout-coach-centered {
+  .split-container.layout-user-centered:not(.fullscreen),
+  .split-container.layout-coach-centered:not(.fullscreen) {
     grid-template-columns: 1fr;
     position: relative;
     width: 100%;
     max-width: 1280px;
-    height: calc(100vh - 6rem);
-    min-height: 60vh;
+    height: auto;
+    min-height: 0;
   }
 
-  .split-container.layout-user-centered .video-container {
+  .split-container.layout-user-centered:not(.fullscreen) .video-container {
     width: 100%;
-    height: 100%;
+    height: var(--player-height);
+    max-height: 80vh;
     border-radius: var(--radius-md);
-    max-height: none;
   }
 
   .split-container.layout-user-centered .reference-container {
@@ -2173,11 +2173,11 @@
     max-height: none;
   }
 
-  .split-container.layout-coach-centered .reference-container {
+  .split-container.layout-coach-centered:not(.fullscreen) .reference-container {
     width: 100%;
-    height: 100%;
+    height: var(--player-height);
+    max-height: 80vh;
     border-radius: var(--radius-md);
-    max-height: none;
   }
 
   .split-container.layout-coach-centered .video-container {
@@ -2629,6 +2629,12 @@
 
     .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
       border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+
+    .split-container.layout-user-centered:not(.fullscreen) .video-container,
+    .split-container.layout-coach-centered:not(.fullscreen)
+      .reference-container {
+      height: calc(var(--player-height) * 2);
     }
   }
 
@@ -3082,7 +3088,6 @@
     color: var(--color-text-primary);
     padding: clamp(1rem, 4vw, 1.5rem);
     padding-bottom: clamp(1.5rem, 5vw, 2rem);
-    margin-top: 1rem;
     animation: slideUp 0.3s ease-out;
     border-radius: var(--radius-lg);
     box-shadow: var(--glass-shadow);
