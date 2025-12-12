@@ -310,7 +310,7 @@ export class GenericExerciseClassifier {
       // If error > threshold: 70% to 0%  (Decay)
       const ratio = reconstructionError / this.threshold;
       let qualityScore = 0;
-      const toleranceMultiplier = 1.5; // Margin of 50% extra error allowed
+      const toleranceMultiplier = 1.1; // Margin of 10% extra error allowed
 
       if (ratio <= 1.0) {
         // Safe Zone: Error is within the threshold -> 100% Score

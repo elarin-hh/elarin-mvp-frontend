@@ -107,7 +107,7 @@ export class ExerciseAnalyzer {
   }
 
   private scoreHistory: number[];
-  private readonly HISTORY_WINDOW_SIZE = 6; // ~0.2 seconds at 30fps (Ultra-sudden response)
+  private readonly HISTORY_WINDOW_SIZE = 3; // ~0.1 seconds at 30fps (Hyper-sudden response)
 
   /**
    * Inicializa todos os componentes
