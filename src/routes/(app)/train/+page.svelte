@@ -706,10 +706,14 @@
     if (hasNewMessages) {
       feedbackMessages = newMessages;
       if (isFeedbackEnabled) {
-        audioFeedbackActions.playFeedback(newMessages, {
-          mode: feedbackMode,
-          exercise: $trainingStore.exerciseType
-        });
+        // Filtra apenas mensagens do tipo 'warning' para reprodução de áudio
+        const warningMessages = newMessages.filter(msg => msg.type === 'warning');
+        if (warningMessages.length > 0) {
+          audioFeedbackActions.playFeedback(warningMessages, {
+            mode: feedbackMode,
+            exercise: $trainingStore.exerciseType
+          });
+        }
       }
     }
 
