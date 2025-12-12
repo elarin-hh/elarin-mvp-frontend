@@ -5,7 +5,7 @@ export function isValidEmail(email: string): boolean {
 
 export function isValidPassword(password: string): { valid: boolean; error?: string } {
   if (password.length < 6) {
-    return { valid: false, error: 'A senha deve ter no mÌnimo 6 caracteres' };
+    return { valid: false, error: 'A senha deve ter no m√≠nimo 6 caracteres' };
   }
   return { valid: true };
 }
@@ -16,18 +16,18 @@ export function passwordsMatch(password: string, confirmPassword: string): boole
 
 export function isValidBirthDate(dateString: string): { valid: boolean; error?: string } {
   if (!dateString) {
-    return { valid: false, error: 'Data de nascimento È obrigatÛria' };
+    return { valid: false, error: 'Data de nascimento √© obrigat√≥ria' };
   }
 
   const date = new Date(dateString);
   const now = new Date();
 
   if (isNaN(date.getTime())) {
-    return { valid: false, error: 'Data inv·lida' };
+    return { valid: false, error: 'Data inv√°lida' };
   }
 
   if (date > now) {
-    return { valid: false, error: 'Data de nascimento n„o pode ser no futuro' };
+    return { valid: false, error: 'Data de nascimento n√£o pode ser no futuro' };
   }
 
   const age = now.getFullYear() - date.getFullYear();
@@ -37,11 +37,11 @@ export function isValidBirthDate(dateString: string): { valid: boolean; error?: 
   const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
 
   if (actualAge < 13) {
-    return { valid: false, error: 'VocÍ deve ter no mÌnimo 13 anos' };
+    return { valid: false, error: 'Voc√™ deve ter no m√≠nimo 13 anos' };
   }
 
   if (actualAge > 120) {
-    return { valid: false, error: 'Data de nascimento inv·lida' };
+    return { valid: false, error: 'Data de nascimento inv√°lida' };
   }
 
   return { valid: true };
@@ -49,7 +49,7 @@ export function isValidBirthDate(dateString: string): { valid: boolean; error?: 
 
 export function isValidFullName(name: string): { valid: boolean; error?: string } {
   if (!name || name.trim().length < 2) {
-    return { valid: false, error: 'O nome completo deve ter no mÌnimo 2 caracteres' };
+    return { valid: false, error: 'O nome completo deve ter no m√≠nimo 2 caracteres' };
   }
 
   const parts = name.trim().split(/\s+/);

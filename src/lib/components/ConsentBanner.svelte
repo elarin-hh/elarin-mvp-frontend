@@ -4,7 +4,7 @@
 
   let showBanner = false;
   let isVisible = false;
-  const CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 ano
+  const CONSENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
   onMount(() => {
     const consent = localStorage.getItem('elarin_consent');
@@ -99,17 +99,17 @@
             Sua Privacidade Importa
           </h2>
           <p id="consent-description" class="text-white/70 text-sm leading-relaxed">
-            Usamos cookies essenciais para autenticação e processamos
-            <strong class="text-white">dados biométricos localmente</strong> (33 pontos corporais)
-            para análise de exercícios.
-            <strong class="text-white">Seu vídeo NUNCA é armazenado ou transmitido.</strong>
+            Usamos cookies essenciais para autenticaÃ§Ã£o e processamos
+            <strong class="text-white">dados biomÃ©tricos localmente</strong> (33 pontos corporais)
+            para anÃ¡lise de exercÃ­cios.
+            <strong class="text-white">Seu vÃ­deo NUNCA Ã© armazenado ou transmitido.</strong>
             <br />
-            Ao continuar, você concorda com nossos
+            Ao continuar, vocÃª concorda com nossos
             <a href="/terms" style="color: var(--color-primary-500);" class="hover:underline font-semibold" target="_blank">
               Termos de Uso
             </a> e
             <a href="/privacy" style="color: var(--color-primary-500);" class="hover:underline font-semibold" target="_blank">
-              Política de Privacidade
+              PolÃ­tica de Privacidade
             </a>.
           </p>
         </div>

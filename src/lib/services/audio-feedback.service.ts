@@ -138,7 +138,7 @@ export class AudioFeedbackService {
     try {
       src = await this.provider.resolveAudioUrl(next, tone);
     } catch (error) {
-      console.warn('Audio feedback: n„o foi possÌvel resolver ·udio', error);
+      console.warn('Audio feedback: n√£o foi poss√≠vel resolver √°udio', error);
     }
 
     if (!src) {

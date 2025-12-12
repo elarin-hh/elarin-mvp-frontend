@@ -215,7 +215,7 @@ export class FeedbackSystem {
         isCorrect: null,
         confidence: 0,
         verdict: 'unknown',
-        reason: mlData.message || 'ML não disponível',
+        reason: mlData.message || 'ML nÃ£o disponÃ­vel',
         mlContribution: 1.0,
         heuristicContribution: 0.0
       };
@@ -228,9 +228,9 @@ export class FeedbackSystem {
 
     let reason: string;
     if (mlData.isCorrect) {
-      reason = 'Padrão de movimento reconhecido (similar ao treino)';
+      reason = 'PadrÃ£o de movimento reconhecido (similar ao treino)';
     } else {
-      reason = 'Movimento anômalo detectado (diferente do treino)';
+      reason = 'Movimento anÃ´malo detectado (diferente do treino)';
     }
 
     return {
@@ -244,8 +244,8 @@ export class FeedbackSystem {
         reconstructionError: mlData.error,
         threshold: mlData.threshold,
         interpretation: mlData.isCorrect
-          ? 'Erro de reconstrução baixo (movimento familiar)'
-          : 'Erro de reconstrução alto (movimento desconhecido)'
+          ? 'Erro de reconstruÃ§Ã£o baixo (movimento familiar)'
+          : 'Erro de reconstruÃ§Ã£o alto (movimento desconhecido)'
       }
     };
   }
@@ -256,7 +256,7 @@ export class FeedbackSystem {
         isCorrect: null,
         confidence: 0,
         verdict: 'unknown',
-        reason: 'Heurísticas não disponíveis',
+        reason: 'HeurÃ­sticas nÃ£o disponÃ­veis',
         mlContribution: 0.0,
         heuristicContribution: 1.0
       };
@@ -272,7 +272,7 @@ export class FeedbackSystem {
       isCorrect,
       confidence,
       verdict: isCorrect ? 'correct' : 'incorrect',
-      reason: 'Baseado em análise biomecânica',
+      reason: 'Baseado em anÃ¡lise biomecÃ¢nica',
       mlContribution: 0.0,
       heuristicContribution: 1.0
     };
@@ -324,16 +324,16 @@ export class FeedbackSystem {
 
     let reason: string;
     if (isCorrect) {
-      reason = 'Execução correta confirmada (ML + Biomecânica)';
+      reason = 'ExecuÃ§Ã£o correta confirmada (ML + BiomecÃ¢nica)';
     } else {
       if (criticalIssues.length > 0) {
-        reason = 'Erros biomecânicos críticos detectados';
+        reason = 'Erros biomecÃ¢nicos crÃ­ticos detectados';
       } else if (!mlData.isCorrect && !heuristicData.isValid) {
-        reason = 'Padrão anômalo com erros técnicos detectados';
+        reason = 'PadrÃ£o anÃ´malo com erros tÃ©cnicos detectados';
       } else if (!mlData.isCorrect) {
-        reason = 'Padrão de movimento atípico (ML detectou anomalia)';
+        reason = 'PadrÃ£o de movimento atÃ­pico (ML detectou anomalia)';
       } else if (!heuristicData.isValid) {
-        reason = 'Erros biomecânicos detectados (Heurística)';
+        reason = 'Erros biomecÃ¢nicos detectados (HeurÃ­stica)';
       } else {
         reason = 'Movimento incorreto';
       }
@@ -378,21 +378,21 @@ export class FeedbackSystem {
         messages.push({
           type: 'success',
           priority: 1,
-          text: 'Movimento correto (padrão reconhecido)',
+          text: 'Movimento correto (padrÃ£o reconhecido)',
           severity: 'low'
         });
       } else if (feedback.combined.verdict === 'incorrect') {
         messages.push({
           type: 'error',
           priority: 1,
-          text: 'Anomalia detectada (padrão desconhecido)',
+          text: 'Anomalia detectada (padrÃ£o desconhecido)',
           severity: 'high'
         });
         if (feedback.ml.available && feedback.ml.error !== undefined) {
           messages.push({
             type: 'info',
             priority: 2,
-            text: `Erro de reconstrução: ${feedback.ml.error.toFixed(4)}`,
+            text: `Erro de reconstruÃ§Ã£o: ${feedback.ml.error.toFixed(4)}`,
             severity: 'low'
           });
         }
@@ -400,7 +400,7 @@ export class FeedbackSystem {
         messages.push({
           type: 'info',
           priority: 1,
-          text: '? Aguardando análise ML...',
+          text: '? Aguardando anÃ¡lise ML...',
           severity: 'low'
         });
       }
@@ -411,7 +411,7 @@ export class FeedbackSystem {
       messages.push({
         type: 'success',
         priority: 1,
-        text: 'Execução correta!',
+        text: 'ExecuÃ§Ã£o correta!',
         severity: 'low'
       });
     } else if (feedback.combined.verdict === 'incorrect') {
@@ -450,7 +450,7 @@ export class FeedbackSystem {
         messages.push({
           type: 'info',
           priority: 10,
-          text: 'Padrão atípico detectado pelo ML',
+          text: 'PadrÃ£o atÃ­pico detectado pelo ML',
           severity: 'low'
         });
       }

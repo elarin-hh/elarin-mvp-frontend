@@ -43,7 +43,7 @@
         throw new Error(response.error?.message || 'Erro ao salvar consentimento');
       }
     } catch (error) {
-      console.error('Erro ao salvar consentimento biomÈtrico:', error);
+      console.error('Erro ao salvar consentimento biom√©trico:', error);
       alert('Erro ao salvar consentimento. Tente novamente.');
     } finally {
       loading = false;
@@ -70,7 +70,7 @@
     overflow-y: auto;
   }
 
-  /* Custom scrollbar */
+  
   .modal-content::-webkit-scrollbar {
     width: 8px;
   }
@@ -139,10 +139,10 @@
           <Lock size={24} style="color: var(--color-primary-500); flex-shrink: 0;" />
           <div>
             <h2 id="biometric-title" class="text-xl font-bold text-white mb-1">
-              Consentimento BiomÈtrico
+              Consentimento Biom√©trico
             </h2>
             <p class="text-xs text-white/50">
-              LGPD Art. 11, II, alÌnea "a"
+              LGPD Art. 11, II, al√≠nea "a"
             </p>
           </div>
         </div>
@@ -150,14 +150,14 @@
 
         <div class="space-y-4 mb-6">
           <p class="text-sm text-white/70 leading-relaxed">
-            O Elarin processa <strong class="text-white">33 pontos de pose corporal</strong> para an·lise de movimento.
-            <span style="color: var(--color-success);">Processamento 100% local. VÌdeo NUNCA È gravado ou transmitido.</span>
+            O Elarin processa <strong class="text-white">33 pontos de pose corporal</strong> para an√°lise de movimento.
+            <span style="color: var(--color-success);">Processamento 100% local. V√≠deo NUNCA √© gravado ou transmitido.</span>
           </p>
 
           <div class="space-y-2 text-xs text-white/60">
-            <p>? VocÍ pode revogar este consentimento a qualquer momento</p>
-            <p>? Dados biomÈtricos n„o s„o armazenados no servidor</p>
-            <p>? Apenas mÈtricas agregadas s„o enviadas</p>
+            <p>? Voc√™ pode revogar este consentimento a qualquer momento</p>
+            <p>? Dados biom√©tricos n√£o s√£o armazenados no servidor</p>
+            <p>? Apenas m√©tricas agregadas s√£o enviadas</p>
           </div>
         </div>
 
@@ -171,7 +171,7 @@
               style="accent-color: var(--color-primary-500);"
             />
             <span class="text-sm text-white/80">
-              Autorizo o processamento de dados biomÈtricos conforme descrito
+              Autorizo o processamento de dados biom√©tricos conforme descrito
             </span>
           </label>
 
@@ -183,7 +183,7 @@
               style="accent-color: var(--color-primary-500);"
             />
             <span class="text-sm text-white/80">
-              Compreendo que posso revogar em ConfiguraÁıes
+              Compreendo que posso revogar em Configura√ß√µes
             </span>
           </label>
         </div>
@@ -195,7 +195,7 @@
             disabled={loading}
             class="btn-secondary flex-1 px-4 py-3 text-sm font-medium"
           >
-            N„o Autorizo
+            N√£o Autorizo
           </button>
           <button
             on:click={handleAccept}
@@ -214,7 +214,7 @@
 
         <p class="text-xs text-center text-white/40 mt-4">
           <a href="/privacy" target="_blank" style="color: var(--color-primary-500);" class="hover:underline">
-            Ver PolÌtica de Privacidade
+            Ver Pol√≠tica de Privacidade
           </a>
         </p>
       </div>

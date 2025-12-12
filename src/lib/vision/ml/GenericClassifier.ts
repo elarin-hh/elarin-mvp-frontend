@@ -264,8 +264,8 @@ export class GenericExerciseClassifier {
         threshold: this.threshold,
         status: isCorrect ? 'correct' : 'incorrect',
         message: isCorrect
-          ? 'ExecuÁ„o correta! Continue assim!'
-          : 'AtenÁ„o! Movimento incorreto detectado.',
+          ? 'Execu√ß√£o correta! Continue assim!'
+          : 'Aten√ß√£o! Movimento incorreto detectado.',
         details: {
           qualityScore: (qualityScore * 100).toFixed(1),
           error: reconstructionError.toFixed(6),
@@ -285,7 +285,7 @@ export class GenericExerciseClassifier {
     } catch (error) {
       return {
         status: 'error',
-        message: 'Erro na an·lise'
+        message: 'Erro na an√°lise'
       };
     }
   }

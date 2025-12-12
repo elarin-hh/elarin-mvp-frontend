@@ -17,7 +17,7 @@
 
   function validateAge(birthDate: string): { valid: boolean; error?: string } {
     if (!birthDate) {
-      return { valid: false, error: "Data de nascimento é obrigatória" };
+      return { valid: false, error: "Data de nascimento Ã© obrigatÃ³ria" };
     }
 
     const birthDateObj = new Date(birthDate);
@@ -35,7 +35,7 @@
       return {
         valid: false,
         error:
-          "Você deve ter pelo menos 13 anos para criar uma conta (LGPD Art. 14)",
+          "VocÃª deve ter pelo menos 13 anos para criar uma conta (LGPD Art. 14)",
       };
     }
 
@@ -64,10 +64,10 @@
       if (result.success && result.data) {
         organizations = result.data;
       } else {
-        error = result.error || "Erro ao carregar organizações";
+        error = result.error || "Erro ao carregar organizaÃ§Ãµes";
       }
     } catch (e: any) {
-      error = e.message || "Erro ao carregar organizações";
+      error = e.message || "Erro ao carregar organizaÃ§Ãµes";
     } finally {
       loadingOrganizations = false;
     }
@@ -82,34 +82,34 @@
 
     const nameValidation = isValidFullName(fullName);
     if (!nameValidation.valid) {
-      error = nameValidation.error || "Nome inválido";
+      error = nameValidation.error || "Nome invÃ¡lido";
       return;
     }
 
     if (!isValidEmail(email)) {
-      error = "E-mail inválido";
+      error = "E-mail invÃ¡lido";
       return;
     }
 
     const passwordValidation = isValidPassword(password);
     if (!passwordValidation.valid) {
-      error = passwordValidation.error || "Senha inválida";
+      error = passwordValidation.error || "Senha invÃ¡lida";
       return;
     }
 
     if (!passwordsMatch(password, confirmPassword)) {
-      error = "As senhas não coincidem";
+      error = "As senhas nÃ£o coincidem";
       return;
     }
 
     const ageValidation = validateAge(birthDate);
     if (!ageValidation.valid) {
-      error = ageValidation.error || "Data de nascimento inválida";
+      error = ageValidation.error || "Data de nascimento invÃ¡lida";
       return;
     }
 
     if (!selectedOrganizationId) {
-      error = "Organização não selecionada";
+      error = "OrganizaÃ§Ã£o nÃ£o selecionada";
       return;
     }
 
@@ -188,14 +188,14 @@
           <div
             class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"
           ></div>
-          <p class="text-white/70 mt-4">Carregando organizações...</p>
+          <p class="text-white/70 mt-4">Carregando organizaÃ§Ãµes...</p>
         </div>
       {:else}
         <Select
           options={organizationOptions}
           bind:value={selectedOrganizationId}
-          placeholder="Selecione uma organização parceira"
-          label="Organização Parceira"
+          placeholder="Selecione uma organizaÃ§Ã£o parceira"
+          label="OrganizaÃ§Ã£o Parceira"
           class="mb-4"
         />
       {/if}
@@ -238,7 +238,7 @@
 
       <div>
         <label for="birth-date" class="text-white/70 text-sm mb-2 block"
-          >Data de Nascimento (mínimo 13 anos)</label
+          >Data de Nascimento (mÃ­nimo 13 anos)</label
         >
         <input
           type="date"
@@ -264,7 +264,7 @@
           for="marketing-consent"
           class="text-white/70 text-sm cursor-pointer"
         >
-          Desejo receber comunicações sobre novidades e promoções (opcional)
+          Desejo receber comunicaÃ§Ãµes sobre novidades e promoÃ§Ãµes (opcional)
         </label>
       </div>
 
@@ -283,7 +283,7 @@
         onclick={goToLogin}
         class="text-white/70 hover:text-white text-sm transition-colors"
       >
-        Já tem uma conta? Clique aqui
+        JÃ¡ tem uma conta? Clique aqui
       </button>
     </div>
   </div>

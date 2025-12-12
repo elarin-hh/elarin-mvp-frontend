@@ -89,7 +89,7 @@
       </div>
 
       <h1 class="text-2xl sm:text-3xl font-bold text-white text-center mb-8">
-        Antes de ComeÁar
+        Antes de Come√ßar
       </h1>
 
       <div
@@ -114,8 +114,8 @@
           <div>
             <h2 class="text-white font-semibold mb-2">Aviso</h2>
             <p class="text-white/70 text-sm">
-              Nosso app demonstra o fluxo da interface. A captura de c‚mera e
-              detecÁ„o de exercÌcios em tempo real ser„o habilitadas na prÛxima
+              Nosso app demonstra o fluxo da interface. A captura de c√¢mera e
+              detec√ß√£o de exerc√≠cios em tempo real ser√£o habilitadas na pr√≥xima
               fase.
             </p>
           </div>
@@ -144,7 +144,7 @@
           <div>
             <h2 class="text-white font-semibold mb-2">Privacidade</h2>
             <p class="text-white/70 text-sm">
-              Sua privacidade È importante. Todo o processamento acontecer·
+              Sua privacidade √© importante. Todo o processamento acontecer√°
               localmente no seu dispositivo.
             </p>
           </div>
@@ -157,7 +157,7 @@
           class="button-primary px-8 py-3 text-white font-semibold text-lg"
           onclick={() => goto(`${base}/train`)}
         >
-          ComeÁar
+          Come√ßar
         </button>
       </div>
     </div>

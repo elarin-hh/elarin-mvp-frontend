@@ -49,7 +49,7 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-    // Already on settings page
+   
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -85,7 +85,7 @@
         return;
       }
 
-      // Logout and redirect to home
+     
       await authActions.logout();
       goto(`${base}/`);
     } catch (error) {
@@ -140,7 +140,7 @@
 </script>
 
 <svelte:head>
-  <title>Configurações - Elarin</title>
+  <title>ConfiguraÃ§Ãµes - Elarin</title>
 </svelte:head>
 
 <main class="settings-page">
@@ -156,7 +156,7 @@
 
   <div class="content">
     <div class="settings-container">
-      <h1 class="page-title">Configurações</h1>
+      <h1 class="page-title">ConfiguraÃ§Ãµes</h1>
 
       <div class="settings-layout">
         <nav class="tabs-nav">
@@ -189,7 +189,7 @@
         <div class="tab-content">
           {#if activeTab === "account"}
             <div class="tab-panel">
-              <h2 class="section-title">Informações da Conta</h2>
+              <h2 class="section-title">InformaÃ§Ãµes da Conta</h2>
 
               <div class="avatar-section">
                 <div class="avatar-preview">
@@ -279,7 +279,7 @@
               <div class="danger-zone">
                 <h3 class="danger-title">Deletar Conta</h3>
                 <p class="danger-description">
-                  Uma vez que você excluir sua conta, não há como voltar atrás.
+                  Uma vez que vocÃª excluir sua conta, nÃ£o hÃ¡ como voltar atrÃ¡s.
                   Para excluir <button
                     type="button"
                     class="delete-link"
@@ -299,7 +299,7 @@
                   </div>
                   <div class="org-info">
                     <h3 class="org-name">{organizationName}</h3>
-                    <p class="org-subtitle">Sua organização parceira</p>
+                    <p class="org-subtitle">Sua organizaÃ§Ã£o parceira</p>
                   </div>
                   <div class="status-badge active">
                     <CheckCircle class="status-icon" />
@@ -316,7 +316,7 @@
                   <div>
                     <h3 class="plan-title">Plano {organizationPlan}</h3>
                     <p class="plan-description">
-                      Acesso fornecido pela sua organização
+                      Acesso fornecido pela sua organizaÃ§Ã£o
                     </p>
                   </div>
                 </div>
@@ -324,10 +324,10 @@
                 <div class="plan-divider"></div>
                 <div class="plan-notice">
                   <p>
-                    Sua assinatura é gerenciada pela organização <strong
+                    Sua assinatura Ã© gerenciada pela organizaÃ§Ã£o <strong
                       >{organizationName}</strong
-                    >. Para alterações ou dúvidas sobre seu acesso, entre em
-                    contato com o administrador da sua organização.
+                    >. Para alteraÃ§Ãµes ou dÃºvidas sobre seu acesso, entre em
+                    contato com o administrador da sua organizaÃ§Ã£o.
                   </p>
                 </div>
               </div>
@@ -339,8 +339,8 @@
               <div class="help-section">
                 <h3 class="subsection-title">Entre em Contato</h3>
                 <p class="help-text">
-                  Precisa de ajuda? Nossa equipe de suporte está pronta para
-                  ajudá-lo.
+                  Precisa de ajuda? Nossa equipe de suporte estÃ¡ pronta para
+                  ajudÃ¡-lo.
                 </p>
 
                 <div class="contact-options">
@@ -368,7 +368,7 @@
               </div>
 
               <div class="help-section">
-                <h3 class="subsection-title">Recursos Úteis</h3>
+                <h3 class="subsection-title">Recursos Ãšteis</h3>
                 <ul class="resources-list">
                   <li>
                     <a href="/faq" class="resource-link"
@@ -378,7 +378,7 @@
 
                   <li>
                     <a href="/privacy" class="resource-link"
-                      >Política de Privacidade</a
+                      >PolÃ­tica de Privacidade</a
                     >
                   </li>
                   <li>
@@ -391,7 +391,7 @@
                 <h3 class="subsection-title">Sobre o Elarin</h3>
                 <div class="about-content">
                   <p class="about-item">
-                    <span class="about-label">Versão:</span>
+                    <span class="about-label">VersÃ£o:</span>
                     <span class="about-value">1.0.0</span>
                   </p>
                   <p class="about-item">
@@ -399,7 +399,7 @@
                     <span class="about-value">Equipe Elarin</span>
                   </p>
                   <p class="about-copyright">
-                    © 2025 Elarin. Todos os direitos reservados.
+                    Â© 2025 Elarin. Todos os direitos reservados.
                   </p>
                 </div>
               </div>
@@ -422,13 +422,13 @@
       <h2 class="delete-modal-title">Excluir Conta</h2>
 
       <p class="delete-modal-description">
-        Você tem certeza que deseja excluir sua conta permanentemente e todos os
+        VocÃª tem certeza que deseja excluir sua conta permanentemente e todos os
         dados vinculados a ela?
       </p>
 
       <div class="delete-modal-warning">
         <TriangleAlert class="warning-icon" />
-        <span>Esta ação não pode ser desfeita!</span>
+        <span>Esta aÃ§Ã£o nÃ£o pode ser desfeita!</span>
       </div>
 
       {#if deleteError}
@@ -1000,7 +1000,7 @@
     text-decoration: none;
   }
 
-  /* Organization Card */
+  
   .organization-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1071,7 +1071,7 @@
     height: 16px !important;
   }
 
-  /* Plan Card */
+  
   .plan-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1152,7 +1152,7 @@
     }
   }
 
-  /* Help Section */
+  
   .help-section {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1251,7 +1251,7 @@
     text-decoration: underline;
   }
 
-  /* About Section */
+  
   .about-content {
     display: flex;
     flex-direction: column;
@@ -1290,7 +1290,7 @@
     font-size: 0.875rem;
   }
 
-  /* Responsive adjustments for Help section */
+  
   @media (max-width: 768px) {
     .tab-content {
       padding: 1.5rem;

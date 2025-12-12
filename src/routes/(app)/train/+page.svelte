@@ -260,8 +260,6 @@
       ) => void)
     | null = null;
   let POSE_CONNECTIONS: unknown = null;
-  let POSE_CONNECTIONS_NO_FACE: unknown = null;
-
   let lastFrameTime = 0;
   const FRAME_THROTTLE_MS = 0;
   let animationFrameId: number | null = null;
@@ -284,9 +282,7 @@
       drawConnectors = modules.drawConnectors;
       drawLandmarks = modules.drawLandmarks;
       POSE_CONNECTIONS = modules.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(
-        filterFaceConnections(POSE_CONNECTIONS),
-      );
+
       pose = new modules.Pose({
         locateFile: (file: string) => {
           return getPoseAssetUrl(file);
@@ -320,7 +316,7 @@
 
   function setEmulatedState(reason?: string) {
     cameraFallbackReason =
-      reason || "Modo demonstraÁ„o: usando vÌdeo de exemplo.";
+      reason || "Modo demonstra√ß√£o: usando v√≠deo de exemplo.";
     isCameraEmulated = true;
   }
 
@@ -346,7 +342,7 @@
 
       const handleError = () => {
         cleanup();
-        reject(new Error("Falha ao carregar vÌdeo de demonstraÁ„o"));
+        reject(new Error("Falha ao carregar v√≠deo de demonstra√ß√£o"));
       };
 
       video.addEventListener("loadeddata", handleReady, { once: true });
@@ -375,8 +371,8 @@
   function createEmulatedCamera(reason?: string): MediaPipeCamera {
     return {
       async start() {
-        if (!videoElement) throw new Error("Elemento de vÌdeo indisponÌvel");
-        if (!pose) throw new Error("Pose n„o inicializado");
+        if (!videoElement) throw new Error("Elemento de v√≠deo indispon√≠vel");
+        if (!pose) throw new Error("Pose n√£o inicializado");
 
         setEmulatedState(reason);
 
@@ -474,14 +470,14 @@
 
       if (!scriptsLoaded) {
         throw new Error(
-          "DependÍncias ainda n„o foram carregadas completamente. Aguarde...",
+          "Depend√™ncias ainda n√£o foram carregadas completamente. Aguarde...",
         );
       }
 
       const selectedExercise = $trainingStore.exerciseType;
       if (!selectedExercise) {
         throw new Error(
-          "Nenhum exercÌcio selecionado. Por favor, volte e selecione um exercÌcio.",
+          "Nenhum exerc√≠cio selecionado. Por favor, volte e selecione um exerc√≠cio.",
         );
       }
 
@@ -491,7 +487,7 @@
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
-        throw new Error("Falha ao carregar configuraÁ„o do exercÌcio");
+        throw new Error("Falha ao carregar configura√ß√£o do exerc√≠cio");
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
@@ -507,7 +503,7 @@
       }
 
       if (!videoElement) {
-        throw new Error("Elemento de vÌdeo n„o foi carregado corretamente.");
+        throw new Error("Elemento de v√≠deo n√£o foi carregado corretamente.");
       }
 
       const Pose = (window as unknown as Record<string, unknown>)
@@ -533,9 +529,6 @@
       drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
       drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
-      POSE_CONNECTIONS_NO_FACE = removeTorsoSideLines(
-        filterFaceConnections(POSE_CONNECTIONS),
-      );
 
       const Camera = globalScope.Camera as
         | (new (
@@ -550,7 +543,7 @@
 
       const hasPhysicalCamera = await hasVideoInputAvailable();
       const startWithRealCamera = async () => {
-        if (!Camera) throw new Error("Biblioteca de c‚mera n„o encontrada.");
+        if (!Camera) throw new Error("Biblioteca de c√¢mera n√£o encontrada.");
 
         clearEmulatedState();
         camera = new Camera(videoElement, {
@@ -581,12 +574,12 @@
             cameraError,
           );
           await startWithEmulatedCamera(
-            "N„o conseguimos acessar a c‚mera. Usando vÌdeo de demonstraÁ„o para testar.",
+            "N√£o conseguimos acessar a c√¢mera. Usando v√≠deo de demonstra√ß√£o para testar.",
           );
         }
       } else {
         await startWithEmulatedCamera(
-          "Nenhuma c‚mera detectada. Usando vÌdeo de demonstraÁ„o para testar.",
+          "Nenhuma c√¢mera detectada. Usando v√≠deo de demonstra√ß√£o para testar.",
         );
       }
 
@@ -642,23 +635,28 @@
         canvasElement.height,
       );
 
-      const renderLandmarks = hideFaceLandmarks(landmarks);
+      const renderLandmarks = filterLandmarks(landmarks);
 
       if (
         renderLandmarks &&
         drawConnectors &&
         drawLandmarks &&
-        POSE_CONNECTIONS_NO_FACE
+        POSE_CONNECTIONS
       ) {
         ctx.save();
         ctx.globalAlpha = SKELETON_STYLE.opacity;
         ctx.shadowBlur = SKELETON_STYLE.glow;
         ctx.shadowColor = skeletonColor;
 
-        drawConnectors(ctx, renderLandmarks, POSE_CONNECTIONS_NO_FACE, {
-          color: skeletonColor,
-          lineWidth: SKELETON_STYLE.lineWidth,
-        });
+        drawConnectors(
+          ctx,
+          renderLandmarks,
+          removeTorsoSideLines(filterConnections(POSE_CONNECTIONS)),
+          {
+            color: skeletonColor,
+            lineWidth: SKELETON_STYLE.lineWidth,
+          },
+        );
 
         ctx.save();
         ctx.globalAlpha = 0.3;
@@ -675,7 +673,11 @@
           radius: SKELETON_STYLE.pointRadius,
         });
 
-        if (TORSO_LINE.enabled) {
+        if (
+          TORSO_LINE.enabled &&
+          skeletonVisibility.upperBody &&
+          skeletonVisibility.lowerBody
+        ) {
           drawTorsoLine(ctx, renderLandmarks);
         }
 
@@ -696,20 +698,86 @@
     }
   }
 
-  function hideFaceLandmarks(landmarks: PoseResults["poseLandmarks"]) {
+  let skeletonVisibility = $state({
+    face: false,
+    upperBody: true,
+    hands: true,
+    lowerBody: true,
+    feet: true,
+  });
+
+  function toggleAllSkeleton() {
+    const allVisible =
+      skeletonVisibility.face &&
+      skeletonVisibility.upperBody &&
+      skeletonVisibility.hands &&
+      skeletonVisibility.lowerBody &&
+      skeletonVisibility.feet;
+
+    const newState = !allVisible;
+    skeletonVisibility.face = newState;
+    skeletonVisibility.upperBody = newState;
+    skeletonVisibility.hands = newState;
+    skeletonVisibility.lowerBody = newState;
+    skeletonVisibility.feet = newState;
+  }
+
+  function filterLandmarks(landmarks: PoseResults["poseLandmarks"]) {
     if (!landmarks) return landmarks;
     const clone = landmarks.map((lm) => ({ ...lm }));
-    for (const idx of LANDMARK_GROUPS.FACE) {
-      clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+
+    if (!skeletonVisibility.face) {
+      for (const idx of LANDMARK_GROUPS.FACE) {
+        clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+      }
     }
+
+    if (!skeletonVisibility.upperBody) {
+      for (const idx of LANDMARK_GROUPS.UPPER_BODY) {
+        clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+      }
+    }
+
+    if (!skeletonVisibility.hands) {
+      for (const idx of LANDMARK_GROUPS.HANDS) {
+        clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+      }
+    }
+
+    if (!skeletonVisibility.lowerBody) {
+      for (const idx of LANDMARK_GROUPS.LOWER_BODY) {
+        clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+      }
+    }
+
+    if (!skeletonVisibility.feet) {
+      for (const idx of LANDMARK_GROUPS.FEET) {
+        clone[idx] = { x: 0, y: 0, z: 0, visibility: 0 };
+      }
+    }
+
     return clone;
   }
 
-  function filterFaceConnections(connections: unknown) {
+  function filterConnections(connections: unknown) {
     if (!connections || !Array.isArray(connections)) return connections;
-    const face = new Set(LANDMARK_GROUPS.FACE);
+
+    const hiddenIndices = new Set<number>();
+
+    if (!skeletonVisibility.face)
+      LANDMARK_GROUPS.FACE.forEach((i) => hiddenIndices.add(i));
+    if (!skeletonVisibility.upperBody)
+      LANDMARK_GROUPS.UPPER_BODY.forEach((i) => hiddenIndices.add(i));
+    if (!skeletonVisibility.hands)
+      LANDMARK_GROUPS.HANDS.forEach((i) => hiddenIndices.add(i));
+    if (!skeletonVisibility.lowerBody)
+      LANDMARK_GROUPS.LOWER_BODY.forEach((i) => hiddenIndices.add(i));
+    if (!skeletonVisibility.feet)
+      LANDMARK_GROUPS.FEET.forEach((i) => hiddenIndices.add(i));
+
     return (connections as Array<[number, number]>).filter(
-      ([a, b]) => !face.has(a as number) && !face.has(b as number),
+      ([a, b]) =>
+        !hiddenIndices.has(a as number) && !hiddenIndices.has(b as number),
     );
   }
 
@@ -909,9 +977,9 @@
     if (mode === "ml_only") {
       modeIndicator = "ML Only (Autoencoder)";
     } else if (mode === "heuristic_only") {
-      modeIndicator = "HeurÌstica Only (Biomec‚nica)";
+      modeIndicator = "Heur√≠stica Only (Biomec√¢nica)";
     } else {
-      modeIndicator = "HÌbrido (ML + HeurÌstica)";
+      modeIndicator = "H√≠brido (ML + Heur√≠stica)";
     }
 
     analyzer?.setFeedbackMode(mode);
@@ -1034,9 +1102,7 @@
       ) {
         screenWithOrientation.msLockOrientation("landscape");
       }
-    } catch {
-      // Orientation lock may fail without a user gesture
-    }
+    } catch {}
   }
 
   function releaseOrientationLock() {
@@ -1064,9 +1130,7 @@
       ) {
         screenWithOrientation.msUnlockOrientation();
       }
-    } catch {
-      // Ignore unlock failures
-    }
+    } catch {}
   }
 
   function toggleAvatarMenu() {
@@ -1101,7 +1165,7 @@
     clearBiometricConsentFlags();
     showBiometricConsent = false;
     errorMessage =
-      "Consentimento biomÈtrico negado. A c‚mera n„o pode ser iniciada sem sua autorizaÁ„o.";
+      "Consentimento biom√©trico negado. A c√¢mera n√£o pode ser iniciada sem sua autoriza√ß√£o.";
     setTimeout(() => {
       goto(`${base}/exercises`);
     }, 3000);
@@ -1439,7 +1503,7 @@
 
     {#if isCameraEmulated}
       <div class="inline-alert info-alert">
-        <span class="inline-alert-strong">Modo demonstraÁ„o:</span>
+        <span class="inline-alert-strong">Modo demonstra√ß√£o:</span>
         <span>{cameraFallbackReason}</span>
       </div>
     {/if}
@@ -1515,7 +1579,7 @@
                 <div class="feedback-overlay">
                   <div class="feedback-message info card">
                     <span
-                      >Erro de reconstruÁ„o: {reconstructionError.toFixed(
+                      >Erro de reconstru√ß√£o: {reconstructionError.toFixed(
                         4,
                       )}</span
                     >
@@ -1528,7 +1592,7 @@
                   {#each feedbackMessages
                     .filter((m) => !(m.text || "")
                           .toLowerCase()
-                          .startsWith("erro de reconstruÁ„o"))
+                          .startsWith("erro de reconstru√ß√£o"))
                     .slice(0, 3) as message}
                     <div
                       class="feedback-message card {message.type}"
@@ -1631,7 +1695,7 @@
           <button
             class="tab-btn"
             class:active={activeTab === "display"}
-            onclick={() => (activeTab = "display")}>ExibiÁ„o</button
+            onclick={() => (activeTab = "display")}>Exibi√ß√£o</button
           >
           <button
             class="tab-btn"
@@ -1656,7 +1720,7 @@
         <div class="settings-content">
           {#if activeTab === "display"}
             <div class="settings-group">
-              <h4>Escolher Layout de ExibiÁ„o</h4>
+              <h4>Escolher Layout de Exibi√ß√£o</h4>
               <div class="layout-options">
                 <div
                   class="layout-option"
@@ -1672,7 +1736,7 @@
                   onclick={() => (layoutMode = "user-centered")}
                 >
                   <div class="layout-preview user-centered"></div>
-                  <span>Usu·rio Centralizado</span>
+                  <span>Usu√°rio Centralizado</span>
                 </div>
                 <div
                   class="layout-option"
@@ -1685,9 +1749,9 @@
               </div>
             </div>
             <div class="settings-group">
-              <h4>Mais opÁıes</h4>
+              <h4>Mais op√ß√µes</h4>
               <div class="toggle-row">
-                <span>CronÙmetro</span>
+                <span>Cron√¥metro</span>
                 <div class="toggle-wrapper">
                   <button
                     class="toggle-btn"
@@ -1724,9 +1788,9 @@
             </div>
           {:else if activeTab === "sound"}
             <div class="settings-group">
-              <h4>ConfiguraÁıes de Som</h4>
+              <h4>Configura√ß√µes de Som</h4>
               <div class="toggle-row">
-                <span>Feedback de ¡udio</span>
+                <span>Feedback de √Åudio</span>
                 <div class="toggle-wrapper">
                   <button
                     class="toggle-btn"
@@ -1741,25 +1805,125 @@
             </div>
           {:else if activeTab === "skeleton"}
             <div class="settings-group">
-              <h4>SobreposiÁ„o de Esqueleto</h4>
+              <h4>Sobreposi√ß√£o de Esqueleto</h4>
+
               <div class="toggle-row">
-                <span>Mostrar Esqueleto</span>
+                <span><strong>Mostrar Tudo</strong></span>
                 <div class="toggle-wrapper">
-                  <button class="toggle-btn" class:on={true} disabled></button>
-                  <span class="toggle-label">On</span>
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.face &&
+                      skeletonVisibility.upperBody &&
+                      skeletonVisibility.hands &&
+                      skeletonVisibility.lowerBody &&
+                      skeletonVisibility.feet}
+                    onclick={toggleAllSkeleton}
+                    aria-label="Toggle All Skeleton Parts"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.face &&
+                    skeletonVisibility.upperBody &&
+                    skeletonVisibility.hands &&
+                    skeletonVisibility.lowerBody &&
+                    skeletonVisibility.feet
+                      ? "On"
+                      : "Off"}</span
+                  >
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <span>Face</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.face}
+                    onclick={() =>
+                      (skeletonVisibility.face = !skeletonVisibility.face)}
+                    aria-label="Toggle Face Visibility"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.face ? "On" : "Off"}</span
+                  >
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <span>Tronco Superior</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.upperBody}
+                    onclick={() =>
+                      (skeletonVisibility.upperBody =
+                        !skeletonVisibility.upperBody)}
+                    aria-label="Toggle Upper Body Visibility"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.upperBody ? "On" : "Off"}</span
+                  >
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <span>M√£os</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.hands}
+                    onclick={() =>
+                      (skeletonVisibility.hands = !skeletonVisibility.hands)}
+                    aria-label="Toggle Hands Visibility"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.hands ? "On" : "Off"}</span
+                  >
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <span>Tronco Inferior</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.lowerBody}
+                    onclick={() =>
+                      (skeletonVisibility.lowerBody =
+                        !skeletonVisibility.lowerBody)}
+                    aria-label="Toggle Lower Body Visibility"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.lowerBody ? "On" : "Off"}</span
+                  >
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <span>P√©s</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={skeletonVisibility.feet}
+                    onclick={() =>
+                      (skeletonVisibility.feet = !skeletonVisibility.feet)}
+                    aria-label="Toggle Feet Visibility"
+                  ></button>
+                  <span class="toggle-label"
+                    >{skeletonVisibility.feet ? "On" : "Off"}</span
+                  >
                 </div>
               </div>
             </div>
           {:else if activeTab === "dev"}
             <div class="settings-group settings-group-full">
-              <h4>MÈtricas de Desenvolvimento</h4>
+              <h4>M√©tricas de Desenvolvimento</h4>
               <div class="dev-metrics">
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">Precis„o</span>
+                  <span class="dev-metric-label">Precis√£o</span>
                   <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
-                  <span class="dev-metric-label">ConfianÁa</span>
+                  <span class="dev-metric-label">Confian√ßa</span>
                   <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
@@ -1773,7 +1937,7 @@
                 <button
                   class="mini-btn"
                   class:active={feedbackMode === "hybrid"}
-                  onclick={() => changeFeedbackMode("hybrid")}>HÌbrido</button
+                  onclick={() => changeFeedbackMode("hybrid")}>H√≠brido</button
                 >
                 <button
                   class="mini-btn"
@@ -1785,7 +1949,7 @@
                   class="mini-btn"
                   class:active={feedbackMode === "heuristic_only"}
                   onclick={() => changeFeedbackMode("heuristic_only")}
-                  >HeurÌstica</button
+                  >Heur√≠stica</button
                 >
               </div>
               <div class="debug-info-mini">{modeIndicator}</div>
@@ -1910,7 +2074,6 @@
   }
 
   .split-container {
-    /* Grid Layout Variables */
     --container-gap: 0;
     --container-max-width: var(--layout-max-width);
     --container-height: calc(100vh - 6rem);
@@ -1925,18 +2088,15 @@
     position: relative;
     justify-self: center;
 
-    /* Default: single column for mobile */
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }
 
-  /* Side-by-side layout: two equal columns */
   .split-container.layout-side-by-side {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr;
   }
 
-  /* Centered layouts: single column with PiP overlay */
   .split-container.layout-user-centered,
   .split-container.layout-coach-centered {
     grid-template-columns: 1fr;
@@ -2925,7 +3085,6 @@
     margin-top: 1rem;
     animation: slideUp 0.3s ease-out;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { asset } from '$lib/utils/assets';
-  import { isDeveloper } from '$lib/config/env.config';
-  import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
-  import { onMount, onDestroy } from 'svelte';
-  import type { ComponentType } from 'svelte';
-  import { Home, User as UserIcon, LayoutDashboard } from 'lucide-svelte';
+  import { asset } from "$lib/utils/assets";
+  import { isDeveloper } from "$lib/config/env.config";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
+  import { onMount, onDestroy } from "svelte";
+  import type { ComponentType } from "svelte";
+  import { Home, User as UserIcon, LayoutDashboard } from "lucide-svelte";
 
   interface Props {
     isScrolled?: boolean;
@@ -24,7 +24,7 @@
     onToggleAvatarMenu = () => {},
     onSettings = () => {},
     onLogout = () => {},
-    onClickOutside = () => {}
+    onClickOutside = () => {},
   }: Props = $props();
 
   type FooterNavItem = {
@@ -39,10 +39,10 @@
   let headerElement: HTMLElement;
   let mobileFooterElement: HTMLElement;
 
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     const root = document.documentElement;
-    root.style.setProperty('--app-header-offset', '72px');
-    root.style.setProperty('--app-footer-offset', '72px');
+    root.style.setProperty("--app-header-offset", "72px");
+    root.style.setProperty("--app-footer-offset", "72px");
   }
 
   $effect(() => {
@@ -50,12 +50,17 @@
   });
 
   function handleLogoClick() {
-    goto('/exercises');
+    goto("/exercises");
   }
 
   const footerNavItems: FooterNavItem[] = [
-    { id: 'home', label: 'Home', icon: Home, href: '/exercises' },
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }
+    { id: "home", label: "Home", icon: Home, href: "/exercises" },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/dashboard",
+    },
   ];
 
   function handleFooterNav(item: FooterNavItem) {
@@ -70,33 +75,37 @@
 
   function isActiveRoute(path: string) {
     const currentPath = $page.url.pathname;
-    if (path === '/') {
-      return currentPath === '/' || currentPath === '/app' || currentPath.startsWith('/home');
+    if (path === "/") {
+      return (
+        currentPath === "/" ||
+        currentPath === "/app" ||
+        currentPath.startsWith("/home")
+      );
     }
     return currentPath.startsWith(path);
   }
 
   function updateLayoutOffsets() {
-    if (typeof document === 'undefined') return;
+    if (typeof document === "undefined") return;
     const headerHeight = headerElement?.getBoundingClientRect().height ?? 0;
     let footerHeight = 0;
     if (mobileFooterElement) {
       const footerDisplay = getComputedStyle(mobileFooterElement).display;
-      if (footerDisplay !== 'none') {
+      if (footerDisplay !== "none") {
         footerHeight = mobileFooterElement.getBoundingClientRect().height;
       }
     }
     const root = document.documentElement;
-    root.style.setProperty('--app-header-offset', `${headerHeight}px`);
-    root.style.setProperty('--app-footer-offset', `${footerHeight}px`);
+    root.style.setProperty("--app-header-offset", `${headerHeight}px`);
+    root.style.setProperty("--app-footer-offset", `${footerHeight}px`);
   }
 
   onMount(() => {
-    if (typeof ResizeObserver === 'undefined') {
+    if (typeof ResizeObserver === "undefined") {
       updateLayoutOffsets();
-      window.addEventListener('resize', updateLayoutOffsets);
+      window.addEventListener("resize", updateLayoutOffsets);
       return () => {
-        window.removeEventListener('resize', updateLayoutOffsets);
+        window.removeEventListener("resize", updateLayoutOffsets);
       };
     }
 
@@ -111,20 +120,20 @@
     }
 
     updateLayoutOffsets();
-    window.addEventListener('resize', updateLayoutOffsets);
+    window.addEventListener("resize", updateLayoutOffsets);
 
     return () => {
       headerObserver.disconnect();
       footerObserver.disconnect();
-      window.removeEventListener('resize', updateLayoutOffsets);
+      window.removeEventListener("resize", updateLayoutOffsets);
     };
   });
 
   onDestroy(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       const root = document.documentElement;
-      root.style.setProperty('--app-header-offset', '0px');
-      root.style.setProperty('--app-footer-offset', '0px');
+      root.style.setProperty("--app-header-offset", "0px");
+      root.style.setProperty("--app-footer-offset", "0px");
     }
   });
 </script>
@@ -136,14 +145,27 @@
     <div class="header-glass mx-auto py-2" class:scrolled={isScrolled}>
       <div class="header-content px-4">
         <div class="desktop-header flex items-center justify-between">
-          <button type="button" class="flex items-center logo-button" onclick={handleLogoClick}>
-            <img src={asset('/logo-elarin-white.png')} alt="Elarin" class="h-10 sm:h-12" />
+          <button
+            type="button"
+            class="flex items-center logo-button"
+            onclick={handleLogoClick}
+          >
+            <img
+              src={asset("/logo-elarin-white.png")}
+              alt="Elarin"
+              class="h-10 sm:h-12"
+            />
           </button>
 
           <div class="flex items-center gap-2 sm:gap-4">
             {#if isDevMode}
               <div class="dev-badge">
-                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  class="w-3 h-3 sm:w-4 sm:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -159,17 +181,17 @@
               type="button"
               class="w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center p-0"
               aria-label="Ir para o dashboard"
-              onclick={() => goto('/dashboard')}
+              onclick={() => goto("/dashboard")}
             >
               <LayoutDashboard class="w-4 h-4 sm:w-6 sm:h-6 text-white" />
             </button>
 
-            <div
+            <!--           <div
               class="glass w-16 h-6 sm:w-18 sm:h-8 flex items-center justify-center"
               style="border-radius: var(--radius-sm);"
             >
               <span class="text-white text-xs font-semibold whitespace-nowrap">PARTNER</span>
-            </div>
+            </div> -->
 
             <div class="avatar-menu-container desktop-avatar">
               <button
@@ -191,8 +213,17 @@
 
               {#if hasDropdownMenu}
                 <div class="dropdown-menu" class:show={showAvatarMenu}>
-                  <button type="button" class="menu-item menu-item-settings w-full text-left" onclick={onSettings}>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <button
+                    type="button"
+                    class="menu-item menu-item-settings w-full text-left"
+                    onclick={onSettings}
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -208,8 +239,17 @@
                     </svg>
                     Configurações
                   </button>
-                  <button type="button" class="menu-item menu-item-logout w-full text-left" onclick={onLogout}>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <button
+                    type="button"
+                    class="menu-item menu-item-logout w-full text-left"
+                    onclick={onLogout}
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -227,12 +267,25 @@
 
         <div class="mobile-header">
           <div class="mobile-header-inner">
-            <button type="button" class="flex items-center logo-button mobile-logo" onclick={handleLogoClick}>
-              <img src={asset('/logo-elarin-white.png')} alt="Elarin" class="h-12" />
+            <button
+              type="button"
+              class="flex items-center logo-button mobile-logo"
+              onclick={handleLogoClick}
+            >
+              <img
+                src={asset("/logo-elarin-white.png")}
+                alt="Elarin"
+                class="h-12"
+              />
             </button>
             {#if isDevMode}
               <div class="dev-badge mobile">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  class="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -276,8 +329,17 @@
 
       {#if hasDropdownMenu}
         <div class="dropdown-menu mobile" class:show={showAvatarMenu}>
-          <button type="button" class="menu-item menu-item-settings w-full text-left" onclick={onSettings}>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            class="menu-item menu-item-settings w-full text-left"
+            onclick={onSettings}
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -293,8 +355,17 @@
             </svg>
             Configurações
           </button>
-          <button type="button" class="menu-item menu-item-logout w-full text-left" onclick={onLogout}>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            class="menu-item menu-item-logout w-full text-left"
+            onclick={onLogout}
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -311,8 +382,6 @@
 </footer>
 
 <style>
-
-
   .header-container {
     transition: all 0.3s ease;
     padding: 0;
@@ -351,8 +420,6 @@
   .mobile-footer {
     display: none;
   }
-
-
 
   .avatar-menu-container {
     position: relative;
@@ -563,7 +630,6 @@
     .mobile-footer .dropdown-menu.show {
       transform: translateY(0);
     }
-
   }
 
   @media (max-width: 640px) {
