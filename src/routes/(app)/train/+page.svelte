@@ -131,7 +131,9 @@
   let emulatedFrameId: number | null = null;
 
   const pipStyle = () =>
-    `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;`;
+    showCountdown
+      ? "display: none;"
+      : `left: ${pipPosition.x}px; top: ${pipPosition.y}px; width: ${pipSize.width}px; height: ${pipSize.height}px;`;
 
   function clampPipPosition() {
     if (!splitContainerElement || layoutMode === "side-by-side") return;
@@ -220,16 +222,18 @@
     clearCountdown();
     countdownActive = true;
 
-    countdownValue = "3";
+    countdownValue = "5";
 
-    const t1 = setTimeout(() => (countdownValue = "2"), 1000);
-    const t2 = setTimeout(() => (countdownValue = "1"), 2000);
-    const t3 = setTimeout(() => (countdownValue = "Vai!"), 3000);
-    const t4 = setTimeout(() => {
+    const t1 = setTimeout(() => (countdownValue = "4"), 1000);
+    const t2 = setTimeout(() => (countdownValue = "3"), 2000);
+    const t3 = setTimeout(() => (countdownValue = "2"), 3000);
+    const t4 = setTimeout(() => (countdownValue = "1"), 4000);
+    const t5 = setTimeout(() => (countdownValue = "Vai!"), 5000);
+    const t6 = setTimeout(() => {
       handleCountdownComplete();
-    }, 4000);
+    }, 6000);
 
-    countdownTimeouts = [t1, t2, t3, t4];
+    countdownTimeouts = [t1, t2, t3, t4, t5, t6];
   }
 
   const SKELETON_STYLE = {
@@ -1555,15 +1559,15 @@
 
         <div class="overlays-container">
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === "user-centered"}
-            <div class="timer-overlay card">
+            <div class="timer-overlay card glass">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
           {/if}
 
-          {#if isCameraRunning && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
+          {#if (isCameraRunning || isPaused) && !showCountdown && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
             <div class="feedback-card">
               {#if isDevMode}
-                <div class="mode-indicator in-card card">
+                <div class="mode-indicator in-card card glass">
                   {#if feedbackMode === "hybrid"}
                     <Microscope />
                   {:else if feedbackMode === "ml_only"}
@@ -1577,7 +1581,7 @@
 
               {#if reconstructionError !== null}
                 <div class="feedback-overlay">
-                  <div class="feedback-message info card">
+                  <div class="feedback-message info card glass">
                     <span
                       >Erro de reconstrução: {reconstructionError.toFixed(
                         4,
@@ -1595,7 +1599,7 @@
                           .startsWith("erro de reconstrução"))
                     .slice(0, 3) as message}
                     <div
-                      class="feedback-message card {message.type}"
+                      class="feedback-message card glass {message.type}"
                       class:critical={message.severity === "critical"}
                     >
                       <span>{message.text}</span>
@@ -1643,7 +1647,7 @@
 
         <div class="overlays-container">
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
-            <div class="timer-overlay card">
+            <div class="timer-overlay card glass">
               <span class="timer-value">{formatTime(elapsedTime)}</span>
             </div>
           {/if}
@@ -1677,8 +1681,9 @@
             >
               <span
                 class="countdown-text"
-                class:is-number={["3", "2", "1"].includes(countdownValue)}
-                >{countdownValue}</span
+                class:is-number={["5", "4", "3", "2", "1"].includes(
+                  countdownValue,
+                )}>{countdownValue}</span
               >
             </button>
           </div>
@@ -1762,7 +1767,7 @@
                 </div>
               </div>
               <div class="toggle-row">
-                <span>Contador</span>
+                <span>Contador de repetições</span>
                 <div class="toggle-wrapper">
                   <button
                     class="toggle-btn"
@@ -2505,7 +2510,7 @@
 
   .countdown-circle.pulsing {
     animation: pulse-countdown 1s ease-in-out infinite;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--glass-bg);
     border-color: var(--color-primary-500);
     box-shadow: 0 0 50px var(--color-primary-500);
   }
@@ -2516,7 +2521,7 @@
   }
 
   .countdown-text.is-number {
-    font-size: clamp(3rem, 10vw, 5rem);
+    font-size: clamp(2.5rem, 9vw, 4.5rem);
     font-weight: 300;
   }
 
@@ -2530,7 +2535,7 @@
   }
 
   .split-container.fullscreen .countdown-text.is-number {
-    font-size: clamp(3.5rem, 12vw, 6rem);
+    font-size: clamp(3rem, 11vw, 5.5rem);
   }
 
   @keyframes pulse-countdown {
@@ -2565,12 +2570,12 @@
     right: -95px;
     top: 0;
     transform: translateY(-50%);
-    background: var(--glass-bg, rgba(0, 0, 0, 0.6));
-    backdrop-filter: var(--glass-backdrop, blur(10px));
-    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
-    color: var(--color-text-primary, #fff);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    color: var(--color-text-primary);
     padding: 8px 22px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-size: 1.5rem;
     font-weight: 400;
     font-family: "Inter", sans-serif;
@@ -2588,7 +2593,7 @@
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid var(--glass-bg, rgba(0, 0, 0, 0.6));
+    border-right: 6px solid var(--glass-bg);
   }
 
   .vertical-rep-slide.left-aligned {
@@ -2651,7 +2656,7 @@
     width: 100vw;
     height: 100vh;
     z-index: 9999;
-    background: var(--color-bg-deep, #000);
+    background: var(--color-bg-dark);
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -2680,7 +2685,7 @@
     width: 100vw;
     height: 100vh;
     z-index: 9999;
-    background: var(--color-bg-deep, #000);
+    background: var(--color-bg-dark);
     display: block;
     margin: 0;
     padding: 0;
@@ -2794,7 +2799,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-deep, #000);
+    background: var(--color-bg-dark);
   }
 
   .video-container.fullscreen.landscape {
@@ -2991,19 +2996,14 @@
   }
 
   .card {
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-backdrop);
-    -webkit-backdrop-filter: var(--glass-backdrop);
     border-radius: var(--radius-standard);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
   }
 
   .debug-panel {
     max-width: 1280px;
     margin: 20px auto;
     padding: 20px;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--color-bg-dark-strong);
     border-radius: var(--radius-md);
   }
 
@@ -3078,14 +3078,14 @@
     max-width: var(--layout-max-width);
     margin: 0 auto;
     justify-self: center;
-    background: var(--color-bg-deep, #000);
+    background: var(--color-bg-dark);
     color: var(--color-text-primary);
     padding: clamp(1rem, 4vw, 1.5rem);
     padding-bottom: clamp(1.5rem, 5vw, 2rem);
     margin-top: 1rem;
     animation: slideUp 0.3s ease-out;
     border-radius: var(--radius-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--glass-shadow);
   }
 
   @keyframes slideUp {
@@ -3105,13 +3105,13 @@
     margin-bottom: 2rem;
     padding-bottom: 0.5rem;
     flex-wrap: wrap;
-    border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+    border-bottom: 1px solid var(--glass-border);
   }
 
   .tab-btn {
     background: none;
     border: none;
-    color: var(--color-text-secondary, #888);
+    color: var(--color-text-secondary);
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
@@ -3135,7 +3135,7 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: var(--color-primary-500, #fff);
+    background: var(--color-primary-500);
     border-radius: 2px;
   }
 
@@ -3208,14 +3208,14 @@
   .layout-preview {
     width: 100px;
     height: 60px;
-    border: 2px solid var(--glass-border, #555);
+    border: 2px solid var(--glass-border);
     border-radius: var(--radius-md);
-    background: var(--color-surface-alt, #222);
+    background: var(--color-bg-dark-quaternary);
     position: relative;
   }
 
   .layout-option.active .layout-preview {
-    border-color: var(--color-primary-500, #fff);
+    border-color: var(--color-primary-500);
   }
 
   .layout-preview.side-by-side {
@@ -3279,7 +3279,7 @@
   .toggle-label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--color-text-secondary, #888);
+    color: var(--color-text-secondary);
     min-width: 28px;
     text-align: left;
   }
@@ -3292,8 +3292,8 @@
   }
 
   .dev-metric-card {
-    background: var(--glass-bg, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     padding: 1rem;
     display: flex;
