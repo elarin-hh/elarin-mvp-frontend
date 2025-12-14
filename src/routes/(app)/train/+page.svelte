@@ -28,6 +28,8 @@
     audioFeedbackActions,
     audioFeedbackStore,
   } from "$lib/stores/audio-feedback.store";
+  import QualitySlider from "$lib/components/training/QualitySlider.svelte";
+  import RepBars from "$lib/components/training/RepBars.svelte";
 
   const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
   const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
@@ -81,6 +83,7 @@
   let currentFeedback: FeedbackRecord | null = $state(null);
   let isPaused = $state(false);
   let reconstructionError = $state<number | null>(null);
+  let activeComponents = $state<string[]>([]);
   const SKELETON_COLORS = {
     correct: "var(--color-skeleton-correct)",
     incorrect: "var(--color-skeleton-incorrect)",
@@ -98,6 +101,7 @@
     return resolved || value;
   };
 
+  const DEFAULT_COMPONENTS: string[] = [];
   const SCORE_ALPHA = 0.2;
   const ML_WEIGHT = 0.6;
   const HEUR_WEIGHT = 0.4;
@@ -152,6 +156,7 @@
   };
 
   const clampScore = (value: number) => Math.max(0, Math.min(100, value));
+  const hasComponent = (component: string) => activeComponents.includes(component);
 
   function scoreToColor(score: number | null | undefined): string {
     if (score === null || score === undefined || Number.isNaN(score)) {
@@ -589,6 +594,10 @@
       if (!exerciseConfig) {
         throw new Error("Falha ao carregar configuração do exercício");
       }
+      activeComponents =
+        (exerciseConfig.components && exerciseConfig.components.length > 0
+          ? exerciseConfig.components
+          : DEFAULT_COMPONENTS) ?? [];
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);
       analyzer.setCallbacks({
@@ -951,6 +960,8 @@
   }
 
   function maybeRegisterRep(feedback: FeedbackRecord) {
+    if (!hasComponent("rep_bars")) return;
+
     const heuristicSummary = feedback.heuristic
       ?.summary as { validReps?: number } | null;
     const heuristicReps = heuristicSummary?.validReps ?? null;
@@ -1575,68 +1586,6 @@
   </button>
 {/snippet}
 
-{#snippet repCounter(cssClass: string)}
-  <div class={cssClass}>
-    <div class="rep-info">
-      <span class="rep-label">Reps.</span>
-      <span class="rep-count">{$trainingStore.reps} /{MAX_REP_SLOTS}</span>
-    </div>
-    <div class="rep-progress">
-      {#each Array(MAX_REP_SLOTS) as _, i}
-        {@const storedScore = repScores[i]}
-        {@const partialScore =
-          storedScore === null && i === $trainingStore.reps
-            ? (currentRepFrames.length ? clampScore(average(currentRepFrames)) : null)
-            : storedScore}
-        {@const fill = partialScore === null ? 0 : clampScore(partialScore)}
-        {@const color =
-          partialScore === null
-            ? "rgba(255, 255, 255, 0.15)"
-            : scoreToColor(fill)}
-        <div
-          class="rep-line"
-          style={`--rep-fill-height:${fill}%; --rep-fill-color:${color};`}
-        ></div>
-      {/each}
-    </div>
-  </div>
-{/snippet}
-
-{#snippet verticalRepSlide(cssClass = "")}
-  {@const sliderFill = clampScore(emaScore)}
-  {@const sliderColor = scoreToColor(sliderFill)}
-  <div class="vertical-rep-slide {cssClass}">
-    <div
-      class="v-slide-track"
-      style={`--slider-fill-color:${sliderColor}; --slider-fill-height:${sliderFill}%;`}
-    >
-      <div class="v-slide-inner">
-        <div
-          class="v-slide-fill"
-          style:height={`${sliderFill}%`}
-          style:background={sliderColor}
-          style:box-shadow={`0 0 15px ${sliderColor}66`}
-        ></div>
-      </div>
-
-      <div
-        class="v-slide-handle"
-        style:bottom={`${sliderFill}%`}
-        style:background={sliderColor}
-        style:box-shadow={`0 4px 12px ${sliderColor}55`}
-      ></div>
-
-      <div
-        class="v-slide-bubble"
-        style:top={`${100 - sliderFill}%`}
-        style:color={sliderColor}
-      >
-        {Math.round(sliderFill)}
-      </div>
-    </div>
-  </div>
-{/snippet}
-
 <svelte:head>
   <title>Elarin</title>
 </svelte:head>
@@ -1777,9 +1726,19 @@
         </div>
 
         {#if isCameraRunning || isPaused}
-          {#if layoutMode === "user-centered" && !showCountdown && showReps}
-            {@render repCounter("rep-counter-bar-overlay")}
-            {@render verticalRepSlide("left-aligned")}
+          {#if layoutMode === "user-centered" && !showCountdown}
+            {#if hasComponent("rep_bars") && showReps}
+              <RepBars
+                className="rep-counter-bar-overlay"
+                {repScores}
+                {currentRepFrames}
+                currentReps={$trainingStore.reps}
+                maxSlots={MAX_REP_SLOTS}
+              />
+            {/if}
+            {#if hasComponent("quality_slider")}
+              <QualitySlider className="left-aligned" score={emaScore} />
+            {/if}
           {/if}
 
           {#if layoutMode !== "coach-centered"}
@@ -1827,9 +1786,17 @@
         {/if}
 
         {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered" && !showCountdown}
-          {#if showReps}
-            {@render repCounter("rep-counter-bar-overlay")}
-            {@render verticalRepSlide("left-aligned")}
+          {#if hasComponent("rep_bars") && showReps}
+            <RepBars
+              className="rep-counter-bar-overlay"
+              {repScores}
+              {currentRepFrames}
+              currentReps={$trainingStore.reps}
+              maxSlots={MAX_REP_SLOTS}
+            />
+          {/if}
+          {#if hasComponent("quality_slider")}
+            <QualitySlider className="left-aligned" score={emaScore} />
           {/if}
           {@render fullscreenButton()}
         {/if}
@@ -1852,9 +1819,19 @@
               >
             </button>
           </div>
-        {:else if layoutMode === "side-by-side" && showReps}
-          {@render repCounter("rep-counter-bar-overlay")}
-          {@render verticalRepSlide()}
+        {:else if layoutMode === "side-by-side"}
+          {#if hasComponent("rep_bars") && showReps}
+            <RepBars
+              className="rep-counter-bar-overlay"
+              {repScores}
+              {currentRepFrames}
+              currentReps={$trainingStore.reps}
+              maxSlots={MAX_REP_SLOTS}
+            />
+          {/if}
+          {#if hasComponent("quality_slider")}
+            <QualitySlider score={emaScore} />
+          {/if}
         {/if}
       {/if}
     </div>
@@ -2428,59 +2405,6 @@
     flex-shrink: 0;
   }
 
-  .rep-counter-bar {
-    position: relative;
-    width: 100%;
-    max-width: 1280px;
-    margin: 0 auto;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0.02)
-    );
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow:
-      0 20px 40px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    z-index: 10;
-  }
-
-  .rep-counter-bar-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(0, 0, 0, 0.55),
-      rgba(0, 0, 0, 0.35)
-    );
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-    border-inline: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 -10px 30px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    font-size: clamp(9px, 1.35vh, 17px);
-    padding: 1em 1.5em;
-    display: flex;
-    align-items: center;
-    gap: 1.5em;
-    z-index: 20;
-    pointer-events: none;
-  }
-
-  .rep-counter-bar-overlay * {
-    pointer-events: auto;
-  }
-
   .rep-info {
     display: flex;
     flex-direction: column;
@@ -2494,59 +2418,6 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
-
-  .rep-count {
-    font-size: 5em;
-    font-weight: 300;
-    color: var(--color-text-primary, #fff);
-    line-height: 1;
-  }
-
-  .rep-progress {
-    flex: 1;
-    display: flex;
-    align-items: flex-end;
-    gap: 1em;
-    height: 7em;
-    padding-bottom: 0.25em;
-  }
-
-  .rep-line {
-    width: 1em;
-    flex-shrink: 0;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 99em;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    --rep-fill-height: 0%;
-    --rep-fill-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .rep-line::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: var(--rep-fill-height);
-    background: var(--rep-fill-color);
-    border-radius: 99em;
-    box-shadow: 0 0 10px
-      color-mix(in srgb, var(--rep-fill-color) 40%, transparent);
-    transition: height 0.3s ease, background 0.2s ease;
-  }
-
-  @keyframes pulse-tube {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
   }
 
   .vertical-rep-slide {

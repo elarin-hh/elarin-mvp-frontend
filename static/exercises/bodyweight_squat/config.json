@@ -20,8 +20,8 @@
     "maxLateralInclination": 8,
     "maxAngleDifference": 10,
     "minFramesInState": 3,
-    "minFootDistance": 0.10,
-    "maxFootDistance": 0.20,
+    "minFootDistance": 0.1,
+    "maxFootDistance": 0.2,
     "feedbackCooldownMs": 350
   },
   "feedbackConfig": {
@@ -35,11 +35,11 @@
   "analysisInterval": 16,
   "instructions": {
     "pt": [
-      "Posicione-se de lado para a câmera",
-      "Mantenha os pés afastados na largura dos ombros",
-      "Desça mantendo as costas retas",
-      "Joelhos alinhados com os pés",
-      "Volte à posição inicial de forma controlada"
+      "Posicione-se de lado para a c\u00c3\u00a2mera",
+      "Mantenha os p\u00c3\u00a9s afastados na largura dos ombros",
+      "Des\u00c3\u00a7a mantendo as costas retas",
+      "Joelhos alinhados com os p\u00c3\u00a9s",
+      "Volte \u00c3\u00a0 posi\u00c3\u00a7\u00c3\u00a3o inicial de forma controlada"
     ],
     "en": [
       "Position yourself sideways to the camera",
@@ -48,5 +48,9 @@
       "Keep knees aligned with feet",
       "Return to starting position in a controlled manner"
     ]
-  }
+  },
+  "components": [
+    "quality_slider",
+    "rep_bars"
+  ]
 }

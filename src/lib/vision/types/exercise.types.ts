@@ -22,6 +22,8 @@ export interface ExerciseConfig {
   mlConfig?: MLConfig;
   heuristicConfig?: HeuristicConfig;
   feedbackConfig?: FeedbackConfig;
+  components?: string[];
+  metrics?: string[];
 }
 
 export interface Exercise {
