@@ -219,7 +219,6 @@ export class SquatBodyweightValidator extends BaseValidator {
 	): ValidationIssue[] {
 		const checks: Array<() => ValidationIssue | null> = [
 			() => this.validateTrunkControl(landmarks, angles),
-			() => this.validateBilateralSymmetry(angles),
 			() => this.validateFootDistance(landmarks),
 			() => this.detectValidRepetition(angles),
 			() => this.getCurrentPositionFeedback(angles)
@@ -296,24 +295,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 			);
 		}
 
-		if (
-			this.config.maxTrunkInclination !== null &&
-			angles.trunkInclination > this.config.maxTrunkInclination
-		) {
-			issues.push(
-				this.createValidationResult(
-					false,
-					'trunk_frontal_inclination',
-					'Tronco muito inclinado ├á frente - mantenha a coluna neutra',
-					'high',
-					{
-						trunkInclination: angles.trunkInclination.toFixed(1) + '┬░',
-						maxAllowed: this.config.maxTrunkInclination + '┬░',
-						recommendation: 'Mantenha peito aberto e quadril alinhado sob os ombros'
-					}
-				)
-			);
-		}
+
 
 		if (issues.length > 0) {
 			return issues[0];
@@ -348,47 +330,6 @@ export class SquatBodyweightValidator extends BaseValidator {
 		}
 
 		return shoulderDeltaY > 0 ? 'right' : 'left';
-	}
-
-	private validateBilateralSymmetry(
-		angles: ReturnType<typeof this.calculateKeyAngles>
-	): ValidationIssue | null {
-		const angleDifference = Math.abs(angles.leftKneeAngle - angles.rightKneeAngle);
-		const lowerSide = angles.leftKneeAngle < angles.rightKneeAngle ? 'esquerdo' : 'direito';
-		const recommendation =
-			lowerSide === 'esquerdo'
-				? 'Eleve ligeiramente o lado esquerdo para nivelar'
-				: 'Eleve ligeiramente o lado direito para nivelar';
-
-		if (
-			this.config.maxAngleDifference !== null &&
-			angleDifference > this.config.maxAngleDifference
-		) {
-			return this.createValidationResult(
-				false,
-				'bilateral_symmetry',
-				`Assimetria de joelhos - joelho ${lowerSide} mais baixo`,
-				'high',
-				{
-					difference: angleDifference.toFixed(1) + '┬░',
-					maxAllowed: this.config.maxAngleDifference + '┬░',
-					leftKneeAngle: angles.leftKneeAngle.toFixed(1) + '┬░',
-					rightKneeAngle: angles.rightKneeAngle.toFixed(1) + '┬░',
-					lowerSide,
-					recommendation
-				}
-			);
-		}
-
-		return this.createValidationResult(
-			true,
-			'bilateral_symmetry',
-			'Simetria bilateral mantida',
-			'low',
-			{
-				difference: angleDifference.toFixed(1) + '┬░'
-			}
-		);
 	}
 
 	private validateFootDistance(landmarks: PoseLandmarks): ValidationIssue | null {
