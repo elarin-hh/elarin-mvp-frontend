@@ -85,22 +85,26 @@ export class GenericExerciseClassifier {
     try {
       this.session = await ort.InferenceSession.create(modelPath);
 
-      try {
-        let metadataPath: string;
-        if (metadataFile) {
-          const modelDir = modelPath.substring(0, modelPath.lastIndexOf('/'));
-          metadataPath = `${modelDir}/${metadataFile}`;
-        } else {
-          metadataPath = modelPath.replace('.onnx', '_metadata.json');
-        }
-        const response = await fetch(metadataPath);
-        const metadata: ModelMetadata = await response.json();
+      // Aplicar threshold vindo do config
+      if (typeof this.config.threshold === 'number' && !isNaN(this.config.threshold)) {
+        this.threshold = this.config.threshold;
+      }
 
-        if (metadata.threshold) {
-          this.threshold = metadata.threshold;
-          this.config.threshold = metadata.threshold;
+      // Opcional: ler metadataFile se explicitamente informado
+      if (metadataFile) {
+        try {
+          const modelDir = modelPath.substring(0, modelPath.lastIndexOf('/'));
+          const metadataPath = `${modelDir}/${metadataFile}`;
+          const response = await fetch(metadataPath);
+          const metadata: ModelMetadata = await response.json();
+
+          if (metadata.threshold && (typeof metadata.threshold === 'number')) {
+            this.threshold = metadata.threshold;
+            this.config.threshold = metadata.threshold;
+          }
+        } catch {
+          // silencia se metadata nao estiver disponivel
         }
-      } catch (metadataError) {
       }
 
       this.isLoaded = true;

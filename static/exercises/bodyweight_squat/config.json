@@ -1,16 +1,12 @@
 {
   "exerciseName": "bodyweight_squat",
-  "displayName": "Agachamento",
-  "displayNameEn": "Squat",
-  "exercisePath": "./exercises/bodyweight_squat",
-  "validatorPath": "./exercises/bodyweight_squat/validator.js",
   "modelFile": "squat_autoencoder.onnx",
-  "metadataFile": "squat_metadata.json",
   "modelPath": "./exercises/bodyweight_squat/squat_autoencoder.onnx",
   "mlConfig": {
     "maxFrames": 60,
     "minFrames": 3,
-    "predictionInterval": 1
+    "predictionInterval": 1,
+    "threshold": 0.069
   },
   "heuristicConfig": {
     "minConfidence": 0.7,
@@ -33,22 +29,6 @@
     "prioritizeCritical": true
   },
   "analysisInterval": 16,
-  "instructions": {
-    "pt": [
-      "Posicione-se de lado para a c\u00c3\u00a2mera",
-      "Mantenha os p\u00c3\u00a9s afastados na largura dos ombros",
-      "Des\u00c3\u00a7a mantendo as costas retas",
-      "Joelhos alinhados com os p\u00c3\u00a9s",
-      "Volte \u00c3\u00a0 posi\u00c3\u00a7\u00c3\u00a3o inicial de forma controlada"
-    ],
-    "en": [
-      "Position yourself sideways to the camera",
-      "Keep feet shoulder-width apart",
-      "Lower down keeping back straight",
-      "Keep knees aligned with feet",
-      "Return to starting position in a controlled manner"
-    ]
-  },
   "components": [
     "quality_slider",
     "rep_bars"
