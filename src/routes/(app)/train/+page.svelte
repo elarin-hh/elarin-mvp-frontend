@@ -98,11 +98,25 @@
     return resolved || value;
   };
 
+  const SCORE_ALPHA = 0.2;
+  const ML_WEIGHT = 0.6;
+  const HEUR_WEIGHT = 0.4;
+  const MAX_REP_SLOTS = 30;
+  const SCORE_BANDS = [
+    { min: 85, color: "#22c55e" },
+    { min: 70, color: "#fbbf24" },
+    { min: 50, color: "#f97316" },
+    { min: 0, color: "#ef4444" },
+  ];
+
   let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
   let isFeedbackEnabled = $state(false);
-  let accuracy = $state(0);
+  let emaScore = $state(0);
+  let frameScore = $state(0);
   let confidence = $state(0);
+  let repScores = $state<(number | null)[]>(Array(MAX_REP_SLOTS).fill(null));
+  let currentRepFrames = $state<number[]>([]);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
   let feedbackMode = $state<"hybrid" | "ml_only" | "heuristic_only">("ml_only");
@@ -129,6 +143,87 @@
   const PIP_MARGIN = 16;
   const PIP_BOTTOM_BUFFER = 0;
   let emulatedFrameId: number | null = null;
+
+  const SEVERITY_PENALTIES: Record<string, number> = {
+    critical: 60,
+    high: 40,
+    medium: 25,
+    low: 10,
+  };
+
+  const clampScore = (value: number) => Math.max(0, Math.min(100, value));
+
+  function scoreToColor(score: number | null | undefined): string {
+    if (score === null || score === undefined || Number.isNaN(score)) {
+      return "rgba(255, 255, 255, 0.25)";
+    }
+    const value = clampScore(score);
+    const band = SCORE_BANDS.find((b) => value >= b.min);
+    return band ? band.color : SCORE_BANDS[SCORE_BANDS.length - 1].color;
+  }
+
+  const average = (values: number[]) =>
+    values.length === 0
+      ? 0
+      : values.reduce((sum, val) => sum + val, 0) / values.length;
+
+  function getMlScore(feedback: FeedbackRecord): number | null {
+    const rawQuality =
+      (feedback.ml?.details as Record<string, unknown> | undefined)
+        ?.qualityScore ?? null;
+
+    const parsedQuality =
+      typeof rawQuality === "string"
+        ? parseFloat(rawQuality)
+        : (rawQuality as number | null);
+
+    if (typeof parsedQuality === "number" && !Number.isNaN(parsedQuality)) {
+      return clampScore(parsedQuality);
+    }
+
+    const confidenceValue =
+      feedback.ml?.confidence ?? feedback.combined.confidence ?? null;
+
+    if (typeof confidenceValue === "number" && !Number.isNaN(confidenceValue)) {
+      return clampScore(confidenceValue * 100);
+    }
+
+    return null;
+  }
+
+  function getHeuristicScore(feedback: FeedbackRecord): number | null {
+    const heuristic = feedback.heuristic;
+    if (!heuristic || !heuristic.available) return null;
+
+    if (heuristic.isValid) return 95;
+
+    const issues = heuristic.issues || [];
+    const penalty = issues.reduce((acc, issue) => {
+      const weight =
+        SEVERITY_PENALTIES[
+          (issue.severity as keyof typeof SEVERITY_PENALTIES) ?? "low"
+        ] ?? 0;
+      return acc + weight;
+    }, 0);
+
+    return clampScore(100 - penalty);
+  }
+
+  function combineScores(
+    mlScore: number | null,
+    heuristicScore: number | null,
+  ): number | null {
+    if (mlScore === null && heuristicScore === null) return null;
+    if (mlScore === null) return heuristicScore;
+    if (heuristicScore === null) return mlScore;
+    return clampScore(mlScore * ML_WEIGHT + heuristicScore * HEUR_WEIGHT);
+  }
+
+  function calculateFrameScore(feedback: FeedbackRecord): number | null {
+    const mlScore = getMlScore(feedback);
+    const heuristicScore = getHeuristicScore(feedback);
+    return combineScores(mlScore, heuristicScore);
+  }
 
   const pipStyle = () =>
     showCountdown
@@ -467,6 +562,7 @@
       errorMessage = "";
       hasSyncedCanvas = false;
       isPaused = false;
+      resetQualityTracking();
 
       if (!ensureBiometricConsent()) {
         return;
@@ -839,16 +935,63 @@
     ctx.restore();
   }
 
+  function resetQualityTracking() {
+    repScores = Array(MAX_REP_SLOTS).fill(null);
+    currentRepFrames = [];
+    emaScore = 0;
+    frameScore = 0;
+    trainingStore.update((state) => ({ ...state, reps: 0 }));
+  }
+
+  function trackFrameScore(score: number) {
+    frameScore = score;
+    emaScore =
+      emaScore === 0 ? score : SCORE_ALPHA * score + (1 - SCORE_ALPHA) * emaScore;
+    currentRepFrames = [...currentRepFrames, score];
+  }
+
+  function maybeRegisterRep(feedback: FeedbackRecord) {
+    const heuristicSummary = feedback.heuristic
+      ?.summary as { validReps?: number } | null;
+    const heuristicReps = heuristicSummary?.validReps ?? null;
+    const currentReps = $trainingStore.reps;
+    const nextRepCount =
+      typeof heuristicReps === "number" ? heuristicReps : currentReps;
+
+    if (nextRepCount > currentReps) {
+      const repIndex = Math.min(nextRepCount - 1, MAX_REP_SLOTS - 1);
+      const repScore =
+        currentRepFrames.length > 0
+          ? clampScore(average(currentRepFrames))
+          : clampScore(frameScore || 0);
+
+      const updated = [...repScores];
+      updated[repIndex] = repScore;
+      repScores = updated;
+      currentRepFrames = [];
+      trainingActions.incrementReps();
+    }
+  }
+
   function handleFeedback(feedback: FeedbackRecord) {
     currentFeedback = feedback;
 
-    if (feedback.combined.verdict === "correct") {
-      skeletonColor = resolveCssColor(SKELETON_COLORS.correct);
-    } else if (feedback.combined.verdict === "incorrect") {
-      skeletonColor = resolveCssColor(SKELETON_COLORS.incorrect);
-    } else {
-      skeletonColor = resolveCssColor(SKELETON_COLORS.neutral);
+    const frameQuality = calculateFrameScore(feedback);
+    if (frameQuality !== null) {
+      trackFrameScore(frameQuality);
     }
+
+    confidence = clampScore(
+      ((feedback.combined?.confidence ?? 0) as number) * 100,
+    );
+
+    skeletonColor = resolveCssColor(
+      feedback.combined.verdict === "correct"
+        ? SKELETON_COLORS.correct
+        : feedback.combined.verdict === "incorrect"
+          ? SKELETON_COLORS.incorrect
+          : SKELETON_COLORS.neutral,
+    );
 
     const newMessages = feedback.messages || [];
     const hasNewMessages =
@@ -869,15 +1012,7 @@
       }
     }
 
-    if (feedback.heuristic?.details) {
-      const repResult = feedback.heuristic.details.find(
-        (d: unknown) => (d as { type?: string }).type === "valid_repetition",
-      );
-
-      if (repResult && (repResult as { isValid?: boolean }).isValid) {
-        trainingActions.incrementReps();
-      }
-    }
+    maybeRegisterRep(feedback);
 
     if (feedback.ml?.error !== undefined) {
       reconstructionError = feedback.ml.error;
@@ -889,8 +1024,9 @@
     accuracy?: string;
     avgConfidence?: number;
   }) {
-    accuracy = parseFloat(metrics.accuracy || "0") || 0;
-    confidence = (metrics.avgConfidence ? metrics.avgConfidence * 100 : 0) || 0;
+    if (typeof metrics.avgConfidence === "number") {
+      confidence = clampScore(metrics.avgConfidence * 100);
+    }
   }
 
   function handleError(error: Error) {
@@ -948,6 +1084,7 @@
         currentFeedback = null;
         reconstructionError = null;
         elapsedTime = 0;
+        resetQualityTracking();
       }, 2000);
 
       isLoading = false;
@@ -1442,14 +1579,23 @@
   <div class={cssClass}>
     <div class="rep-info">
       <span class="rep-label">Reps.</span>
-      <span class="rep-count">{$trainingStore.reps} /30</span>
+      <span class="rep-count">{$trainingStore.reps} /{MAX_REP_SLOTS}</span>
     </div>
     <div class="rep-progress">
-      {#each Array(30) as _, i}
+      {#each Array(MAX_REP_SLOTS) as _, i}
+        {@const storedScore = repScores[i]}
+        {@const partialScore =
+          storedScore === null && i === $trainingStore.reps
+            ? (currentRepFrames.length ? clampScore(average(currentRepFrames)) : null)
+            : storedScore}
+        {@const fill = partialScore === null ? 0 : clampScore(partialScore)}
+        {@const color =
+          partialScore === null
+            ? "rgba(255, 255, 255, 0.15)"
+            : scoreToColor(fill)}
         <div
           class="rep-line"
-          class:completed={i < $trainingStore.reps}
-          class:current={i === $trainingStore.reps}
+          style={`--rep-fill-height:${fill}%; --rep-fill-color:${color};`}
         ></div>
       {/each}
     </div>
@@ -1457,16 +1603,35 @@
 {/snippet}
 
 {#snippet verticalRepSlide(cssClass = "")}
+  {@const sliderFill = clampScore(emaScore)}
+  {@const sliderColor = scoreToColor(sliderFill)}
   <div class="vertical-rep-slide {cssClass}">
-    <div class="v-slide-track">
+    <div
+      class="v-slide-track"
+      style={`--slider-fill-color:${sliderColor}; --slider-fill-height:${sliderFill}%;`}
+    >
       <div class="v-slide-inner">
-        <div class="v-slide-fill" style:height="{accuracy}%"></div>
+        <div
+          class="v-slide-fill"
+          style:height={`${sliderFill}%`}
+          style:background={sliderColor}
+          style:box-shadow={`0 0 15px ${sliderColor}66`}
+        ></div>
       </div>
 
-      <div class="v-slide-handle" style:bottom="{accuracy}%"></div>
+      <div
+        class="v-slide-handle"
+        style:bottom={`${sliderFill}%`}
+        style:background={sliderColor}
+        style:box-shadow={`0 4px 12px ${sliderColor}55`}
+      ></div>
 
-      <div class="v-slide-bubble" style:top="{100 - accuracy}%">
-        {Math.round(accuracy)}
+      <div
+        class="v-slide-bubble"
+        style:top={`${100 - sliderFill}%`}
+        style:color={sliderColor}
+      >
+        {Math.round(sliderFill)}
       </div>
     </div>
   </div>
@@ -1925,7 +2090,7 @@
               <div class="dev-metrics">
                 <div class="dev-metric-card">
                   <span class="dev-metric-label">Precisão</span>
-                  <span class="dev-metric-value">{accuracy.toFixed(1)}%</span>
+                  <span class="dev-metric-value">{emaScore.toFixed(1)}%</span>
                 </div>
                 <div class="dev-metric-card">
                   <span class="dev-metric-label">Confiança</span>
@@ -2356,6 +2521,8 @@
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    --rep-fill-height: 0%;
+    --rep-fill-color: rgba(255, 255, 255, 0.2);
   }
 
   .rep-line::before {
@@ -2364,33 +2531,12 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 0%;
-    background: linear-gradient(
-      to top,
-      rgba(255, 255, 255, 0.3) 0%,
-      rgba(255, 255, 255, 0.1) 100%
-    );
+    height: var(--rep-fill-height);
+    background: var(--rep-fill-color);
     border-radius: 99em;
-    transition: height 0.3s ease;
-  }
-
-  .rep-line.completed::before {
-    height: 100%;
-    background: linear-gradient(to top, #666 0%, #999 50%, #666 100%);
-  }
-
-  .rep-line.current::before {
-    height: 100%;
-    background: linear-gradient(
-      to top,
-      var(--color-primary-600) 0%,
-      var(--color-primary-400) 50%,
-      var(--color-primary-500) 100%
-    );
-    box-shadow:
-      0 0 12px var(--color-primary-500),
-      inset 0 2px 8px rgba(255, 255, 255, 0.3);
-    animation: pulse-tube 1.5s ease-in-out infinite;
+    box-shadow: 0 0 10px
+      color-mix(in srgb, var(--rep-fill-color) 40%, transparent);
+    transition: height 0.3s ease, background 0.2s ease;
   }
 
   @keyframes pulse-tube {
@@ -2443,9 +2589,14 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    background: #ccff00;
+    background: var(--slider-fill-color, #22c55e);
     transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 15px rgba(204, 255, 0, 0.5);
+    box-shadow: 0 0 15px
+      color-mix(
+        in srgb,
+        var(--slider-fill-color, #22c55e) 45%,
+        transparent
+      );
     border-radius: 28px 28px 0 0;
   }
 
@@ -2455,7 +2606,7 @@
     transform: translate(-50%, 50%);
     width: 40px;
     height: 40px;
-    background: rgba(255, 255, 255, 1);
+    background: var(--slider-fill-color, rgba(255, 255, 255, 1));
     border-radius: 50%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10;
@@ -2541,15 +2692,17 @@
   @keyframes pulse-countdown {
     0% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(204, 255, 0, 0.7);
+      box-shadow: 0 0 0 0
+        color-mix(in srgb, var(--slider-fill-color, #22c55e) 70%, transparent);
     }
     70% {
       transform: scale(1.1);
-      box-shadow: 0 0 0 30px rgba(204, 255, 0, 0);
+      box-shadow: 0 0 0 30px
+        color-mix(in srgb, var(--slider-fill-color, #22c55e) 0%, transparent);
     }
     100% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(204, 255, 0, 0);
+      box-shadow: 0 0 0 0 transparent;
     }
   }
 
@@ -2561,7 +2714,7 @@
     transform: translate(-50%, -50%);
     width: 28px;
     height: 28px;
-    background: #ccff00;
+    background: var(--slider-fill-color, #22c55e);
     border-radius: 50%;
   }
 

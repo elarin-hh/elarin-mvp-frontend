@@ -1,0 +1,105 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Elarin MVP --- Metrica de Qualidade (Slider \& Repeticoes)}
+\author{Elarin Engineering}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Resumo}
+Definimos uma metrica unificada de qualidade (0--100) para:
+\begin{itemize}
+  \item Slider de precisao em tempo real.
+  \item Barras de repeticao (``tubinhos'') preenchidas pela qualidade media de cada repeticao.
+\end{itemize}
+A metrica combina os sinais de ML (autoencoder) e heuristica (validator) e aplica suavizacao temporal (EMA).
+
+\section{Fontes de Sinal}
+\begin{itemize}
+  \item \textbf{ML}: $q_{\text{ml}}$ vem de \texttt{qualityScore} (0--100) em \texttt{feedback.ml.details}; fallback: \texttt{confidence} $\times 100$.
+  \item \textbf{Heuristica}: $q_{\text{heur}}$ vem de \texttt{isValid} e lista de \texttt{issues} com severidade.
+  \item \textbf{Repeticao}: evento \texttt{valid\_repetition} e contador \texttt{validReps}.
+\end{itemize}
+
+\section{Penalidades de Heuristica}
+Para cada issue com severidade $s$, aplicamos penalidade $p(s)$:
+\[
+p(s) = \begin{cases}
+60, & s = \text{critical}\\
+40, & s = \text{high}\\
+25, & s = \text{medium}\\
+10, & s = \text{low}
+\end{cases}
+\]
+O escore heuristico e entao:
+\[
+q_{\text{heur}} =
+\begin{cases}
+95, & \text{se heuristica valida}\\
+\max(0, 100 - \sum p(s)), & \text{caso contrario}
+\end{cases}
+\]
+
+\section{Combinação ML + Heuristica}
+Pesos default: $w_{\text{ml}} = 0.6$, $w_{\text{heur}} = 0.4$.
+\[
+q_{\text{frame}} =
+\begin{cases}
+q_{\text{ml}}, & \text{se apenas ML}\\
+q_{\text{heur}}, & \text{se apenas heuristica}\\
+\text{clamp}\bigl(w_{\text{ml}} q_{\text{ml}} + w_{\text{heur}} q_{\text{heur}},\,0,\,100\bigr), & \text{se ambos}
+\end{cases}
+\]
+
+\section{Suavização Temporal (EMA)}
+Usamos uma media exponencial para o slider:
+\[
+q_{\text{ema}}(t) =
+\begin{cases}
+q_{\text{frame}}(t), & \text{se } q_{\text{ema}}(t-1) = 0\\
+\alpha\, q_{\text{frame}}(t) + (1-\alpha)\, q_{\text{ema}}(t-1), & \text{caso contrario}
+\end{cases}
+\]
+com $\alpha = 0.2$ (ajustavel).
+
+\section{Qualidade por Repetição}
+\begin{enumerate}
+  \item Acumular $q_{\text{frame}}$ em um buffer da repeticao corrente.
+  \item Ao detectar \texttt{valid\_repetition} (ou incremento de \texttt{validReps}):
+    \[
+    q_{\text{rep}} = \text{media}\bigl( q_{\text{frame}} \text{ da repeticao} \bigr)
+    \]
+  \item Armazenar $q_{\text{rep}}$ em \texttt{repScores[index]} (max 30).
+  \item Limpar buffer da repeticao corrente.
+\end{enumerate}
+
+\section{Mapeamento de Cores}
+Faixas para slider e barras:
+\[
+\begin{aligned}
+0\text{--}49 &\rightarrow \text{vermelho } (\#\text{ef4444})\\
+50\text{--}69 &\rightarrow \text{laranja } (\#\text{f97316})\\
+70\text{--}84 &\rightarrow \text{ambar } (\#\text{fbbf24})\\
+85\text{--}100 &\rightarrow \text{verde } (\#\text{22c55e})
+\end{aligned}
+\]
+
+\section{Estados Neutros}
+Se ML e heuristica indisponiveis ou veredito for \texttt{unknown}, manter cor neutra e pausar evolucao do slider.
+
+\section{Parametros Ajustaveis}
+\begin{itemize}
+  \item Pesos $w_{\text{ml}}, w_{\text{heur}}$.
+  \item Penalidades $p(s)$ por severidade.
+  \item Suavizacao $\alpha$ (EMA).
+  \item Faixas e cores.
+\end{itemize}
+
+\end{document}
