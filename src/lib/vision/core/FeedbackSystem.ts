@@ -200,7 +200,7 @@ export class FeedbackSystem {
       available: true,
       isValid: heuristicResult.isValid,
       issues: heuristicResult.issues || [],
-      summary: heuristicResult as unknown as Record<string, unknown>,
+      summary: heuristicResult.summary || null,
       details: (heuristicResult as unknown as { details?: unknown[] }).details || []
     };
   }

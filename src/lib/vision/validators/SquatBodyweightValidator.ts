@@ -1,4 +1,4 @@
-import { BaseValidator } from './BaseValidator';
+﻿import { BaseValidator } from './BaseValidator';
 import { MEDIAPIPE_LANDMARKS } from '../constants/mediapipe.constants';
 import type { PoseLandmarks, ValidationResult, ValidationIssue } from '../types';
 
@@ -48,6 +48,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 	private framesInCurrentState = 0;
 	public validReps = 0;
 	private repCountedInThisTransition = false;
+	private reachedBottom = false;
 	private angleHistory: Array<{
 		timestamp: number;
 		leftKneeAngle: number;
@@ -78,13 +79,13 @@ export class SquatBodyweightValidator extends BaseValidator {
 					this.createValidationResult(
 						false,
 						'landmarks_visibility',
-						'Marcos não visíveis o suficiente para avaliar',
+						'Marcos n├úo vis├¡veis o suficiente para avaliar',
 						'critical'
 					)
 				],
 				summary: {
 					totalIssues: 1,
-					message: 'Marcos não visíveis',
+					message: 'Marcos n├úo vis├¡veis',
 					priority: 'critical'
 				}
 			};
@@ -193,6 +194,9 @@ export class SquatBodyweightValidator extends BaseValidator {
 			this.framesInCurrentState = 0;
 			this.currentState = newState;
 			this.repCountedInThisTransition = false;
+			if (newState === 'DOWN') {
+				this.reachedBottom = true;
+			}
 		} else {
 			this.framesInCurrentState++;
 		}
@@ -283,9 +287,9 @@ export class SquatBodyweightValidator extends BaseValidator {
 					`Tronco inclinado para a ${directionLabel} - mantenha ombros nivelados`,
 					'high',
 					{
-						lateralInclination: angles.lateralInclination.toFixed(1) + '°',
-						maxLateralAllowed: this.config.maxLateralInclination + '°',
-						recommendation: 'Mantenha os ombros nivelados, não incline para os lados',
+						lateralInclination: angles.lateralInclination.toFixed(1) + '┬░',
+						maxLateralAllowed: this.config.maxLateralInclination + '┬░',
+						recommendation: 'Mantenha os ombros nivelados, n├úo incline para os lados',
 						direction: lateralDirection
 					}
 				)
@@ -300,11 +304,11 @@ export class SquatBodyweightValidator extends BaseValidator {
 				this.createValidationResult(
 					false,
 					'trunk_frontal_inclination',
-					'Tronco muito inclinado à frente - mantenha a coluna neutra',
+					'Tronco muito inclinado ├á frente - mantenha a coluna neutra',
 					'high',
 					{
-						trunkInclination: angles.trunkInclination.toFixed(1) + '°',
-						maxAllowed: this.config.maxTrunkInclination + '°',
+						trunkInclination: angles.trunkInclination.toFixed(1) + '┬░',
+						maxAllowed: this.config.maxTrunkInclination + '┬░',
 						recommendation: 'Mantenha peito aberto e quadril alinhado sob os ombros'
 					}
 				)
@@ -318,11 +322,11 @@ export class SquatBodyweightValidator extends BaseValidator {
 		return this.createValidationResult(
 			true,
 			'trunk_control',
-			'Tronco estável e alinhado',
+			'Tronco est├ível e alinhado',
 			'low',
 			{
-				frontalInclination: angles.trunkInclination.toFixed(1) + '°',
-				lateralInclination: angles.lateralInclination.toFixed(1) + '°',
+				frontalInclination: angles.trunkInclination.toFixed(1) + '┬░',
+				lateralInclination: angles.lateralInclination.toFixed(1) + '┬░',
 				direction: lateralDirection
 			}
 		);
@@ -366,10 +370,10 @@ export class SquatBodyweightValidator extends BaseValidator {
 				`Assimetria de joelhos - joelho ${lowerSide} mais baixo`,
 				'high',
 				{
-					difference: angleDifference.toFixed(1) + '°',
-					maxAllowed: this.config.maxAngleDifference + '°',
-					leftKneeAngle: angles.leftKneeAngle.toFixed(1) + '°',
-					rightKneeAngle: angles.rightKneeAngle.toFixed(1) + '°',
+					difference: angleDifference.toFixed(1) + '┬░',
+					maxAllowed: this.config.maxAngleDifference + '┬░',
+					leftKneeAngle: angles.leftKneeAngle.toFixed(1) + '┬░',
+					rightKneeAngle: angles.rightKneeAngle.toFixed(1) + '┬░',
 					lowerSide,
 					recommendation
 				}
@@ -382,7 +386,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 			'Simetria bilateral mantida',
 			'low',
 			{
-				difference: angleDifference.toFixed(1) + '°'
+				difference: angleDifference.toFixed(1) + '┬░'
 			}
 		);
 	}
@@ -401,7 +405,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 			return this.createValidationResult(
 				false,
 				'foot_distance',
-				'Pés muito próximos - abra mais as pernas',
+				'P├⌐s muito pr├│ximos - abra mais as pernas',
 				'high',
 				{
 					distance: (normalizedDistance * 100).toFixed(1) + '%',
@@ -415,7 +419,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 			return this.createValidationResult(
 				false,
 				'foot_distance',
-				'Pés muito afastados - aproxime as pernas',
+				'P├⌐s muito afastados - aproxime as pernas',
 				'high',
 				{
 					distance: (normalizedDistance * 100).toFixed(1) + '%',
@@ -428,7 +432,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 		return this.createValidationResult(
 			true,
 			'foot_distance',
-			'Distância entre pernas correta',
+			'Dist├óncia entre pernas correta',
 			'low',
 			{
 				distance: (normalizedDistance * 100).toFixed(1) + '%'
@@ -439,46 +443,36 @@ export class SquatBodyweightValidator extends BaseValidator {
 	private detectValidRepetition(
 		angles: ReturnType<typeof this.calculateKeyAngles>
 	): ValidationIssue | null {
-		const avgKneeAngle = (angles.leftKneeAngle + angles.rightKneeAngle) / 2;
+		if (this.currentState !== 'UP') {
+			return null;
+		}
 
-		const resetThreshold =
-			(this.config.kneeUpAngle ?? DEFAULT_CONFIG.kneeUpAngle) - 10;
-
-		if (avgKneeAngle < resetThreshold && this.repCountedInThisTransition) {
-			this.repCountedInThisTransition = false;
+		if (!this.reachedBottom || this.repCountedInThisTransition) {
+			return null;
 		}
 
 		if (
-			this.currentState === 'UP' &&
-			!this.repCountedInThisTransition &&
-			(this.config.minFramesInState === null ||
-				this.framesInCurrentState >= this.config.minFramesInState)
+			this.config.minFramesInState !== null &&
+			this.framesInCurrentState < this.config.minFramesInState
 		) {
-			const wasInBottom =
-				this.config.kneeDownAngle !== null &&
-				this.angleHistory.slice(-10).some(
-					(frame) => (frame.leftKneeAngle + frame.rightKneeAngle) / 2 <= this.config.kneeDownAngle!
-				);
-
-			if (wasInBottom) {
-				this.validReps++;
-				this.repCountedInThisTransition = true;
-
-				return this.createValidationResult(
-					true,
-					'valid_repetition',
-					`Repetição válida #${this.validReps}!`,
-					'success',
-					{
-						totalReps: this.validReps,
-						message: 'Excelente! Movimento completo detectado',
-						sound: 'beep'
-					}
-				);
-			}
+			return null;
 		}
 
-		return null;
+		this.validReps++;
+		this.repCountedInThisTransition = true;
+		this.reachedBottom = false;
+
+		return this.createValidationResult(
+			true,
+			'valid_repetition',
+			`Repeticao valida #${this.validReps}!`,
+			'success',
+			{
+				totalReps: this.validReps,
+				message: 'Excelente! Movimento completo detectado',
+				sound: 'beep'
+			}
+		);
 	}
 
 	private getCurrentPositionFeedback(
@@ -494,17 +488,17 @@ export class SquatBodyweightValidator extends BaseValidator {
 		if (this.currentState === 'UP') {
 			if (this.config.kneeDownAngle !== null && this.config.kneeUpAngle !== null) {
 				if (avgKneeAngle < this.config.kneeUpAngle && avgKneeAngle > this.config.kneeDownAngle) {
-					feedback = 'Ajuste a posição - prepare-se para descer';
+					feedback = 'Ajuste a posi├º├úo - prepare-se para descer';
 					severity = 'medium';
 				} else if (avgKneeAngle >= this.config.kneeUpAngle) {
-					feedback = 'Posição inicial correta - pronto para agachar';
+					feedback = 'Posi├º├úo inicial correta - pronto para agachar';
 					severity = 'low';
 				}
 			}
 		} else if (this.currentState === 'DOWN') {
 			if (this.config.kneeDownAngle !== null) {
 				if (avgKneeAngle > this.config.kneeDownAngle) {
-					feedback = `Desça mais - atinja o paralelo (?${this.config.kneeDownAngle}°)`;
+					feedback = `Des├ºa mais - atinja o paralelo (?${this.config.kneeDownAngle}┬░)`;
 					severity = 'high';
 				} else if (avgKneeAngle <= this.config.kneeDownAngle) {
 					feedback = 'Profundidade ideal - agora suba';
@@ -521,7 +515,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 
 			this.lastFeedbackTime = currentTime;
 			return this.createValidationResult(severity === 'low', 'position_feedback', feedback, severity, {
-				kneeAngle: avgKneeAngle.toFixed(1) + '°',
+				kneeAngle: avgKneeAngle.toFixed(1) + '┬░',
 				state: this.currentState,
 				recommendation: this.getRecommendation(avgKneeAngle)
 			});
@@ -536,11 +530,11 @@ export class SquatBodyweightValidator extends BaseValidator {
 		const midAngle = (upAngle + downAngle) / 2;
 
 		if (kneeAngle >= upAngle) {
-			return 'Posição inicial - pronto para agachar';
+			return 'Posi├º├úo inicial - pronto para agachar';
 		} else if (kneeAngle > midAngle) {
-			return 'Continue descendo até o paralelo';
+			return 'Continue descendo at├⌐ o paralelo';
 		} else if (kneeAngle > downAngle) {
-			return `Desça mais - atinja o paralelo (?${downAngle}°)`;
+			return `Des├ºa mais - atinja o paralelo (?${downAngle}┬░)`;
 		} else if (kneeAngle <= downAngle) {
 			return 'Profundidade ideal - agora suba';
 		}
@@ -573,7 +567,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 						: ('low' as const),
 			message:
 				totalIssues === 0
-					? `Execução correta! Repetições: ${this.validReps}`
+					? `Execu├º├úo correta! Repeti├º├╡es: ${this.validReps}`
 					: `${totalIssues} problema(s) detectado(s)`,
 			validReps: this.validReps,
 			currentState: this.currentState,
