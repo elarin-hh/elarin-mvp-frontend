@@ -2712,10 +2712,25 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+    z-index: 2;
+  }
+
+  .v-slide-handle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 28px;
     height: 28px;
     background: var(--slider-fill-color, #22c55e);
     border-radius: 50%;
+    z-index: 1;
   }
 
   .v-slide-bubble {
