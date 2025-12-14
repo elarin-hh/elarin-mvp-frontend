@@ -30,6 +30,7 @@
   } from "$lib/stores/audio-feedback.store";
   import QualitySlider from "$lib/components/training/QualitySlider.svelte";
   import RepBars from "$lib/components/training/RepBars.svelte";
+  import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
 
   const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
   const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
@@ -135,6 +136,8 @@
   let layoutMode = $state<"side-by-side" | "user-centered" | "coach-centered">(
     "side-by-side",
   );
+  let sessionActive = $state(false);
+  let countdownResetTimer = $state(true);
 
   let pipPosition = $state({ x: 0, y: 0 });
   let isDraggingPip = $state(false);
@@ -295,9 +298,18 @@
     showCountdown = false;
     resumeReferenceVideo();
     countdownTimeouts = [];
-    if (isPaused) {
-      void resumeTraining();
+
+    sessionActive = true;
+    startTimer(countdownResetTimer);
+    countdownResetTimer = false;
+
+    if ($trainingStore.status === "paused") {
+      trainingActions.resume();
+    } else if ($trainingStore.status !== "training") {
+      trainingActions.start();
     }
+
+    isPaused = false;
   }
 
   function pauseForFullscreenExit() {
@@ -321,6 +333,8 @@
 
     clearCountdown();
     countdownActive = true;
+    sessionActive = false;
+    countdownResetTimer = !isPaused;
 
     countdownValue = "5";
 
@@ -692,10 +706,9 @@
         );
       }
 
-      trainingActions.start();
       syncCanvasSize();
-      startTimer();
       isCameraRunning = true;
+      sessionActive = false;
       isLoading = false;
     } catch (error: unknown) {
       errorMessage = `Erro ao iniciar: ${(error as Error).message}`;
@@ -797,9 +810,11 @@
     });
 
     if (analyzer && landmarks && !isPaused) {
-      queueMicrotask(() => {
-        analyzer?.analyzeFrame(landmarks);
-      });
+      if (sessionActive) {
+        queueMicrotask(() => {
+          analyzer?.analyzeFrame(landmarks);
+        });
+      }
     }
 
     if (activeTab === "dev" && landmarks) {
@@ -960,6 +975,7 @@
   }
 
   function maybeRegisterRep(feedback: FeedbackRecord) {
+    if (!sessionActive) return;
     if (!hasComponent("rep_bars")) return;
 
     const heuristicSummary = feedback.heuristic
@@ -1109,13 +1125,23 @@
     trainingActions.pause();
     pauseTimer();
     isPaused = true;
+    sessionActive = false;
+    showCountdown = true;
+    countdownActive = false;
+    clearCountdown();
+    countdownValue =
+      elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
   }
 
   async function resumeTraining() {
     try {
-      isPaused = false;
-      trainingActions.resume();
-      startTimer(false);
+      isPaused = true;
+      sessionActive = false;
+      showCountdown = true;
+      countdownActive = false;
+      clearCountdown();
+      countdownValue = "Retomar";
+      startCountdown();
       isCameraRunning = true;
     } catch (error) {
       errorMessage = `Erro ao retomar: ${(error as Error).message}`;
@@ -1673,9 +1699,7 @@
 
         <div class="overlays-container">
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === "user-centered"}
-            <div class="timer-overlay card glass">
-              <span class="timer-value">{formatTime(elapsedTime)}</span>
-            </div>
+            <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
 
           {#if (isCameraRunning || isPaused) && !showCountdown && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
@@ -1771,9 +1795,7 @@
 
         <div class="overlays-container">
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
-            <div class="timer-overlay card glass">
-              <span class="timer-value">{formatTime(elapsedTime)}</span>
-            </div>
+            <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
         </div>
 
