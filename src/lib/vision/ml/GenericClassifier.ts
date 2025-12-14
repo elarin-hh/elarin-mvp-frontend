@@ -18,11 +18,6 @@ export interface ClassifierConfig {
   maxHistorySize?: number;
 }
 
-export interface ModelMetadata {
-  threshold?: number;
-  [key: string]: unknown;
-}
-
 export interface PerformanceMetrics {
   fps: string;
   avgFps: string;
@@ -78,33 +73,13 @@ export class GenericExerciseClassifier {
     this.maxMetricHistory = 50;
   }
 
-  async loadModel(
-    modelPath: string = './models/autoencoder.onnx',
-    metadataFile: string | null = null
-  ): Promise<void> {
+  async loadModel(modelPath: string = './models/autoencoder.onnx'): Promise<void> {
     try {
       this.session = await ort.InferenceSession.create(modelPath);
 
       // Aplicar threshold vindo do config
       if (typeof this.config.threshold === 'number' && !isNaN(this.config.threshold)) {
         this.threshold = this.config.threshold;
-      }
-
-      // Opcional: ler metadataFile se explicitamente informado
-      if (metadataFile) {
-        try {
-          const modelDir = modelPath.substring(0, modelPath.lastIndexOf('/'));
-          const metadataPath = `${modelDir}/${metadataFile}`;
-          const response = await fetch(metadataPath);
-          const metadata: ModelMetadata = await response.json();
-
-          if (metadata.threshold && (typeof metadata.threshold === 'number')) {
-            this.threshold = metadata.threshold;
-            this.config.threshold = metadata.threshold;
-          }
-        } catch {
-          // silencia se metadata nao estiver disponivel
-        }
       }
 
       this.isLoaded = true;

@@ -120,8 +120,7 @@ export class ExerciseAnalyzer {
   private async initializeMLClassifier(): Promise<void> {
     this.mlClassifier = new GenericExerciseClassifier(this.config.mlConfig || {});
 
-    const rawModelPath =
-      this.config.modelPath || (this.config.modelFile ? `./models/${this.config.modelFile}` : null);
+    const rawModelPath = this.config.modelPath;
     if (!rawModelPath) {
       throw new Error('Modelo do exercicio nao configurado');
     }
@@ -130,9 +129,8 @@ export class ExerciseAnalyzer {
       : rawModelPath.startsWith('/')
         ? rawModelPath
         : `${base}${rawModelPath.replace(/^\./, '')}`;
-    const metadataFile = this.config.metadataFile || null;
 
-    await this.mlClassifier.loadModel(modelPath, metadataFile);
+    await this.mlClassifier.loadModel(modelPath);
   }
 
   private async initializeHeuristicValidator(): Promise<void> {

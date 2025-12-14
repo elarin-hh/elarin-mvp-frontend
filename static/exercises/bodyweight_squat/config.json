@@ -1,6 +1,5 @@
 {
   "exerciseName": "bodyweight_squat",
-  "modelFile": "squat_autoencoder.onnx",
   "modelPath": "./exercises/bodyweight_squat/squat_autoencoder.onnx",
   "mlConfig": {
     "maxFrames": 60,
@@ -24,9 +23,7 @@
     "feedbackMode": "hybrid",
     "mlWeight": 0.5,
     "heuristicWeight": 0.5,
-    "minConfidenceThreshold": 0.6,
-    "maxFeedbackItems": 3,
-    "prioritizeCritical": true
+    "maxFeedbackItems": 3
   },
   "analysisInterval": 16,
   "components": [

@@ -17,11 +17,6 @@ export interface Feedback {
     color: string;
     opacity: number;
   };
-  metrics?: {
-    mlScore?: number;
-    heuristicScore?: number;
-    validReps?: number;
-  };
 }
 
 export interface FeedbackConfig {
@@ -29,7 +24,5 @@ export interface FeedbackConfig {
   mlWeight?: number;
   heuristicWeight?: number;
   maxFeedbackItems?: number;
-  minConfidenceThreshold?: number;
-  prioritizeCritical?: boolean;
   [key: string]: unknown;
 }

@@ -28,12 +28,8 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 			if (!path) return path ?? undefined;
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
 		};
-		config.modelPath = normalizePath(
-			config.modelPath || (config.modelFile ? `./exercises/${exerciseId}/${config.modelFile}` : undefined)
-		);
-		config.exercisePath = normalizePath(config.exercisePath);
-		config.validatorPath = normalizePath(config.validatorPath || undefined);
-		config.metadataFile = config.metadataFile || null;
+		config.exerciseName = config.exerciseName || exerciseId;
+		config.modelPath = normalizePath(config.modelPath);
 		configCache[exerciseId] = config;
 		return config;
 	} catch (error) {

@@ -53,9 +53,7 @@ export interface FeedbackSystemConfig {
   feedbackMode?: FeedbackMode;
   mlWeight?: number;
   heuristicWeight?: number;
-  minConfidenceThreshold?: number;
   maxFeedbackItems?: number;
-  prioritizeCritical?: boolean;
   [key: string]: unknown;
 }
 
@@ -97,9 +95,7 @@ export class FeedbackSystem {
       feedbackMode: config.feedbackMode || 'hybrid',
       mlWeight: config.mlWeight || 0.6,
       heuristicWeight: config.heuristicWeight || 0.4,
-      minConfidenceThreshold: config.minConfidenceThreshold || 0.6,
       maxFeedbackItems: config.maxFeedbackItems || 3,
-      prioritizeCritical: config.prioritizeCritical !== false,
       ...config
     };
 
