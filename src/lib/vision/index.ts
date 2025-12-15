@@ -18,9 +18,7 @@ export { GenericExerciseClassifier } from './ml/GenericClassifier';
 
 export {
   loadExerciseConfig,
-  getExerciseConfig,
-  getAvailableExercises,
-  isExerciseAvailable
+  getExerciseConfig
 } from './config/exerciseConfigs';
 
 export type { MLResult, FeedbackRecord, FeedbackSystemConfig } from './core/FeedbackSystem';

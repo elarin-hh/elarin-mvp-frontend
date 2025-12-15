@@ -1,15 +1,6 @@
 import { base } from '$app/paths';
 import type { ExerciseConfig } from '../types/exercise.types';
 
-const DEFAULT_EXERCISES = [
-	'bodyweight_squat',
-	'standing_hip_abduction',
-	'glute_bridge',
-	'seated_thoracic_extension',
-	'dead_bug_alternating',
-	'standing_v_raise'
-];
-
 const configCache: Record<string, ExerciseConfig> = {};
 
 export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseConfig | null> {
@@ -39,22 +30,4 @@ export async function loadExerciseConfig(exerciseId: string): Promise<ExerciseCo
 
 export function getExerciseConfig(exerciseId: string): ExerciseConfig | null {
 	return configCache[exerciseId] || null;
-}
-
-export async function getAvailableExercises(): Promise<string[]> {
-	try {
-		const response = await fetch(`${base}/exercises.json`);
-		if (!response.ok) {
-			return DEFAULT_EXERCISES;
-		}
-		const data: { exercises?: string[] } = await response.json();
-		return data.exercises || DEFAULT_EXERCISES;
-	} catch {
-		return DEFAULT_EXERCISES;
-	}
-}
-
-export async function isExerciseAvailable(exerciseId: string): Promise<boolean> {
-	const exercises = await getAvailableExercises();
-	return exercises.includes(exerciseId);
 }

@@ -23,14 +23,8 @@
   let showAvatarMenu = $state(false);
   let isRefreshing = $state(false);
 
-  const exerciseImages: Record<string, string> = {
-    bodyweight_squat: asset("/exercisesImages/squat.webp"),
-    standing_hip_abduction: asset("/exercisesImages/squat.webp"),
-    glute_bridge: asset("/exercisesImages/squat.webp"),
-    seated_thoracic_extension: asset("/exercisesImages/squat.webp"),
-    dead_bug_alternating: asset("/exercisesImages/squat.webp"),
-    standing_v_raise: asset("/exercisesImages/squat.webp"),
-  };
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop";
 
   $effect(() => {
     exercises = data.exercises ?? [];
@@ -82,11 +76,9 @@
     goto(`${base}/framer`);
   }
 
-  function getExerciseImage(type: string): string {
-    return (
-      exerciseImages[type] ||
-      "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop"
-    );
+  function getExerciseImage(exercise: Exercise): string {
+    if (exercise.image_url) return exercise.image_url;
+    return fallbackImage;
   }
 
   function toggleAvatarMenu() {
@@ -110,6 +102,7 @@
       showAvatarMenu = false;
     }
   }
+
 </script>
 
 <div class="bg-black">
@@ -160,8 +153,7 @@
               class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
             >
               <img
-                src={getExerciseImage(exercise.type)}
-                alt={exercise.name_pt}
+                src={getExerciseImage(exercise)}
                 class="absolute inset-0 w-full h-full object-cover"
               />
 
@@ -207,6 +199,7 @@
   {#if isRefreshing}
     <Loading message="Recarregando exercicios..." />
   {/if}
+
 </div>
 
 <style>

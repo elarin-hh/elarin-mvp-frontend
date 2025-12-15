@@ -1,13 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { trainingApi } from '$lib/api/training.api';
 
-export type ExerciseType =
-  | 'bodyweight_squat'
-  | 'standing_hip_abduction'
-  | 'glute_bridge'
-  | 'seated_thoracic_extension'
-  | 'dead_bug_alternating'
-  | 'standing_v_raise';
+export type ExerciseType = string;
 
 export type TrainingStatus = 'idle' | 'ready' | 'training' | 'paused' | 'finished';
 
