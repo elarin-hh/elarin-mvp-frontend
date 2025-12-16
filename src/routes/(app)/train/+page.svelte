@@ -31,6 +31,16 @@
   import QualitySlider from "$lib/components/training/QualitySlider.svelte";
   import RepBars from "$lib/components/training/RepBars.svelte";
   import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
+  import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
+  import { ScanFace } from "lucide-svelte";
+
+  type TrainingPhase =
+    | "positioning"
+    | "confirmation"
+    | "context"
+    | "countdown"
+    | "training"
+    | "summary";
 
   const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
   const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
@@ -74,6 +84,9 @@
   let scriptsLoaded = $state(false);
   let loadingStage = $state("Inicializando...");
   let isCameraRunning = $state(false);
+
+  let trainingPhase = $state<TrainingPhase>("positioning");
+
   let currentLandmarks = $state<
     Array<{ x: number; y: number; z: number; visibility?: number }>
   >([]);
@@ -139,27 +152,39 @@
   let sessionActive = $state(false);
   let countdownResetTimer = $state(true);
 
+  function checkUserPresence(landmarks: any[]): boolean {
+    if (!landmarks || landmarks.length < 33) return false;
+
+    const criticalPoints = [0, 11, 12, 23, 24, 25, 26, 27, 28];
+    const visiblePoints = criticalPoints.filter(
+      (idx) => landmarks[idx] && (landmarks[idx].visibility ?? 0) > 0.6,
+    );
+
+    return visiblePoints.length === criticalPoints.length;
+  }
+
   let pipPosition = $state({ x: 0, y: 0 });
   let isDraggingPip = $state(false);
   let dragOffset = { x: 0, y: 0 };
 
-  let pipSize = $state({ width: 260, height: 146.25 });
-  let isResizingPip = $state(false);
-  let resizeStartPos = { x: 0, y: 0 };
-  let resizeStartSize = { ...pipSize };
-  const PIP_MARGIN = 16;
-  const PIP_BOTTOM_BUFFER = 0;
-  let emulatedFrameId: number | null = null;
+let pipSize = $state({ width: 260, height: 146.25 });
+let isResizingPip = $state(false);
+let resizeStartPos = { x: 0, y: 0 };
+let resizeStartSize = { ...pipSize };
+const PIP_MARGIN = 16;
+const PIP_BOTTOM_BUFFER = 0;
+let emulatedFrameId: number | null = null;
 
-  const SEVERITY_PENALTIES: Record<string, number> = {
-    critical: 60,
-    high: 40,
+const SEVERITY_PENALTIES: Record<string, number> = {
+  critical: 60,
+  high: 40,
     medium: 25,
     low: 10,
   };
 
   const clampScore = (value: number) => Math.max(0, Math.min(100, value));
-  const hasComponent = (component: string) => activeComponents.includes(component);
+  const hasComponent = (component: string) =>
+    activeComponents.includes(component);
 
   function scoreToColor(score: number | null | undefined): string {
     if (score === null || score === undefined || Number.isNaN(score)) {
@@ -265,19 +290,21 @@
     clampPipPosition();
     requestAnimationFrame(() => {
       resetPipPosition();
-      clampPipPosition();
-    });
-  }
+    clampPipPosition();
+  });
+}
 
-  let showCountdown = $state(true);
-  let countdownValue = $state("Iniciar");
-  let countdownActive = $state(false);
-  let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
+let showCountdown = $state(true);
+let countdownValue = $state("Iniciar");
+let countdownActive = $state(false);
+let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
+let startRequested = $state(false);
+let showStartButton = $state(true);
 
-  function clearCountdown() {
-    countdownTimeouts.forEach(clearTimeout);
-    countdownTimeouts = [];
-  }
+function clearCountdown() {
+  countdownTimeouts.forEach(clearTimeout);
+  countdownTimeouts = [];
+}
 
   function pauseReferenceVideo() {
     try {
@@ -296,6 +323,7 @@
   function handleCountdownComplete() {
     countdownActive = false;
     showCountdown = false;
+    trainingPhase = "training";
     resumeReferenceVideo();
     countdownTimeouts = [];
 
@@ -317,37 +345,61 @@
     if (isCameraRunning && !isPaused) {
       pauseTraining();
     }
+    clearCountdown();
+    sessionActive = false;
+    startRequested = false;
+    showStartButton = true;
+    trainingPhase = "positioning";
     countdownValue =
       elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
     showCountdown = true;
     countdownActive = false;
   }
 
-  function startCountdown() {
-    if (countdownActive) return;
+  async function requestStartOrResume() {
+    startRequested = true;
+    showStartButton = false;
+    countdownActive = false;
+    sessionActive = false;
+    trainingPhase = "positioning";
+    showCountdown = true;
+    clearCountdown();
     pauseReferenceVideo();
+    countdownValue =
+      elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
 
     if (!isFullscreen) {
-      toggleFullscreen();
+      await toggleFullscreen();
     }
+  }
+
+  function startCountdown() {
+    if (
+      countdownActive ||
+      trainingPhase === "training" ||
+      trainingPhase === "countdown" ||
+      !startRequested
+    )
+      return;
+    pauseReferenceVideo();
 
     clearCountdown();
     countdownActive = true;
     sessionActive = false;
+    showCountdown = true;
+    trainingPhase = "countdown";
     countdownResetTimer = !isPaused;
 
-    countdownValue = "5";
+    countdownValue = "3";
 
-    const t1 = setTimeout(() => (countdownValue = "4"), 1000);
-    const t2 = setTimeout(() => (countdownValue = "3"), 2000);
-    const t3 = setTimeout(() => (countdownValue = "2"), 3000);
-    const t4 = setTimeout(() => (countdownValue = "1"), 4000);
-    const t5 = setTimeout(() => (countdownValue = "Vai!"), 5000);
-    const t6 = setTimeout(() => {
+    const t1 = setTimeout(() => (countdownValue = "2"), 1000);
+    const t2 = setTimeout(() => (countdownValue = "1"), 2000);
+    const t3 = setTimeout(() => {
+      countdownValue = "Vai!";
       handleCountdownComplete();
-    }, 6000);
+    }, 3000);
 
-    countdownTimeouts = [t1, t2, t3, t4, t5, t6];
+    countdownTimeouts = [t1, t2, t3];
   }
 
   const SKELETON_STYLE = {
@@ -820,6 +872,31 @@
     if (activeTab === "dev" && landmarks) {
       currentLandmarks = landmarks;
     }
+
+    const isPresent = checkUserPresence(landmarks);
+
+    if (!isPresent && trainingPhase !== "summary") {
+      if (trainingPhase === "training") {
+        pauseTraining();
+      }
+      showCountdown = true;
+      countdownActive = false;
+      clearCountdown();
+      sessionActive = false;
+      pauseReferenceVideo();
+      countdownValue =
+        elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
+      trainingPhase = "positioning";
+    }
+
+    if (
+      isPresent &&
+      startRequested &&
+      trainingPhase === "positioning" &&
+      !countdownActive
+    ) {
+      startCountdown();
+    }
   }
 
   let skeletonVisibility = $state({
@@ -970,7 +1047,9 @@
   function trackFrameScore(score: number) {
     frameScore = score;
     emaScore =
-      emaScore === 0 ? score : SCORE_ALPHA * score + (1 - SCORE_ALPHA) * emaScore;
+      emaScore === 0
+        ? score
+        : SCORE_ALPHA * score + (1 - SCORE_ALPHA) * emaScore;
     currentRepFrames = [...currentRepFrames, score];
   }
 
@@ -978,8 +1057,9 @@
     if (!sessionActive) return;
     if (!hasComponent("rep_bars")) return;
 
-    const heuristicSummary = feedback.heuristic
-      ?.summary as { validReps?: number } | null;
+    const heuristicSummary = feedback.heuristic?.summary as {
+      validReps?: number;
+    } | null;
     const heuristicReps = heuristicSummary?.validReps ?? null;
     const currentReps = $trainingStore.reps;
     const nextRepCount =
@@ -1096,6 +1176,12 @@
       pauseTimer();
       isCameraRunning = false;
       hasStartedCamera = false;
+      startRequested = false;
+      showStartButton = true;
+      trainingPhase = "positioning";
+      showCountdown = true;
+      countdownActive = false;
+      clearCountdown();
 
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -1135,13 +1221,8 @@
 
   async function resumeTraining() {
     try {
-      isPaused = true;
-      sessionActive = false;
-      showCountdown = true;
-      countdownActive = false;
-      clearCountdown();
+      await requestStartOrResume();
       countdownValue = "Retomar";
-      startCountdown();
       isCameraRunning = true;
     } catch (error) {
       errorMessage = `Erro ao retomar: ${(error as Error).message}`;
@@ -1698,6 +1779,14 @@
         {/if}
 
         <div class="overlays-container">
+          {#if trainingPhase === "positioning" && layoutMode === "user-centered"}
+            <PhaseOverlay
+              title="Posiciona-se"
+              message="Por favor, se posicione em frente a câmera"
+              icon={ScanFace}
+              fullscreen={false}
+            />
+          {/if}
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === "user-centered"}
             <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
@@ -1797,6 +1886,15 @@
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
             <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
+
+          {#if trainingPhase === "positioning" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
+            <PhaseOverlay
+              title="Posiciona-se"
+              message="Por favor, se posicione em frente a câmera"
+              icon={ScanFace}
+              fullscreen={false}
+            />
+          {/if}
         </div>
 
         {#if layoutMode === "user-centered"}
@@ -1827,19 +1925,30 @@
       {#if isCameraRunning || isPaused}
         {#if showCountdown}
           <div class="countdown-overlay">
-            <button
-              class="countdown-circle"
-              class:pulsing={countdownActive}
-              onclick={startCountdown}
-              disabled={countdownActive && countdownValue !== "Iniciar"}
-            >
-              <span
-                class="countdown-text"
-                class:is-number={["5", "4", "3", "2", "1"].includes(
-                  countdownValue,
-                )}>{countdownValue}</span
+            {#if showStartButton}
+              <button
+                class="countdown-circle"
+                class:pulsing={countdownActive}
+                onclick={requestStartOrResume}
+                disabled={countdownActive}
               >
-            </button>
+                <span
+                  class="countdown-text"
+                  class:is-number={["3", "2", "1"].includes(
+                    countdownValue,
+                  )}>{countdownValue}</span
+                >
+              </button>
+            {:else if countdownActive}
+              <div class="countdown-circle pulsing">
+                <span
+                  class="countdown-text"
+                  class:is-number={["3", "2", "1"].includes(
+                    countdownValue,
+                  )}>{countdownValue}</span
+                >
+              </div>
+            {/if}
           </div>
         {:else if layoutMode === "side-by-side"}
           {#if hasComponent("rep_bars") && showReps}
@@ -2485,11 +2594,7 @@
     background: var(--slider-fill-color, #22c55e);
     transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 0 15px
-      color-mix(
-        in srgb,
-        var(--slider-fill-color, #22c55e) 45%,
-        transparent
-      );
+      color-mix(in srgb, var(--slider-fill-color, #22c55e) 45%, transparent);
     border-radius: 28px 28px 0 0;
   }
 
