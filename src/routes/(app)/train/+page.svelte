@@ -6,7 +6,13 @@
   import { base } from "$app/paths";
   import AppHeader from "$lib/components/common/AppHeader.svelte";
   import { isDeveloper } from "$lib/config/env.config";
-  import { Bot, Ruler, Microscope } from "lucide-svelte";
+  import {
+    Bot,
+    Ruler,
+    Microscope,
+    ScanFace,
+    CheckCircle2,
+  } from "lucide-svelte";
   import {
     ExerciseAnalyzer,
     loadExerciseConfig,
@@ -32,12 +38,11 @@
   import RepBars from "$lib/components/training/RepBars.svelte";
   import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
-  import { ScanFace } from "lucide-svelte";
 
   type TrainingPhase =
     | "positioning"
     | "confirmation"
-    | "context"
+    | "description"
     | "countdown"
     | "training"
     | "summary";
@@ -290,20 +295,65 @@ const SEVERITY_PENALTIES: Record<string, number> = {
     clampPipPosition();
     requestAnimationFrame(() => {
       resetPipPosition();
-    clampPipPosition();
-  });
-}
+      clampPipPosition();
+    });
+  }
 
-let showCountdown = $state(true);
+let showCountdown = $state(false);
 let countdownValue = $state("Iniciar");
 let countdownActive = $state(false);
 let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
 let startRequested = $state(false);
-let showStartButton = $state(true);
+const CONFIRMATION_DURATION_MS = 2200;
+const DESCRIPTION_DURATION_MS = 3000;
+const COUNTDOWN_FINAL_HOLD_MS = 600;
+let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
+let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
+let isConfirmingPosition = $state(false);
+let currentExerciseName = $state("");
+let hasCompletedCountdown = $state(false);
 
 function clearCountdown() {
   countdownTimeouts.forEach(clearTimeout);
   countdownTimeouts = [];
+}
+
+function clearConfirmationTimeout() {
+  if (confirmationTimeout) {
+    clearTimeout(confirmationTimeout);
+    confirmationTimeout = null;
+  }
+}
+
+function clearDescriptionTimeout() {
+  if (descriptionTimeout) {
+    clearTimeout(descriptionTimeout);
+    descriptionTimeout = null;
+  }
+}
+
+function enterDescriptionPhase() {
+  trainingPhase = "description";
+  showCountdown = false;
+  clearDescriptionTimeout();
+  descriptionTimeout = setTimeout(() => {
+    startCountdown();
+  }, DESCRIPTION_DURATION_MS);
+}
+
+function enterConfirmationPhase() {
+  if (isConfirmingPosition || countdownActive || !startRequested) return;
+
+  isConfirmingPosition = true;
+  trainingPhase = "confirmation";
+  clearConfirmationTimeout();
+  clearDescriptionTimeout();
+  showCountdown = false;
+
+  confirmationTimeout = setTimeout(() => {
+    isConfirmingPosition = false;
+    enterDescriptionPhase();
+  }, CONFIRMATION_DURATION_MS);
 }
 
   function pauseReferenceVideo() {
@@ -324,6 +374,7 @@ function clearCountdown() {
     countdownActive = false;
     showCountdown = false;
     trainingPhase = "training";
+    hasCompletedCountdown = true;
     resumeReferenceVideo();
     countdownTimeouts = [];
 
@@ -346,27 +397,33 @@ function clearCountdown() {
       pauseTraining();
     }
     clearCountdown();
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    isConfirmingPosition = false;
     sessionActive = false;
     startRequested = false;
-    showStartButton = true;
+    hasCompletedCountdown = false;
     trainingPhase = "positioning";
     countdownValue =
       elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
-    showCountdown = true;
+    showCountdown = false;
     countdownActive = false;
   }
 
   async function requestStartOrResume() {
     startRequested = true;
-    showStartButton = false;
     countdownActive = false;
     sessionActive = false;
     trainingPhase = "positioning";
-    showCountdown = true;
     clearCountdown();
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    isConfirmingPosition = false;
     pauseReferenceVideo();
     countdownValue =
       elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
+    showCountdown = false;
+    hasCompletedCountdown = false;
 
     if (!isFullscreen) {
       await toggleFullscreen();
@@ -381,6 +438,9 @@ function clearCountdown() {
       !startRequested
     )
       return;
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    isConfirmingPosition = false;
     pauseReferenceVideo();
 
     clearCountdown();
@@ -396,10 +456,12 @@ function clearCountdown() {
     const t2 = setTimeout(() => (countdownValue = "1"), 2000);
     const t3 = setTimeout(() => {
       countdownValue = "Vai!";
-      handleCountdownComplete();
     }, 3000);
+    const t4 = setTimeout(() => {
+      handleCountdownComplete();
+    }, 3000 + COUNTDOWN_FINAL_HOLD_MS);
 
-    countdownTimeouts = [t1, t2, t3];
+    countdownTimeouts = [t1, t2, t3, t4];
   }
 
   const SKELETON_STYLE = {
@@ -861,12 +923,10 @@ function clearCountdown() {
       ctx.restore();
     });
 
-    if (analyzer && landmarks && !isPaused) {
-      if (sessionActive) {
-        queueMicrotask(() => {
-          analyzer?.analyzeFrame(landmarks);
-        });
-      }
+    if (analyzer && landmarks && !isPaused && sessionActive && hasCompletedCountdown) {
+      queueMicrotask(() => {
+        analyzer?.analyzeFrame(landmarks);
+      });
     }
 
     if (activeTab === "dev" && landmarks) {
@@ -879,23 +939,29 @@ function clearCountdown() {
       if (trainingPhase === "training") {
         pauseTraining();
       }
-      showCountdown = true;
+      showCountdown = false;
       countdownActive = false;
       clearCountdown();
+      clearConfirmationTimeout();
+      clearDescriptionTimeout();
+      isConfirmingPosition = false;
       sessionActive = false;
+      startRequested = false;
       pauseReferenceVideo();
       countdownValue =
         elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
+      hasCompletedCountdown = false;
       trainingPhase = "positioning";
     }
 
     if (
       isPresent &&
-      startRequested &&
       trainingPhase === "positioning" &&
-      !countdownActive
+      !countdownActive &&
+      !isConfirmingPosition &&
+      startRequested
     ) {
-      startCountdown();
+      enterConfirmationPhase();
     }
   }
 
@@ -1054,7 +1120,7 @@ function clearCountdown() {
   }
 
   function maybeRegisterRep(feedback: FeedbackRecord) {
-    if (!sessionActive) return;
+    if (!sessionActive || !hasCompletedCountdown) return;
     if (!hasComponent("rep_bars")) return;
 
     const heuristicSummary = feedback.heuristic?.summary as {
@@ -1131,6 +1197,7 @@ function clearCountdown() {
     accuracy?: string;
     avgConfidence?: number;
   }) {
+    if (!hasCompletedCountdown) return;
     if (typeof metrics.avgConfidence === "number") {
       confidence = clampScore(metrics.avgConfidence * 100);
     }
@@ -1177,11 +1244,14 @@ function clearCountdown() {
       isCameraRunning = false;
       hasStartedCamera = false;
       startRequested = false;
-      showStartButton = true;
       trainingPhase = "positioning";
-      showCountdown = true;
+      showCountdown = false;
       countdownActive = false;
       clearCountdown();
+      clearConfirmationTimeout();
+      clearDescriptionTimeout();
+      hasCompletedCountdown = false;
+      isConfirmingPosition = false;
 
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -1212,9 +1282,15 @@ function clearCountdown() {
     pauseTimer();
     isPaused = true;
     sessionActive = false;
-    showCountdown = true;
+    showCountdown = false;
     countdownActive = false;
     clearCountdown();
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    isConfirmingPosition = false;
+    startRequested = false;
+    hasCompletedCountdown = false;
+    trainingPhase = "positioning";
     countdownValue =
       elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
   }
@@ -1648,6 +1724,9 @@ function clearCountdown() {
     if (analyzer) analyzer.destroy();
     if (timerInterval) clearInterval(timerInterval);
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    hasCompletedCountdown = false;
   });
 </script>
 
@@ -1787,11 +1866,45 @@ function clearCountdown() {
               fullscreen={false}
             />
           {/if}
-          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && layoutMode === "user-centered"}
+          {#if trainingPhase === "confirmation" && layoutMode === "user-centered"}
+            <PhaseOverlay
+              title="Usuário detectado"
+              message="Ótimo, esse é o lugar certo. Segure essa posição."
+              icon={CheckCircle2}
+              fullscreen={false}
+            />
+          {/if}
+          {#if trainingPhase === "description" && layoutMode === "user-centered"}
+            <PhaseOverlay
+              title={currentExerciseName
+                ? `Próximo: ${currentExerciseName}`
+                : "Próximo exercício"}
+              icon={Microscope}
+              fullscreen={false}
+            >
+              <div class="phase-description">
+                <p class="phase-eyebrow">A seguir</p>
+                <h3 class="phase-exercise">
+                  {currentExerciseName || "Exercício selecionado"}
+                </h3>
+                <div class="phase-metrics">
+                  <div class="metric-item">
+                    <span class="metric-value">60</span>
+                    <span class="metric-label">Sec.</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-value">10</span>
+                    <span class="metric-label">Reps.</span>
+                  </div>
+                </div>
+              </div>
+            </PhaseOverlay>
+          {/if}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && layoutMode === "user-centered"}
             <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
 
-          {#if (isCameraRunning || isPaused) && !showCountdown && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
+          {#if (isCameraRunning || isPaused) && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && !showCountdown && hasCompletedCountdown && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
             <div class="feedback-card">
               {#if isDevMode}
                 <div class="mode-indicator in-card card glass">
@@ -1839,7 +1952,7 @@ function clearCountdown() {
         </div>
 
         {#if isCameraRunning || isPaused}
-          {#if layoutMode === "user-centered" && !showCountdown}
+          {#if layoutMode === "user-centered" && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
             {#if hasComponent("rep_bars") && showReps}
               <RepBars
                 className="rep-counter-bar-overlay"
@@ -1883,7 +1996,7 @@ function clearCountdown() {
         </video>
 
         <div class="overlays-container">
-          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
+          {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
             <TimerOverlay formattedTime={formatTime(elapsedTime)} />
           {/if}
 
@@ -1895,6 +2008,40 @@ function clearCountdown() {
               fullscreen={false}
             />
           {/if}
+          {#if trainingPhase === "confirmation" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
+            <PhaseOverlay
+              title="Usuário detectado"
+              message="Ótimo, esse é o lugar certo. Segure essa posição."
+              icon={CheckCircle2}
+              fullscreen={false}
+            />
+          {/if}
+          {#if trainingPhase === "description" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
+            <PhaseOverlay
+              title={currentExerciseName
+                ? `Próximo: ${currentExerciseName}`
+                : "Próximo exercício"}
+              icon={Microscope}
+              fullscreen={false}
+            >
+              <div class="phase-description">
+                <p class="phase-eyebrow">A seguir</p>
+                <h3 class="phase-exercise">
+                  {currentExerciseName || "Exercício selecionado"}
+                </h3>
+                <div class="phase-metrics">
+                  <div class="metric-item">
+                    <span class="metric-value">60</span>
+                    <span class="metric-label">Sec.</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-value">10</span>
+                    <span class="metric-label">Reps.</span>
+                  </div>
+                </div>
+              </div>
+            </PhaseOverlay>
+          {/if}
         </div>
 
         {#if layoutMode === "user-centered"}
@@ -1905,7 +2052,7 @@ function clearCountdown() {
           ></div>
         {/if}
 
-        {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered" && !showCountdown}
+        {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered" && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
           {#if hasComponent("rep_bars") && showReps}
             <RepBars
               className="rep-counter-bar-overlay"
@@ -1923,35 +2070,28 @@ function clearCountdown() {
       </div>
 
       {#if isCameraRunning || isPaused}
-        {#if showCountdown}
+        {#if !startRequested}
           <div class="countdown-overlay">
-            {#if showStartButton}
-              <button
-                class="countdown-circle"
-                class:pulsing={countdownActive}
-                onclick={requestStartOrResume}
-                disabled={countdownActive}
+            <button
+              class="countdown-circle start-button"
+              onclick={requestStartOrResume}
+            >
+              <span class="countdown-text">{countdownValue}</span>
+            </button>
+          </div>
+        {:else if showCountdown}
+          <div class="countdown-overlay">
+            <div class="countdown-circle" class:pulsing={countdownActive}>
+              <span
+                class="countdown-text"
+                class:is-number={["3", "2", "1"].includes(
+                  countdownValue,
+                )}>{countdownValue}</span
               >
-                <span
-                  class="countdown-text"
-                  class:is-number={["3", "2", "1"].includes(
-                    countdownValue,
-                  )}>{countdownValue}</span
-                >
-              </button>
-            {:else if countdownActive}
-              <div class="countdown-circle pulsing">
-                <span
-                  class="countdown-text"
-                  class:is-number={["3", "2", "1"].includes(
-                    countdownValue,
-                  )}>{countdownValue}</span
-                >
-              </div>
-            {/if}
+            </div>
           </div>
         {:else if layoutMode === "side-by-side"}
-          {#if hasComponent("rep_bars") && showReps}
+          {#if hasComponent("rep_bars") && showReps && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
             <RepBars
               className="rep-counter-bar-overlay"
               {repScores}
@@ -1960,7 +2100,7 @@ function clearCountdown() {
               maxSlots={MAX_REP_SLOTS}
             />
           {/if}
-          {#if hasComponent("quality_slider")}
+          {#if hasComponent("quality_slider") && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
             <QualitySlider score={emaScore} />
           {/if}
         {/if}
@@ -2622,6 +2762,66 @@ function clearCountdown() {
     justify-content: center;
   }
 
+  .phase-description-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.2rem;
+    text-align: left;
+    color: var(--color-text-muted, #cbd5e1);
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .phase-description {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .phase-eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-primary, #fff);
+  }
+
+  .phase-exercise {
+    margin: 0;
+    font-size: clamp(1.9rem, 3vw, 2.4rem);
+    color: var(--color-text-primary, #fff);
+    font-weight: 700;
+  }
+
+  .phase-metrics {
+    display: flex;
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .metric-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .metric-value {
+    font-size: clamp(2.4rem, 4vw, 3rem);
+    font-weight: 700;
+    color: var(--color-text-primary, #fff);
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-size: 0.95rem;
+    color: var(--color-text-muted, #cbd5e1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
   .countdown-circle {
     width: clamp(140px, 28vw, 220px);
     height: clamp(140px, 28vw, 220px);
@@ -2632,17 +2832,19 @@ function clearCountdown() {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: default;
     transition: all 0.3s ease;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
     outline: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .countdown-circle:hover:not(:disabled) {
-    background: var(--glass-bg, rgba(0, 0, 0, 0.8));
-    border-color: var(--glass-border, rgba(255, 255, 255, 0.6));
-    transform: scale(1.05);
+  .countdown-circle.start-button {
+    cursor: pointer;
+  }
+
+  .countdown-circle.start-button:hover {
+    transform: scale(1.03);
     box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
   }
 
