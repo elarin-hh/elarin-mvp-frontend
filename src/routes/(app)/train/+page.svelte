@@ -39,6 +39,7 @@
   import RepBars from "$lib/components/training/RepBars.svelte";
   import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
+  import NextExerciseInfo from "$lib/components/training/NextExerciseInfo.svelte";
 
   type TrainingPhase =
     | "positioning"
@@ -181,9 +182,9 @@ const PIP_MARGIN = 16;
 const PIP_BOTTOM_BUFFER = 0;
 let emulatedFrameId: number | null = null;
 
-const SEVERITY_PENALTIES: Record<string, number> = {
-  critical: 60,
-  high: 40,
+  const SEVERITY_PENALTIES: Record<string, number> = {
+    critical: 60,
+    high: 40,
     medium: 25,
     low: 10,
   };
@@ -323,10 +324,10 @@ const DESCRIPTION_DURATION_MS = 3000;
 const COUNTDOWN_FINAL_HOLD_MS = 600;
 let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
 let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
-  let isConfirmingPosition = $state(false);
-  let currentExerciseName = $state("");
-  let hasCompletedCountdown = $state(false);
-  let exerciseGoal = $state({ durationSec: 60, reps: 10 });
+let isConfirmingPosition = $state(false);
+let currentExerciseName = $state("");
+let hasCompletedCountdown = $state(false);
+let exerciseGoal = $state({ durationSec: 60, reps: 10 });
   let hasTriedFetchName = $state(false);
 
 function clearCountdown() {
@@ -1934,22 +1935,11 @@ function enterConfirmationPhase() {
               icon={Microscope}
               fullscreen={false}
             >
-              <div class="phase-description">
-                <p class="phase-eyebrow">A seguir</p>
-                <h3 class="phase-exercise">
-                  {currentExerciseName || "Exercício selecionado"}
-                </h3>
-                <div class="phase-metrics">
-                  <div class="metric-item">
-                    <span class="metric-value">60</span>
-                    <span class="metric-label">Sec.</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-value">10</span>
-                    <span class="metric-label">Reps.</span>
-                  </div>
-                </div>
-              </div>
+              <NextExerciseInfo
+                exerciseName={currentExerciseName || "Exercício selecionado"}
+                durationSec={exerciseGoal.durationSec}
+                reps={exerciseGoal.reps}
+              />
             </PhaseOverlay>
           {/if}
           {#if (isCameraRunning || isPaused) && showTimer && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && layoutMode === "user-centered"}
@@ -2074,22 +2064,11 @@ function enterConfirmationPhase() {
               icon={Microscope}
               fullscreen={false}
             >
-              <div class="phase-description">
-                <p class="phase-eyebrow">A seguir</p>
-                <h3 class="phase-exercise">
-                  {currentExerciseName || "Exercício selecionado"}
-                </h3>
-                <div class="phase-metrics">
-                  <div class="metric-item">
-                    <span class="metric-value">60</span>
-                    <span class="metric-label">Sec.</span>
-                  </div>
-                  <div class="metric-item">
-                    <span class="metric-value">10</span>
-                    <span class="metric-label">Reps.</span>
-                  </div>
-                </div>
-              </div>
+              <NextExerciseInfo
+                exerciseName={currentExerciseName || "Exercício selecionado"}
+                durationSec={exerciseGoal.durationSec}
+                reps={exerciseGoal.reps}
+              />
             </PhaseOverlay>
           {/if}
         </div>
@@ -2810,66 +2789,6 @@ function enterConfirmationPhase() {
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .phase-description-list {
-    margin: 0.5rem 0 0;
-    padding-left: 1.2rem;
-    text-align: left;
-    color: var(--color-text-muted, #cbd5e1);
-    display: grid;
-    gap: 0.35rem;
-  }
-
-  .phase-description {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    text-align: center;
-  }
-
-  .phase-eyebrow {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-text-primary, #fff);
-  }
-
-  .phase-exercise {
-    margin: 0;
-    font-size: clamp(1.9rem, 3vw, 2.4rem);
-    color: var(--color-text-primary, #fff);
-    font-weight: 300;
-  }
-
-  .phase-metrics {
-    display: flex;
-    align-items: center;
-    gap: clamp(1.5rem, 3vw, 2.5rem);
-  }
-
-  .metric-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.2rem;
-  }
-
-  .metric-value {
-    font-size: clamp(2.4rem, 4vw, 3rem);
-    font-weight: 700;
-    color: var(--color-text-primary, #fff);
-    line-height: 1;
-  }
-
-  .metric-label {
-    font-size: 0.95rem;
-    color: var(--color-text-muted, #cbd5e1);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .countdown-circle {
