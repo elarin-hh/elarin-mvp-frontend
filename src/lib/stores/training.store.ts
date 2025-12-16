@@ -7,6 +7,7 @@ export type TrainingStatus = 'idle' | 'ready' | 'training' | 'paused' | 'finishe
 
 export interface TrainingState {
   exerciseType: ExerciseType | null;
+  exerciseName: string | null;
   status: TrainingStatus;
   reps: number;
   sets: number;
@@ -21,6 +22,7 @@ export interface TrainingState {
 
 const initialState: TrainingState = {
   exerciseType: null,
+  exerciseName: null,
   status: 'idle',
   reps: 0,
   sets: 1,
@@ -41,10 +43,11 @@ export const isTraining = derived(trainingStore, ($state) => $state.status === '
 export const trainingError = derived(trainingStore, ($state) => $state.error);
 
 export const trainingActions = {
-  selectExercise(exercise: ExerciseType) {
+  selectExercise(exercise: ExerciseType, name?: string | null) {
     trainingStore.update((state) => ({
       ...state,
       exerciseType: exercise,
+      exerciseName: name ?? null,
       status: 'ready',
       error: null
     }));

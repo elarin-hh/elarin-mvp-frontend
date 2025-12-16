@@ -23,6 +23,7 @@
     LANDMARK_GROUPS,
     MEDIAPIPE_LANDMARKS,
   } from "$lib/vision/constants/mediapipe.constants";
+  import { exercisesApi } from "$lib/api/exercises.api";
   import Loading from "$lib/components/common/Loading.svelte";
   import BiometricConsent from "$lib/components/BiometricConsent.svelte";
   import {
@@ -191,6 +192,19 @@ const SEVERITY_PENALTIES: Record<string, number> = {
   const hasComponent = (component: string) =>
     activeComponents.includes(component);
 
+  const humanizeExercise = (value?: string | null) => {
+    if (!value) return "";
+    return value
+      .replace(/[-_]+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  const isSlugLike = (value?: string | null) => {
+    if (!value) return true;
+    return /^[a-z0-9_-]+$/i.test(value) && value.includes("_");
+  };
+
   function scoreToColor(score: number | null | undefined): string {
     if (score === null || score === undefined || Number.isNaN(score)) {
       return "rgba(255, 255, 255, 0.25)";
@@ -309,9 +323,11 @@ const DESCRIPTION_DURATION_MS = 3000;
 const COUNTDOWN_FINAL_HOLD_MS = 600;
 let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
 let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
-let isConfirmingPosition = $state(false);
-let currentExerciseName = $state("");
-let hasCompletedCountdown = $state(false);
+  let isConfirmingPosition = $state(false);
+  let currentExerciseName = $state("");
+  let hasCompletedCountdown = $state(false);
+  let exerciseGoal = $state({ durationSec: 60, reps: 10 });
+  let hasTriedFetchName = $state(false);
 
 function clearCountdown() {
   countdownTimeouts.forEach(clearTimeout);
@@ -325,16 +341,37 @@ function clearConfirmationTimeout() {
   }
 }
 
-function clearDescriptionTimeout() {
-  if (descriptionTimeout) {
-    clearTimeout(descriptionTimeout);
-    descriptionTimeout = null;
+  function clearDescriptionTimeout() {
+    if (descriptionTimeout) {
+      clearTimeout(descriptionTimeout);
+      descriptionTimeout = null;
+    }
   }
-}
 
-function enterDescriptionPhase() {
-  trainingPhase = "description";
-  showCountdown = false;
+  async function ensureFriendlyExerciseName(exerciseId: string) {
+    if (hasTriedFetchName && currentExerciseName && !isSlugLike(currentExerciseName))
+      return;
+    try {
+      const response = await exercisesApi.getAll();
+      if (response.success) {
+        const match = response.data.find((ex) => ex.type === exerciseId);
+        const friendly =
+          match?.name_pt || match?.name || humanizeExercise(exerciseId);
+        if (friendly) {
+          currentExerciseName = friendly;
+          trainingActions.selectExercise(exerciseId, friendly);
+        }
+      }
+    } catch (err) {
+      console.error("exercise_name_fetch_error", err);
+    } finally {
+      hasTriedFetchName = true;
+    }
+  }
+
+  function enterDescriptionPhase() {
+    trainingPhase = "description";
+    showCountdown = false;
   clearDescriptionTimeout();
   descriptionTimeout = setTimeout(() => {
     startCountdown();
@@ -708,19 +745,36 @@ function enterConfirmationPhase() {
       }
 
       const selectedExercise = $trainingStore.exerciseType;
+      const selectedName = $trainingStore.exerciseName;
       if (!selectedExercise) {
         throw new Error(
           "Nenhum exercício selecionado. Por favor, volte e selecione um exercício.",
         );
       }
+      currentExerciseName =
+        selectedName || humanizeExercise(selectedExercise) || "Exercício";
 
       if (!$trainingStore.backendSessionId) {
-        trainingActions.selectExercise(selectedExercise);
+        trainingActions.selectExercise(
+          selectedExercise,
+          currentExerciseName || selectedName,
+        );
+      }
+      if (isSlugLike(currentExerciseName)) {
+        await ensureFriendlyExerciseName(selectedExercise);
       }
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
         throw new Error("Falha ao carregar configuração do exercício");
+      }
+      currentExerciseName =
+        exerciseConfig.exerciseName ||
+        (exerciseConfig as Record<string, unknown>).displayName ||
+        humanizeExercise(selectedExercise) ||
+        "Exercício";
+      if (isSlugLike(currentExerciseName)) {
+        await ensureFriendlyExerciseName(selectedExercise);
       }
       activeComponents =
         (exerciseConfig.components && exerciseConfig.components.length > 0
@@ -1876,9 +1930,7 @@ function enterConfirmationPhase() {
           {/if}
           {#if trainingPhase === "description" && layoutMode === "user-centered"}
             <PhaseOverlay
-              title={currentExerciseName
-                ? `Próximo: ${currentExerciseName}`
-                : "Próximo exercício"}
+              title=""
               icon={Microscope}
               fullscreen={false}
             >
@@ -2018,9 +2070,7 @@ function enterConfirmationPhase() {
           {/if}
           {#if trainingPhase === "description" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
             <PhaseOverlay
-              title={currentExerciseName
-                ? `Próximo: ${currentExerciseName}`
-                : "Próximo exercício"}
+              title=""
               icon={Microscope}
               fullscreen={false}
             >
@@ -2792,7 +2842,7 @@ function enterConfirmationPhase() {
     margin: 0;
     font-size: clamp(1.9rem, 3vw, 2.4rem);
     color: var(--color-text-primary, #fff);
-    font-weight: 700;
+    font-weight: 300;
   }
 
   .phase-metrics {

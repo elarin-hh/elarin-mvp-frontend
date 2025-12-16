@@ -72,7 +72,10 @@
       return;
     }
 
-    trainingActions.selectExercise(exercise.type as ExerciseType);
+    trainingActions.selectExercise(
+      exercise.type as ExerciseType,
+      exercise.name_pt || exercise.name,
+    );
     goto(`${base}/framer`);
   }
 
