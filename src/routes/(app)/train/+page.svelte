@@ -40,6 +40,7 @@
   import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
   import NextExerciseInfo from "$lib/components/training/NextExerciseInfo.svelte";
+  import ExerciseSummaryOverlay from "$lib/components/training/ExerciseSummaryOverlay.svelte";
 
   type TrainingPhase =
     | "positioning"
@@ -328,7 +329,10 @@ let isConfirmingPosition = $state(false);
 let currentExerciseName = $state("");
 let hasCompletedCountdown = $state(false);
 let exerciseGoal = $state({ durationSec: 60, reps: 10 });
-  let hasTriedFetchName = $state(false);
+let hasTriedFetchName = $state(false);
+const SUMMARY_PREVIEW = false;
+let showSummaryOverlay = $state(SUMMARY_PREVIEW);
+let userName = $state("[Nome do Usuário]");
 
 function clearCountdown() {
   countdownTimeouts.forEach(clearTimeout);
@@ -2134,6 +2138,18 @@ function enterConfirmationPhase() {
           {/if}
         {/if}
       {/if}
+
+      {#if showSummaryOverlay}
+        <ExerciseSummaryOverlay
+          exerciseName={currentExerciseName || "Exercício"}
+          durationSec={exerciseGoal.durationSec}
+          repsCompleted={$trainingStore.reps || exerciseGoal.reps}
+          targetReps={exerciseGoal.reps}
+          effectiveness={73}
+          full={true}
+          badge={userName}
+        />
+      {/if}
     </div>
 
     {#if isCameraRunning || isPaused}
@@ -2509,7 +2525,7 @@ function enterConfirmationPhase() {
   }
 
   .inline-alert-strong {
-    font-weight: 700;
+    font-weight: 300;
   }
 
   .inline-alert.error-alert {
@@ -2533,6 +2549,7 @@ function enterConfirmationPhase() {
     margin: 0 auto 2rem;
     gap: var(--container-gap);
     position: relative;
+    overflow: hidden;
     justify-self: center;
 
     grid-template-columns: 1fr;
@@ -3620,7 +3637,7 @@ function enterConfirmationPhase() {
 
   .toggle-label {
     font-size: 0.75rem;
-    font-weight: 700;
+    font-weight: 300;
     color: var(--color-text-secondary);
     min-width: 28px;
     text-align: left;
@@ -3653,7 +3670,7 @@ function enterConfirmationPhase() {
 
   .dev-metric-value {
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 300;
     color: var(--color-primary-500);
   }
 

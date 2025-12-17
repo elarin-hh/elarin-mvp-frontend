@@ -111,7 +111,7 @@
 
     .title {
         font-size: 2rem;
-        font-weight: 700;
+        font-weight: 400;
         color: var(--color-text-primary);
         margin: 0;
         letter-spacing: -0.02em;
