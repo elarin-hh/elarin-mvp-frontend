@@ -3155,7 +3155,6 @@ function enterConfirmationPhase() {
     border-radius: var(--radius-sm);
     font-size: 1.5rem;
     font-weight: 400;
-    font-family: "Inter", sans-serif;
     white-space: nowrap;
     transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -3978,7 +3977,6 @@ function enterConfirmationPhase() {
     color: var(--color-text-secondary, #aaa);
     padding: 2px 4px;
     border-radius: 4px;
-    font-family: monospace;
   }
 
   .landmark-name {
@@ -4006,12 +4004,10 @@ function enterConfirmationPhase() {
 
   .val-label {
     color: var(--color-text-secondary, #666);
-    font-family: monospace;
   }
 
   .val-data {
     color: var(--color-text-primary);
-    font-family: monospace;
     font-weight: 500;
   }
 

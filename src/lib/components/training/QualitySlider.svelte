@@ -104,14 +104,14 @@
 
     <div
       class="v-slide-handle"
-      style:bottom={`${sliderFill}`}
+      style:bottom={`${sliderFill}%`}
     ></div>
 
     <div
       class="v-slide-bubble"
-      style:top={`${100 - sliderFill}`}
+      style:top={`${100 - sliderFill}%`}
     >
-      {Math.round(sliderFill)}%
+      {Math.round(sliderFill)}
     </div>
   </div>
 </div>
@@ -219,12 +219,11 @@
     background: var(--glass-bg);
     backdrop-filter: var(--glass-backdrop);
     -webkit-backdrop-filter: var(--glass-backdrop);
-    color: var(--slider-fill-color, var(--color-text-primary));
+    color: #fff;
     padding: 8px 22px;
     border-radius: var(--radius-sm);
     font-size: 1.5rem;
     font-weight: 400;
-    font-family: "Inter", sans-serif;
     white-space: nowrap;
     transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
