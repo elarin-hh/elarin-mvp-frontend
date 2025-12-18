@@ -2,13 +2,28 @@
     export let value = 0;
     export let info = '';
     export let color;
+    export let gradientStart;
+    export let gradientEnd;
     export let trackColor;
     export let textColor;
     export let thickness = '5%';             
     export let checkable = false;
     export let checked = false;
     export let decimals = false;
+    export let showKnob = true;
+    export let knobColor;
 
+    const gradientId = `circlebar-gradient-${Math.random().toString(36).slice(2)}`;
+    const knobGradientId = `${gradientId}-knob`;
+
+    let resolvedColor;
+    let knobFillSolid;
+    let knobFill;
+    let knobGroup;
+    let knobX = 0;
+    let knobY = 0;
+    let knobOuterRadius = 0;
+    let knobCoreRadius = 0;
     let newValue;                         
     let radius, radiusBtn, xaxis, side;
     let circle, hidCircle, btnCircle;
@@ -18,7 +33,11 @@
     let max = 100;
     let discRadius = 80;
 
-    $: calculate(value, rootWidth, rootHeight);
+    $: knobFillSolid =
+        knobColor || gradientEnd || color || 'var(--color-primary-500, #22c55e)';
+    $: knobFill = gradientStart && gradientEnd ? `url(#${knobGradientId})` : knobFillSolid;
+    $: resolvedColor = gradientStart && gradientEnd ? `url(#${gradientId})` : color;
+    $: calculate(value, rootWidth, rootHeight, resolvedColor, trackColor, textColor, thickness, checkable, checked, decimals);
 
 
 
@@ -35,7 +54,7 @@
             radiusBtn = (radius - border) * (discRadius / 100);
             xaxis = radius;
 
-            if (color) { rootEle.style.setProperty('--def-circlebar-color', color); }
+            if (resolvedColor) { rootEle.style.setProperty('--def-circlebar-color', resolvedColor); }
             if (trackColor) { rootEle.style.setProperty('--def-circlebar-track', trackColor); }
             if (textColor) { rootEle.style.setProperty('--def-circlebar-text', textColor); }
 
@@ -68,6 +87,22 @@
                 }
                 percent.style.fontSize = Math.max((radius / 6.5), 11) + 'px';
             }
+
+            if (showKnob) {
+                const theta = (2 * Math.PI * newValue) / 100;
+                knobX = xaxis + radius * Math.cos(theta);
+                knobY = radius + radius * Math.sin(theta);
+
+                knobOuterRadius = Math.max(10, Math.min(24, border * 1.25));
+                knobCoreRadius = knobOuterRadius * 0.7;
+
+                if (knobGroup) {
+                    knobGroup.style.transform = `translate(${border}px, ${border}px)`;
+                }
+            } else {
+                knobOuterRadius = 0;
+                knobCoreRadius = 0;
+            }
         }
     }
 </script>
@@ -75,11 +110,29 @@
 <section bind:clientWidth={rootWidth} bind:this={rootEle} class="circle">
     <div class="container">
         <svg>
+	            {#if gradientStart && gradientEnd}
+	                <defs>
+	                    <linearGradient id={gradientId} x1="0%" y1="100%" x2="0%" y2="0%">
+	                        <stop offset="0%" stop-color={gradientStart}></stop>
+	                        <stop offset="100%" stop-color={gradientEnd}></stop>
+	                    </linearGradient>
+	                    <linearGradient id={knobGradientId} x1="0%" y1="100%" x2="100%" y2="0%">
+	                        <stop offset="0%" stop-color={gradientStart}></stop>
+	                        <stop offset="100%" stop-color={gradientEnd}></stop>
+	                    </linearGradient>
+	                </defs>
+	            {/if}
             <circle cx="{xaxis}" cy="{radius}" r="{radius}" bind:this={hidCircle}></circle>
-            <circle cx="{xaxis}" cy="{radius}" r="{radius}" color="{color}" bind:this={circle}></circle>
+            <circle cx="{xaxis}" cy="{radius}" r="{radius}" color="{resolvedColor}" bind:this={circle}></circle>
             {#if checkable}
                 <circle cx="{xaxis}" cy="{radius}" r="{radiusBtn}" bind:this={btnCircle} class="btn" class:sel={checked} on:click={() => checked = !checked}></circle>
             {/if}
+	            {#if showKnob}
+	                <g bind:this={knobGroup} class="knob-group">
+	                    <circle cx="{knobX}" cy="{knobY}" r="{knobOuterRadius}" class="knob-outer"></circle>
+	                    <circle cx="{knobX}" cy="{knobY}" r="{knobCoreRadius}" class="knob-core" fill="{knobFill}" stroke="rgba(255, 255, 255, 0.35)" stroke-width="1"></circle>
+	                </g>
+	            {/if}
         </svg>
         {#if !checkable}   
             <div class="info">
@@ -120,6 +173,7 @@
         height: 100%;
         top: 0;
         left: 0;
+        overflow: visible;
     }
 
     svg > circle {
@@ -143,8 +197,21 @@
         fill: var(--circlebar-color, var(--def-circlebar-color));
     }    
 
-    svg > circle:nth-child(2) {
+    svg > circle:nth-of-type(2) {
         stroke: var(--circlebar-color, var(--def-circlebar-color));
+    }
+
+    .knob-group {
+        pointer-events: none;
+    }
+
+    .knob-outer {
+        fill: rgba(255, 255, 255, 0.95);
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+    }
+
+    .knob-core {
+        filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.25));
     }
 
     .info {

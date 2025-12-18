@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { trainingStore, trainingActions } from "$lib/stores/training.store";
+  import { currentUser } from "$lib/stores/auth.store";
+  import type { User } from "$lib/stores/auth.store";
   import { authActions } from "$lib/services/auth.facade";
   import { goto } from "$app/navigation";
   import { base } from "$app/paths";
@@ -328,6 +330,22 @@ let emulatedFrameId: number | null = null;
       ? 0
       : values.reduce((sum, val) => sum + val, 0) / values.length;
 
+  const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
+
+  function calculateFinalQualityScore(): number {
+    const completedRepScores = repScores.filter(isFiniteNumber);
+    if (completedRepScores.length > 0) {
+      return Math.round(clampScore(average(completedRepScores)));
+    }
+
+    if (currentRepFrames.length > 0) {
+      return Math.round(clampScore(average(currentRepFrames)));
+    }
+
+    return Math.round(clampScore(emaScore || confidence || frameScore || 0));
+  }
+
   function getMlScore(feedback: FeedbackRecord): number | null {
     const rawQuality =
       (feedback.ml?.details as Record<string, unknown> | undefined)
@@ -444,11 +462,19 @@ let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
       !isPaused,
   );
 const SUMMARY_PREVIEW = false;
+const formatSummaryBadge = (user: User | null) => {
+  const fullName = user?.full_name?.trim();
+  const fallback = user?.email?.trim();
+  return fullName || fallback || "[Nome do Usuário]";
+};
 let showSummaryOverlay = $state(SUMMARY_PREVIEW);
 let summaryOverlayMetrics = $state<SummaryMetricDisplay[]>([]);
 let summaryOverlayExerciseName = $state<string | null>(null);
 let summaryOverlayEffectiveness = $state<number | null>(null);
-let userName = $state("[Nome do Usuário]");
+let userName = $state(formatSummaryBadge(null));
+const unsubscribeCurrentUser = currentUser.subscribe((user) => {
+  userName = formatSummaryBadge(user);
+});
 
 function clearCountdown() {
   countdownTimeouts.forEach(clearTimeout);
@@ -1509,7 +1535,7 @@ function enterConfirmationPhase() {
 
       summaryOverlayMetrics = summaryMetrics.map((m) => ({ ...m }));
       summaryOverlayExerciseName = currentExerciseName || null;
-      summaryOverlayEffectiveness = Math.round(emaScore || confidence || 0);
+      summaryOverlayEffectiveness = calculateFinalQualityScore();
       showSummaryOverlay = true;
 
       if (camera) camera.stop();
@@ -1994,6 +2020,7 @@ function enterConfirmationPhase() {
     clearConfirmationTimeout();
     clearDescriptionTimeout();
     hasCompletedCountdown = false;
+    unsubscribeCurrentUser();
   });
 </script>
 

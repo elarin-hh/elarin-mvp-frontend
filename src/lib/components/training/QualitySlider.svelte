@@ -123,7 +123,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     height: 50%;
-    width: 22px;
+    width: 20px;
     z-index: 100;
     display: flex;
     flex-direction: column;

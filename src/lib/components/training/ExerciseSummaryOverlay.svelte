@@ -30,6 +30,92 @@
 
   const clamp = (value: number) => Math.min(100, Math.max(0, value));
   const gaugeProgress = $derived(clamp(effectiveness ?? 0));
+
+  const colorStops = [
+    { value: 0, color: "#ef4444" },
+    { value: 50, color: "#f97316" },
+    { value: 70, color: "#fbbf24" },
+    { value: 85, color: "#22c55e" },
+    { value: 100, color: "#22c55e" },
+  ] as const;
+
+  const bands = [
+    { min: 85, color: "#22c55e" },
+    { min: 70, color: "#fbbf24" },
+    { min: 50, color: "#f97316" },
+    { min: 0, color: "#ef4444" },
+  ] as const;
+
+  const hexToRgb = (hex: string) => {
+    const normalized = hex.replace("#", "").trim();
+    if (normalized.length !== 6) return null;
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+    return { r, g, b };
+  };
+
+  const toHex = (value: number) =>
+    Math.round(value).toString(16).padStart(2, "0");
+
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  const colorForScore = (value: number): string => {
+    const clamped = clamp(value);
+    for (let i = 0; i < colorStops.length - 1; i += 1) {
+      const lower = colorStops[i];
+      const upper = colorStops[i + 1];
+      if (clamped < lower.value || clamped > upper.value) continue;
+
+      const lowerRgb = hexToRgb(lower.color);
+      const upperRgb = hexToRgb(upper.color);
+      if (!lowerRgb || !upperRgb) return lower.color;
+
+      const span = upper.value - lower.value;
+      const t = span === 0 ? 0 : (clamped - lower.value) / span;
+      const r = lerp(lowerRgb.r, upperRgb.r, t);
+      const g = lerp(lowerRgb.g, upperRgb.g, t);
+      const b = lerp(lowerRgb.b, upperRgb.b, t);
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    return colorStops[colorStops.length - 1].color;
+  };
+
+  const mixHex = (a: string, b: string, bWeight: number): string => {
+    const aRgb = hexToRgb(a);
+    const bRgb = hexToRgb(b);
+    if (!aRgb || !bRgb) return a;
+    const t = Math.max(0, Math.min(1, bWeight));
+    const r = lerp(aRgb.r, bRgb.r, t);
+    const g = lerp(aRgb.g, bRgb.g, t);
+    const bCh = lerp(aRgb.b, bRgb.b, t);
+    return `#${toHex(r)}${toHex(g)}${toHex(bCh)}`;
+  };
+
+  const bandIndexForScore = (value: number): number => {
+    const clamped = clamp(value);
+    const idx = bands.findIndex((b) => clamped >= b.min);
+    return idx === -1 ? bands.length - 1 : idx;
+  };
+
+  const gradientForScore = (value: number): { start: string; end: string } => {
+    const idx = bandIndexForScore(value);
+    const base = bands[idx]?.color ?? bands[bands.length - 1].color;
+    const neighborIdx = idx < bands.length - 1 ? idx + 1 : idx - 1;
+    const neighbor =
+      bands[Math.max(0, Math.min(bands.length - 1, neighborIdx))]?.color ??
+      base;
+
+    return {
+      start: mixHex(base, neighbor, 0.65),
+      end: base,
+    };
+  };
+
+  const scoreGradient = $derived(gradientForScore(gaugeProgress));
+  const scoreColor = $derived(colorForScore(gaugeProgress));
 </script>
 
 <div class="summary-overlay" class:full={full} class:message-only={messageOnly}>
@@ -47,6 +133,9 @@
             thickness="7%"
             trackColor="rgba(255, 255, 255, 0.15)"
             info="SCORE"
+            gradientStart={scoreGradient.start}
+            gradientEnd={scoreGradient.end}
+            knobColor={scoreColor}
           />
         </div>
 
@@ -179,8 +268,8 @@
   }
 
   .gauge {
-    width: var(--gauge-size, clamp(250px, 28vw, 340px));
-    height: var(--gauge-size, clamp(250px, 28vw, 340px));
+    width: 280px;
+    height: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
