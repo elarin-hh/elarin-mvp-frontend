@@ -71,6 +71,7 @@
       y: number;
       z: number;
       visibility?: number;
+      presence?: number;
     }>;
     image: HTMLVideoElement | HTMLCanvasElement;
   };
@@ -160,15 +161,38 @@
   let sessionActive = $state(false);
   let countdownResetTimer = $state(true);
 
-  function checkUserPresence(landmarks: any[]): boolean {
+  function checkUserPresence(landmarks: PoseResults["poseLandmarks"]): boolean {
     if (!landmarks || landmarks.length < 33) return false;
 
-    const criticalPoints = [0, 11, 12, 23, 24, 25, 26, 27, 28];
-    const visiblePoints = criticalPoints.filter(
-      (idx) => landmarks[idx] && (landmarks[idx].visibility ?? 0) > 0.6,
-    );
+    const threshold = 0.45;
+    const score = (idx: number) =>
+      Math.max(landmarks[idx]?.visibility ?? 0, landmarks[idx]?.presence ?? 0);
+    const countVisible = (indices: number[]) =>
+      indices.reduce((count, idx) => count + (score(idx) > threshold ? 1 : 0), 0);
 
-    return visiblePoints.length === criticalPoints.length;
+    const torso = [
+      MEDIAPIPE_LANDMARKS.LEFT_SHOULDER,
+      MEDIAPIPE_LANDMARKS.RIGHT_SHOULDER,
+      MEDIAPIPE_LANDMARKS.LEFT_HIP,
+      MEDIAPIPE_LANDMARKS.RIGHT_HIP,
+    ];
+    const legs = [
+      MEDIAPIPE_LANDMARKS.LEFT_KNEE,
+      MEDIAPIPE_LANDMARKS.RIGHT_KNEE,
+      MEDIAPIPE_LANDMARKS.LEFT_ANKLE,
+      MEDIAPIPE_LANDMARKS.RIGHT_ANKLE,
+    ];
+
+    const torsoVisible = countVisible(torso) >= 3;
+    const kneesVisible =
+      score(MEDIAPIPE_LANDMARKS.LEFT_KNEE) > threshold ||
+      score(MEDIAPIPE_LANDMARKS.RIGHT_KNEE) > threshold;
+    const anklesVisible =
+      score(MEDIAPIPE_LANDMARKS.LEFT_ANKLE) > threshold ||
+      score(MEDIAPIPE_LANDMARKS.RIGHT_ANKLE) > threshold;
+    const overallVisible = countVisible([...torso, ...legs]) >= 5;
+
+    return torsoVisible && kneesVisible && anklesVisible && overallVisible;
   }
 
   let pipPosition = $state({ x: 0, y: 0 });
@@ -997,20 +1021,24 @@ function enterConfirmationPhase() {
     if (!isPresent && trainingPhase !== "summary") {
       if (trainingPhase === "training") {
         pauseTraining();
+      } else {
+        showCountdown = false;
+        countdownActive = false;
+        clearCountdown();
+        clearConfirmationTimeout();
+        clearDescriptionTimeout();
+        isConfirmingPosition = false;
+        sessionActive = false;
+        pauseReferenceVideo();
+
+        if (!startRequested) {
+          countdownValue =
+            elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
+        }
+
+        hasCompletedCountdown = false;
+        trainingPhase = "positioning";
       }
-      showCountdown = false;
-      countdownActive = false;
-      clearCountdown();
-      clearConfirmationTimeout();
-      clearDescriptionTimeout();
-      isConfirmingPosition = false;
-      sessionActive = false;
-      startRequested = false;
-      pauseReferenceVideo();
-      countdownValue =
-        elapsedTime > 0 || $trainingStore.reps > 0 ? "Retomar" : "Iniciar";
-      hasCompletedCountdown = false;
-      trainingPhase = "positioning";
     }
 
     if (
