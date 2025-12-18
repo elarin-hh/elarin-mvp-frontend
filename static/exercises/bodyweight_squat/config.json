@@ -48,7 +48,7 @@
     {
       "id": "reps",
       "type": "reps",
-      "target": 10,
+      "target": 5,
       "label": "Repetições",
       "unit": "reps",
       "showIn": [

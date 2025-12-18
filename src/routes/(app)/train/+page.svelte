@@ -551,9 +551,26 @@ function enterConfirmationPhase() {
 
   function pauseForFullscreenExit() {
     pauseReferenceVideo();
+
+    if (showSummaryOverlay || trainingPhase === "summary") {
+      clearCountdown();
+      clearConfirmationTimeout();
+      clearDescriptionTimeout();
+      isConfirmingPosition = false;
+      sessionActive = false;
+      startRequested = false;
+      hasCompletedCountdown = false;
+      showCountdown = false;
+      countdownActive = false;
+      trainingPhase = "summary";
+      return;
+    }
+
     if (isCameraRunning && !isPaused) {
       pauseTraining();
+      return;
     }
+
     clearCountdown();
     clearConfirmationTimeout();
     clearDescriptionTimeout();
@@ -2343,13 +2360,14 @@ function enterConfirmationPhase() {
           }
           metrics={summaryOverlayMetrics}
           effectiveness={summaryOverlayEffectiveness}
+          messageOnly={!isFullscreen}
           full={true}
           badge={userName}
         />
       {/if}
     </div>
 
-    {#if isCameraRunning || isPaused}
+    {#if isCameraRunning || isPaused || showSummaryOverlay}
       <div class="settings-panel">
         <div class="settings-tabs">
           <button

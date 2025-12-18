@@ -13,6 +13,8 @@
     badge?: string;
     full?: boolean;
     gaugeSize?: string;
+    messageOnly?: boolean;
+    message?: string;
   }
 
   let {
@@ -22,43 +24,49 @@
     badge = "Toning",
     full = false,
     gaugeSize = "clamp(250px, 28vw, 250px)",
+    messageOnly = false,
+    message = "Exercício Finalizado",
   }: Props = $props();
 
   const clamp = (value: number) => Math.min(100, Math.max(0, value));
   const gaugeProgress = $derived(clamp(effectiveness ?? 0));
 </script>
 
-<div class="summary-overlay" class:full={full}>
-  <div class="summary-card">
-    <div class="badge">{badge}</div>
-    <h3 class="title">{exerciseName}</h3>
+<div class="summary-overlay" class:full={full} class:message-only={messageOnly}>
+  <div class="summary-card" class:message-only={messageOnly}>
+    {#if messageOnly}
+      <div class="final-message">{message}</div>
+    {:else}
+      <div class="badge">{badge}</div>
+      <h3 class="title">{exerciseName}</h3>
 
-    <div class="row">
-      <div class="gauge" style={`--gauge-size: ${gaugeSize}`}>
-        <CircleGauge
-          value={gaugeProgress}
-          thickness="7%"
-          trackColor="rgba(255, 255, 255, 0.15)"
-          info="SCORE"
-        />
-      </div>
-
-      {#if metrics.length > 0}
-        <div class="metrics">
-          {#each metrics as metric (metric.id)}
-            <div class="metric">
-              <span class="value">
-                {metric.value}
-                {#if metric.target}
-                  <small>/{metric.target}</small>
-                {/if}
-              </span>
-              <span class="label">{metric.label}</span>
-            </div>
-          {/each}
+      <div class="row">
+        <div class="gauge" style={`--gauge-size: ${gaugeSize}`}>
+          <CircleGauge
+            value={gaugeProgress}
+            thickness="7%"
+            trackColor="rgba(255, 255, 255, 0.15)"
+            info="SCORE"
+          />
         </div>
-      {/if}
-    </div>
+
+        {#if metrics.length > 0}
+          <div class="metrics">
+            {#each metrics as metric (metric.id)}
+              <div class="metric">
+                <span class="value">
+                  {metric.value}
+                  {#if metric.target}
+                    <small>/{metric.target}</small>
+                  {/if}
+                </span>
+                <span class="label">{metric.label}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -119,6 +127,12 @@
   .title {
     margin: 0 0 1.5rem 0;
     font-size: clamp(2rem, 4vw, 2.6rem);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+  }
+
+  .final-message {
+    font-size: clamp(2rem, 4vw, 2.8rem);
     font-weight: 300;
     letter-spacing: -0.01em;
   }
