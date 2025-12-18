@@ -1,6 +1,26 @@
 <script lang="ts">
-  export let formattedTime: string = "00:00";
+  export let seconds: number = 0;
+  export let targetSeconds: number | null = null;
+  export let mode: "elapsed" | "remaining" = "elapsed";
   export let className: string = "";
+
+  const formatTime = (totalSeconds: number): string => {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  $: baseSeconds = Math.max(0, Math.floor(seconds));
+  $: safeTargetSeconds =
+    typeof targetSeconds === "number" && Number.isFinite(targetSeconds)
+      ? Math.max(0, Math.floor(targetSeconds))
+      : null;
+  $: displaySeconds =
+    mode === "remaining" && safeTargetSeconds !== null
+      ? Math.max(0, safeTargetSeconds - baseSeconds)
+      : baseSeconds;
+  $: formattedTime = formatTime(displaySeconds);
 </script>
 
 <div class={`timer-overlay card glass ${className}`.trim()}>

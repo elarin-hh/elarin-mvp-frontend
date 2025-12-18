@@ -114,9 +114,12 @@ export const trainingActions = {
       isLoading: true
     }));
 
-    const durationSeconds = state.startTime
-      ? Math.floor((Date.now() - state.startTime) / 1000)
-      : state.duration;
+    const durationSeconds =
+      typeof state.duration === 'number' && state.duration > 0
+        ? state.duration
+        : state.startTime
+          ? Math.floor((Date.now() - state.startTime) / 1000)
+          : 0;
 
     const response = await trainingApi.saveTraining({
       exercise_type: state.exerciseType,

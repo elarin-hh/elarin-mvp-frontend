@@ -1,46 +1,220 @@
-# Sistema de Metrícas Modular (Treino /train)
+# Sistema Modular de Métricas (Treino `/train`)
 
-## O que foi implementado
+Este documento explica como funciona o sistema de **métricas configuráveis por exercício** (tempo, reps, etc.) e como a UI e o fluxo de treino usam essas métricas de forma **genérica e desacoplada**.
 
-- **Componentes dinâmicos por exercício**: cada exercício pode declarar a lista de componentes de métricas a exibir (ex.: `quality_slider`, `rep_bars`). Se não declarar nada, nenhum componente é exibido.
-- **Leitura via config do exercício**: o campo `components` foi adicionado em `ExerciseConfig` e lido em `loadExerciseConfig`. O valor é carregado no `/train` ao iniciar o exercício.
-- **Render condicional no `/train`**: o código passou a verificar `hasComponent(...)` antes de renderizar:
-  - Slider vertical de qualidade (usa `quality_slider`)
-  - Barras/contador de repetições (usa `rep_bars`)
-  - A contagem de reps só é atualizada se `rep_bars` estiver ativo.
-- **Defaults aplicados**: se um exercício não especificar `components`, nenhum componente de métrica é renderizado.
+## Visão geral
 
-## Arquivos tocados
+Cada exercício define, via `static/exercises/<exerciseId>/config.json`:
 
-- `src/lib/vision/types/exercise.types.ts`  
-  - Adicionados campos opcionais `components` e `metrics` ao `ExerciseConfig`.
+- `components`: quais componentes de UI podem aparecer (ex.: `timer`, `rep_bars`, `quality_slider`).
+- `metrics`: quais métricas existem para o exercício (ex.: `duration`, `reps`, ou futuras métricas como `hold_time`, `stability_score`).
+- `completion`: regra de término automático do treino (manual / any / all).
 
-- `src/lib/vision/config/exerciseConfigs.ts`  
-  - Carrega `components` do JSON do exercício e, se ausente, aplica o default `["quality_slider", "rep_bars"]`.
+O `/train` carrega esse config no início da sessão, normaliza as métricas e:
 
-- `static/exercises/bodyweight_squat/config.json`  
-  - Inclui `components: ["quality_slider", "rep_bars"]` como exemplo/base.
+- Renderiza as UIs apenas quando fizer sentido para o exercício (ex.: não mostrar reps em equilíbrio).
+- Controla timer (elapsed/remaining) e reps dinamicamente.
+- Pode finalizar automaticamente quando a regra de `completion` for atingida.
 
-- `src/routes/(app)/train/+page.svelte`  
-  - Novo estado `activeComponents` e helper `hasComponent`.
-  - Ao iniciar a câmera, ativa os componentes declarados no config.
-  - Renderiza slider e barras apenas se o componente correspondente estiver ativo; contagem de reps só roda se `rep_bars` estiver ativo.
-  - Bolinha do slider ganhou miolo branco novamente (ajuste visual).
+## Schema do `config.json`
 
-## Como usar nos próximos exercícios
+Exemplo real (agachamento): `static/exercises/bodyweight_squat/config.json`.
 
-1) No `config.json` do exercício, declare:
-   ```json
-   {
-     "exerciseName": "single_leg_balance",
-     "components": ["quality_slider", "stability_chart"],
-     "metrics": ["stability_score", "hold_time"]
-   }
-   ```
-2) No validador do exercício, exponha no `summary` as métricas esperadas pelo(s) componente(s) (ex.: `validReps`, `stability_score`, `holdTimeMs` etc.).
-3) No `/train`, crie/renderize novos componentes UI apenas se estiverem listados em `components`.
+### `components`
 
-## Observações
+Lista de strings. Exemplos usados hoje:
 
-- O pipeline de feedback ML + heurística permanece igual; apenas a camada de exibição foi modularizada.
-- Para exercícios sem reps, basta omitir `rep_bars` em `components`; o contador e a lógica de reps serão ignorados.***
+- `timer`: habilita a UI de timer.
+- `rep_bars`: habilita a UI de reps em barras.
+- `quality_slider`: habilita a UI do slider de qualidade.
+
+### `metrics`
+
+`metrics` aceita **strings** (forma curta) ou **objetos** (forma completa):
+
+Forma curta:
+
+```json
+{ "metrics": ["duration", "reps"] }
+```
+
+Forma completa:
+
+```json
+{
+  "metrics": [
+    {
+      "id": "duration",
+      "type": "duration",
+      "target": 60,
+      "label": "Tempo",
+      "unit": "s",
+      "display": "remaining",
+      "showIn": ["next", "training", "summary"]
+    },
+    {
+      "id": "reps",
+      "type": "reps",
+      "target": 30,
+      "label": "Repetições",
+      "unit": "reps",
+      "showIn": ["next", "training", "summary"]
+    }
+  ]
+}
+```
+
+Campos principais:
+
+- `id`: identificador único (string).
+- `type`: tipo (hoje o sistema entende `duration` e `reps` “de verdade”; outros tipos são aceitos e podem ser exibidos/estendidos).
+- `target`: meta (ex.: 60 segundos, 30 reps). Pode ser `null`/omitido.
+- `label`: nome exibido na UI.
+- `unit`: unidade (informativo).
+- `display`: apenas para `duration` (`elapsed` ou `remaining`).
+- `showIn`: onde essa métrica deve aparecer: `next` | `training` | `summary`.
+
+### `completion`
+
+Controla quando o treino pode finalizar automaticamente:
+
+```json
+{ "completion": { "mode": "manual" } }
+```
+
+```json
+{ "completion": { "mode": "any" } }
+```
+
+```json
+{ "completion": { "mode": "all", "metrics": ["duration"] } }
+```
+
+- `mode`:
+  - `manual`: nunca finaliza automaticamente.
+  - `any`: finaliza quando **qualquer** métrica de conclusão for atingida.
+  - `all`: finaliza quando **todas** as métricas de conclusão forem atingidas.
+- `metrics` (opcional): lista de `id`s que entram no cálculo de conclusão. Se omitido, entram as métricas reconhecidas (`duration`/`reps`) que tenham `target`.
+
+## Normalização das métricas
+
+Arquivo: `src/lib/vision/utils/exercise-metrics.utils.ts`.
+
+A função `normalizeExerciseMetrics()`:
+
+- Aceita `metrics` como `string[]` ou objetos.
+- Aplica defaults por tipo:
+  - `duration`: label padrão “Tempo”, unit “s”, display padrão `elapsed`.
+  - `reps`: label padrão “Repetições”, unit “reps”.
+- Deduplica por `id` e ignora entradas inválidas.
+- Normaliza `showIn` para um conjunto válido (`next`, `training`, `summary`).
+
+## Como o `/train` usa as métricas
+
+Arquivo: `src/routes/(app)/train/+page.svelte`.
+
+Ao iniciar a câmera e carregar o exercício, o `/train`:
+
+1. Carrega o config (`loadExerciseConfig()`).
+2. Define `activeComponents` (UI) e `exerciseMetrics` (métricas normalizadas).
+3. Define regras de conclusão (`completionMode` e `completionMetricIds`).
+4. Ajusta coisas derivadas automaticamente:
+   - Timer é habilitado **somente** se existir `components.includes("timer")`.
+   - Reps são “rastreadas” se existir métrica `reps` (mesmo se `rep_bars` não estiver na UI).
+   - `repMaxSlots` (quantidade de barras) é derivado de `metrics.reps.target` (com limite) ou cai no default.
+
+5. As atualizacoes de metricas (timer/reps/qualidade) só iniciam depois da contagem regressiva (3s): `metricsActive = sessionActive && hasCompletedCountdown && trainingPhase === "training" && !isPaused`.
+
+### Timer (elapsed/remaining)
+
+- O timer roda via `elapsedTime` (incrementa 1x por segundo quando a sessão está ativa).
+- A UI do timer é `TimerOverlay` e recebe `seconds`, `targetSeconds` e `mode`.
+  - `mode="elapsed"` mostra tempo decorrido.
+  - `mode="remaining"` mostra `targetSeconds - seconds` (até 0).
+- A cada tick, o `/train` também faz `trainingActions.updateDuration(elapsedTime)` para manter `trainingStore.duration` atualizado (importante para salvar no backend respeitando pausas).
+
+### Repetições (reps)
+
+- A contagem de reps depende da métrica `reps` existir no config (não depende do componente `rep_bars` estar visível).
+- O contador usa `feedback.heuristic.summary.validReps` quando disponível e incrementa `trainingActions.incrementReps()`.
+- Se `rep_bars` estiver ativo, as barras são renderizadas e recebem `maxSlots={repMaxSlots}`.
+
+### Tela “A seguir” (pré-treino)
+
+`NextExerciseInfo` recebe uma lista `metrics` (texto pronto). O `/train` monta `nextGoalMetrics` com base em:
+
+- métricas com `target`, `showIn` contendo `next` **e** habilitadas via `components` (ex.: `duration` só aparece se `timer` estiver em `components`; `reps` só aparece se `rep_bars` estiver em `components`).
+- `duration` é formatado como `mm:ss`.
+
+### Summary (pós-treino)
+
+`ExerciseSummaryOverlay` recebe uma lista `metrics`. O `/train` monta `summaryMetrics` usando os valores atuais (também respeitando `components`):
+
+- `duration`: valor = tempo decorrido; target = meta, se houver.
+- `reps`: valor = reps atuais; target = meta, se houver.
+
+## Conclusão automática
+
+O `/train` tem um `$effect` que, durante a fase `training`, verifica:
+
+- `duration`: `elapsedTime >= target`
+- `reps`: `$trainingStore.reps >= target`
+
+E chama `finishTraining()` conforme:
+
+- `completion.mode = "any"`: basta 1 métrica atingir a meta.
+- `completion.mode = "all"`: todas precisam atingir a meta.
+
+## Integração com backend (salvar treino)
+
+No frontend, `trainingActions.finish()` envia para o backend:
+
+- `exercise_type`
+- `reps_completed`
+- `sets_completed`
+- `duration_seconds` (prioriza `trainingStore.duration`, que vem do timer ativo)
+- `avg_confidence` (quando disponível)
+
+Arquivo: `src/lib/stores/training.store.ts`.
+
+Se futuramente você quiser salvar novas métricas (ex.: `hold_time`, `stability_score`) no backend, a ideia é:
+
+1. Definir a métrica no `metrics[]` do config.
+2. Calcular/atualizar o valor no `/train` (ou via analyzer/validator).
+3. Estender o payload do `trainingApi.saveTraining(...)` para enviar esses campos.
+
+## Como criar um exercício novo (ex.: equilíbrio)
+
+1) Criar `static/exercises/single_leg_balance/config.json`:
+
+```json
+{
+  "exerciseName": "single_leg_balance",
+  "components": ["timer", "quality_slider"],
+  "metrics": [
+    {
+      "id": "duration",
+      "type": "duration",
+      "target": 45,
+      "display": "remaining",
+      "label": "Tempo",
+      "showIn": ["next", "training", "summary"]
+    }
+  ],
+  "completion": { "mode": "all" }
+}
+```
+
+2) Não adicionar `reps` em `metrics` e não adicionar `rep_bars` em `components`.
+
+Resultado: treino com timer/qualidade, sem UI nem contagem de reps.
+
+## Arquivos principais
+
+- `static/exercises/<id>/config.json` (fonte de verdade por exercício)
+- `src/lib/vision/types/metrics.types.ts` (tipos)
+- `src/lib/vision/utils/exercise-metrics.utils.ts` (normalização)
+- `src/routes/(app)/train/+page.svelte` (orquestração da UI + lógica)
+- `src/lib/components/training/TimerOverlay.svelte`
+- `src/lib/components/training/NextExerciseInfo.svelte`
+- `src/lib/components/training/ExerciseSummaryOverlay.svelte`

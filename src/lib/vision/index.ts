@@ -5,6 +5,7 @@ export * from './constants/mediapipe.constants';
 export * from './utils/angles.utils';
 export * from './utils/distances.utils';
 export * from './utils/landmarks.utils';
+export * from './utils/exercise-metrics.utils';
 
 export { BaseValidator } from './validators/BaseValidator';
 export { SquatBodyweightValidator } from './validators/SquatBodyweightValidator';

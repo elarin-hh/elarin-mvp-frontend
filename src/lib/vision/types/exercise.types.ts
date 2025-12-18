@@ -1,4 +1,5 @@
 import type { FeedbackConfig } from './feedback.types';
+import type { ExerciseCompletionConfig, ExerciseMetricDefinition } from './metrics.types';
 
 export interface MLConfig {
   maxFrames: number;
@@ -19,7 +20,8 @@ export interface ExerciseConfig {
   heuristicConfig?: HeuristicConfig;
   feedbackConfig?: FeedbackConfig;
   components?: string[];
-  metrics?: string[];
+  metrics?: Array<string | ExerciseMetricDefinition>;
+  completion?: ExerciseCompletionConfig;
 }
 
 export interface Exercise {

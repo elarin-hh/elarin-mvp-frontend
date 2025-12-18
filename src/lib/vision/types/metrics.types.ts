@@ -1,0 +1,21 @@
+export type MetricDisplayContext = 'next' | 'training' | 'summary';
+
+export type DurationDisplayMode = 'elapsed' | 'remaining';
+
+export type ExerciseMetricType = 'duration' | 'reps' | (string & {});
+
+export interface ExerciseMetricDefinition {
+  id: string;
+  type: ExerciseMetricType;
+  target?: number | null;
+  label?: string;
+  unit?: string;
+  display?: DurationDisplayMode;
+  showIn?: MetricDisplayContext[];
+}
+
+export interface ExerciseCompletionConfig {
+  mode?: 'manual' | 'any' | 'all';
+  metrics?: string[];
+}
+

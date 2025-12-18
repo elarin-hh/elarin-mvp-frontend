@@ -1,30 +1,28 @@
 <script lang="ts">
   interface Props {
     exerciseName?: string;
-    durationSec?: number | null;
-    reps?: number | null;
+    metrics?: Array<{ id: string; label: string; value: string }>;
   }
 
   let {
     exerciseName = "Exercício",
-    durationSec = 60,
-    reps = 10,
+    metrics = [],
   }: Props = $props();
 </script>
 
 <div class="next-info">
   <p class="eyebrow">A seguir</p>
   <h3 class="title">{exerciseName}</h3>
-  <div class="metrics">
-    <div class="metric">
-      <span class="value">{durationSec ?? "—"}</span>
-      <span class="label">Sec.</span>
+  {#if metrics.length > 0}
+    <div class="metrics">
+      {#each metrics as metric (metric.id)}
+        <div class="metric">
+          <span class="value">{metric.value}</span>
+          <span class="label">{metric.label}</span>
+        </div>
+      {/each}
     </div>
-    <div class="metric">
-      <span class="value">{reps ?? "—"}</span>
-      <span class="label">Reps.</span>
-    </div>
-  </div>
+  {/if}
 </div>
 
 <style>

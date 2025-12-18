@@ -3,9 +3,12 @@
 
   interface Props {
     exerciseName?: string;
-    durationSec?: number | null;
-    repsCompleted?: number | null;
-    targetReps?: number | null;
+    metrics?: Array<{
+      id: string;
+      label: string;
+      value: string;
+      target?: string | null;
+    }>;
     effectiveness?: number | null;
     badge?: string;
     full?: boolean;
@@ -14,9 +17,7 @@
 
   let {
     exerciseName = "Exercício",
-    durationSec = 0,
-    repsCompleted = 0,
-    targetReps = 0,
+    metrics = [],
     effectiveness = 0,
     badge = "Toning",
     full = false,
@@ -33,11 +34,6 @@
     <h3 class="title">{exerciseName}</h3>
 
     <div class="row">
-      <div class="metric">
-        <span class="value">{durationSec ?? "—"}</span>
-        <span class="label">Sec.</span>
-      </div>
-
       <div class="gauge" style={`--gauge-size: ${gaugeSize}`}>
         <CircleGauge
           value={gaugeProgress}
@@ -47,13 +43,21 @@
         />
       </div>
 
-      <div class="metric">
-        <span class="value">
-          {repsCompleted ?? 0}
-          <small>/{targetReps ?? 0}</small>
-        </span>
-        <span class="label">Reps.</span>
-      </div>
+      {#if metrics.length > 0}
+        <div class="metrics">
+          {#each metrics as metric (metric.id)}
+            <div class="metric">
+              <span class="value">
+                {metric.value}
+                {#if metric.target}
+                  <small>/{metric.target}</small>
+                {/if}
+              </span>
+              <span class="label">{metric.label}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -120,11 +124,18 @@
   }
 
   .row {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: clamp(1.5rem, 3vw, 2.5rem);
     align-items: center;
-    justify-items: center;
+  }
+
+  .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.25rem, 2.5vw, 2.25rem);
   }
 
   .metric {

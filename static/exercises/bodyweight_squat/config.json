@@ -27,7 +27,38 @@
   },
   "analysisInterval": 16,
   "components": [
+    "timer",
     "quality_slider",
     "rep_bars"
-  ]
+  ],
+  "metrics": [
+    {
+      "id": "duration",
+      "type": "duration",
+      "target": 60,
+      "label": "Tempo",
+      "unit": "s",
+      "display": "remaining",
+      "showIn": [
+        "next",
+        "training",
+        "summary"
+      ]
+    },
+    {
+      "id": "reps",
+      "type": "reps",
+      "target": 10,
+      "label": "Repetições",
+      "unit": "reps",
+      "showIn": [
+        "next",
+        "training",
+        "summary"
+      ]
+    }
+  ],
+  "completion": {
+    "mode": "any"
+  }
 }
