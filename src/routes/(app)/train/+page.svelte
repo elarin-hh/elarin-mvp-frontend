@@ -445,6 +445,9 @@ let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
   );
 const SUMMARY_PREVIEW = false;
 let showSummaryOverlay = $state(SUMMARY_PREVIEW);
+let summaryOverlayMetrics = $state<SummaryMetricDisplay[]>([]);
+let summaryOverlayExerciseName = $state<string | null>(null);
+let summaryOverlayEffectiveness = $state<number | null>(null);
 let userName = $state("[Nome do Usuário]");
 
 function clearCountdown() {
@@ -850,6 +853,10 @@ function enterConfirmationPhase() {
       errorMessage = "";
       hasSyncedCanvas = false;
       isPaused = false;
+      showSummaryOverlay = false;
+      summaryOverlayMetrics = [];
+      summaryOverlayExerciseName = null;
+      summaryOverlayEffectiveness = null;
 
       if (!ensureBiometricConsent()) {
         return;
@@ -1466,25 +1473,35 @@ function enterConfirmationPhase() {
 
   async function finishTraining() {
     if (!analyzer) return;
+    if (isLoading) return;
 
     try {
       isLoading = true;
-      await trainingActions.finish();
 
-      if (camera) camera.stop();
-      clearEmulatedState();
-      pauseTimer();
-      isCameraRunning = false;
-      hasStartedCamera = false;
-      startRequested = false;
-      trainingPhase = "positioning";
+      trainingPhase = "summary";
+      sessionActive = false;
       showCountdown = false;
       countdownActive = false;
       clearCountdown();
       clearConfirmationTimeout();
       clearDescriptionTimeout();
-      hasCompletedCountdown = false;
       isConfirmingPosition = false;
+      startRequested = false;
+      pauseReferenceVideo();
+      pauseTimer();
+
+      summaryOverlayMetrics = summaryMetrics.map((m) => ({ ...m }));
+      summaryOverlayExerciseName = currentExerciseName || null;
+      summaryOverlayEffectiveness = Math.round(emaScore || confidence || 0);
+      showSummaryOverlay = true;
+
+      if (camera) camera.stop();
+      clearEmulatedState();
+      isCameraRunning = false;
+      hasStartedCamera = false;
+      hasCompletedCountdown = false;
+
+      await trainingActions.finish();
 
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -2321,9 +2338,11 @@ function enterConfirmationPhase() {
 
       {#if showSummaryOverlay}
         <ExerciseSummaryOverlay
-          exerciseName={currentExerciseName || "Exercício"}
-          metrics={summaryMetrics}
-          effectiveness={73}
+          exerciseName={
+            summaryOverlayExerciseName || currentExerciseName || "Exercício"
+          }
+          metrics={summaryOverlayMetrics}
+          effectiveness={summaryOverlayEffectiveness}
           full={true}
           badge={userName}
         />
