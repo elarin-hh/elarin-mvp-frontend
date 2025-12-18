@@ -2739,7 +2739,7 @@ function enterConfirmationPhase() {
     align-items: center;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     background: var(--glass-bg, rgba(255, 255, 255, 0.04));
     border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
     color: var(--color-text-primary);
@@ -2799,7 +2799,7 @@ function enterConfirmationPhase() {
   .video-container {
     position: relative;
     margin: 0 auto;
-    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
     overflow: hidden;
     background: var(--color-bg-deep, #000);
     display: flex;
@@ -2817,7 +2817,7 @@ function enterConfirmationPhase() {
     width: 100%;
     height: 100%;
     aspect-ratio: 16/9;
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     overflow: hidden;
     background: var(--color-bg-deep, #000);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -2841,7 +2841,7 @@ function enterConfirmationPhase() {
     width: 100%;
     height: var(--player-height);
     max-height: 80vh;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
 
   .split-container.layout-user-centered .reference-container {
@@ -2850,7 +2850,7 @@ function enterConfirmationPhase() {
     height: auto;
     aspect-ratio: 16/9;
     z-index: 50;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     max-height: none;
   }
@@ -2859,7 +2859,7 @@ function enterConfirmationPhase() {
     width: 100%;
     height: var(--player-height);
     max-height: 80vh;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
 
   .split-container.layout-coach-centered .video-container {
@@ -2868,7 +2868,7 @@ function enterConfirmationPhase() {
     height: auto;
     aspect-ratio: 16/9;
     z-index: 50;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     max-height: none;
   }
@@ -2889,7 +2889,7 @@ function enterConfirmationPhase() {
     width: 20px;
     height: 20px;
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px 0 var(--radius-md) 0;
+    border-radius: 4px 0 var(--radius-sm) 0;
     cursor: nwse-resize;
     z-index: 20;
     transition: background 0.2s;
@@ -3201,11 +3201,11 @@ function enterConfirmationPhase() {
     }
 
     .split-container.layout-side-by-side:not(.fullscreen) .video-container {
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     }
 
     .split-container.layout-side-by-side:not(.fullscreen) .reference-container {
-      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     }
 
     .split-container.layout-user-centered:not(.fullscreen) .video-container,
@@ -3587,7 +3587,7 @@ function enterConfirmationPhase() {
     margin: 20px auto;
     padding: 20px;
     background: var(--color-bg-dark-strong);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
 
   .debug-panel pre {
@@ -3783,7 +3783,7 @@ function enterConfirmationPhase() {
     position: absolute;
     inset: 1px;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: calc(var(--radius-md) - 3px);
+    border-radius: calc(var(--radius-sm) - 3px);
     pointer-events: none;
   }
 
@@ -3791,7 +3791,7 @@ function enterConfirmationPhase() {
     width: 100px;
     height: 60px;
     border: 2px solid var(--glass-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     background: var(--color-bg-dark-quaternary);
     position: relative;
   }

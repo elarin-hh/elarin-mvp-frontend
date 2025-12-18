@@ -10,19 +10,52 @@
   const average = (arr: number[]) =>
     arr.length === 0 ? 0 : arr.reduce((sum, n) => sum + n, 0) / arr.length;
 
-  const bands = [
-    { min: 85, color: "#22c55e" },
-    { min: 70, color: "#fbbf24" },
-    { min: 50, color: "#f97316" },
-    { min: 0, color: "#ef4444" }
-  ];
+  const colorStops = [
+    { value: 0, color: "#ef4444" },
+    { value: 50, color: "#f97316" },
+    { value: 70, color: "#fbbf24" },
+    { value: 85, color: "#22c55e" },
+    { value: 100, color: "#22c55e" },
+  ] as const;
 
-  const scoreToColor = (score: number | null | undefined): string => {
+  const hexToRgb = (hex: string) => {
+    const normalized = hex.replace("#", "").trim();
+    if (normalized.length !== 6) return null;
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+    return { r, g, b };
+  };
+
+  const toHex = (value: number) =>
+    Math.round(value).toString(16).padStart(2, "0");
+
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  const colorForScore = (score: number | null | undefined): string => {
     if (score === null || score === undefined || Number.isNaN(score)) {
       return "rgba(255, 255, 255, 0.15)";
     }
-    const value = clamp(score);
-    return bands.find((b) => value >= b.min)?.color ?? bands[bands.length - 1].color;
+    const clamped = clamp(score);
+    for (let i = 0; i < colorStops.length - 1; i += 1) {
+      const lower = colorStops[i];
+      const upper = colorStops[i + 1];
+      if (clamped < lower.value || clamped > upper.value) continue;
+
+      const lowerRgb = hexToRgb(lower.color);
+      const upperRgb = hexToRgb(upper.color);
+      if (!lowerRgb || !upperRgb) return lower.color;
+
+      const span = upper.value - lower.value;
+      const t = span === 0 ? 0 : (clamped - lower.value) / span;
+      const r = lerp(lowerRgb.r, upperRgb.r, t);
+      const g = lerp(lowerRgb.g, upperRgb.g, t);
+      const b = lerp(lowerRgb.b, upperRgb.b, t);
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    return colorStops[colorStops.length - 1].color;
   };
 
   $: displaySlots = Array.from({ length: maxSlots }, (_, i) => {
@@ -32,8 +65,8 @@
         ? clamp(average(currentRepFrames))
         : stored;
     const fill = partial === null ? 0 : clamp(partial);
-    const color = scoreToColor(partial);
-    return { fill, color };
+    const glowColor = colorForScore(partial);
+    return { fill, glowColor };
   });
 </script>
 
@@ -48,7 +81,7 @@
     {#each displaySlots as slot}
       <div
         class="rep-line"
-        style={`--rep-fill-height:${slot.fill}%; --rep-fill-color:${slot.color};`}
+        style={`--rep-fill-height:${slot.fill}%; --rep-glow-color:${slot.glowColor};`}
       ></div>
     {/each}
   </div>
@@ -120,7 +153,15 @@
     position: relative;
     overflow: hidden;
     --rep-fill-height: 0%;
-    --rep-fill-color: rgba(255, 255, 255, 0.2);
+    --rep-glow-color: rgba(255, 255, 255, 0.15);
+    --quality-gradient: linear-gradient(
+      to top,
+      #ef4444 0%,
+      #f97316 50%,
+      #fbbf24 70%,
+      #22c55e 85%,
+      #22c55e 100%
+    );
   }
 
   .rep-line::before {
@@ -130,11 +171,20 @@
     left: 0;
     right: 0;
     height: var(--rep-fill-height);
-    background: var(--rep-fill-color);
+    background: var(--quality-gradient);
     border-radius: 99em;
     box-shadow: 0 0 10px
-      color-mix(in srgb, var(--rep-fill-color) 40%, transparent);
-    transition: height 0.3s ease, background 0.2s ease;
+      color-mix(in srgb, var(--rep-glow-color) 40%, transparent);
+    transition: height 0.3s ease;
+  }
+
+  @supports (clip-path: inset(0 round 1px)) {
+    .rep-line::before {
+      inset: 0;
+      height: 100%;
+      clip-path: inset(calc(100% - var(--rep-fill-height)) 0 0 0 round 99em);
+      transition: clip-path 0.3s ease;
+    }
   }
 
   /* Overlay positioning helper (used no /train) */

@@ -84,7 +84,7 @@
     pointer-events: none;
     width: 100%;
     height: 100%;
-    border-radius: inherit;
+    border-radius: var(--radius-sm);
     overflow: hidden;
   }
 
