@@ -18,6 +18,13 @@
     { value: 100, color: "#22c55e" },
   ] as const;
 
+  const bands = [
+    { min: 85, color: "#22c55e" },
+    { min: 70, color: "#fbbf24" },
+    { min: 50, color: "#f97316" },
+    { min: 0, color: "#ef4444" },
+  ] as const;
+
   const hexToRgb = (hex: string) => {
     const normalized = hex.replace("#", "").trim();
     if (normalized.length !== 6) return null;
@@ -32,6 +39,17 @@
     Math.round(value).toString(16).padStart(2, "0");
 
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  const mixHex = (a: string, b: string, bWeight: number): string => {
+    const aRgb = hexToRgb(a);
+    const bRgb = hexToRgb(b);
+    if (!aRgb || !bRgb) return a;
+    const t = Math.max(0, Math.min(1, bWeight));
+    const r = lerp(aRgb.r, bRgb.r, t);
+    const g = lerp(aRgb.g, bRgb.g, t);
+    const bCh = lerp(aRgb.b, bRgb.b, t);
+    return `#${toHex(r)}${toHex(g)}${toHex(bCh)}`;
+  };
 
   const colorForScore = (score: number | null | undefined): string => {
     if (score === null || score === undefined || Number.isNaN(score)) {
@@ -58,6 +76,31 @@
     return colorStops[colorStops.length - 1].color;
   };
 
+  const bandIndexForScore = (value: number): number => {
+    const clamped = clamp(value);
+    const idx = bands.findIndex((b) => clamped >= b.min);
+    return idx === -1 ? bands.length - 1 : idx;
+  };
+
+  const gradientForScore = (
+    score: number | null | undefined,
+  ): { start: string; end: string } => {
+    if (score === null || score === undefined || Number.isNaN(score)) {
+      return { start: "rgba(255, 255, 255, 0.15)", end: "rgba(255, 255, 255, 0.15)" };
+    }
+
+    const idx = bandIndexForScore(score);
+    const base = bands[idx]?.color ?? bands[bands.length - 1].color;
+    const neighborIdx = idx < bands.length - 1 ? idx + 1 : idx - 1;
+    const neighbor =
+      bands[Math.max(0, Math.min(bands.length - 1, neighborIdx))]?.color ?? base;
+
+    return {
+      start: mixHex(base, neighbor, 0.65),
+      end: base,
+    };
+  };
+
   $: displaySlots = Array.from({ length: maxSlots }, (_, i) => {
     const stored = repScores[i] ?? null;
     const partial =
@@ -66,7 +109,8 @@
         : stored;
     const fill = partial === null ? 0 : clamp(partial);
     const glowColor = colorForScore(partial);
-    return { fill, glowColor };
+    const { start: gradientStart, end: gradientEnd } = gradientForScore(partial);
+    return { fill, glowColor, gradientStart, gradientEnd };
   });
 </script>
 
@@ -81,7 +125,7 @@
     {#each displaySlots as slot}
       <div
         class="rep-line"
-        style={`--rep-fill-height:${slot.fill}%; --rep-glow-color:${slot.glowColor};`}
+        style={`--rep-fill-height:${slot.fill}%; --rep-glow-color:${slot.glowColor}; --rep-gradient-start:${slot.gradientStart}; --rep-gradient-end:${slot.gradientEnd};`}
       ></div>
     {/each}
   </div>
@@ -154,14 +198,8 @@
     overflow: hidden;
     --rep-fill-height: 0%;
     --rep-glow-color: rgba(255, 255, 255, 0.15);
-    --quality-gradient: linear-gradient(
-      to top,
-      #ef4444 0%,
-      #f97316 50%,
-      #fbbf24 70%,
-      #22c55e 85%,
-      #22c55e 100%
-    );
+    --rep-gradient-start: #f97316;
+    --rep-gradient-end: #ef4444;
   }
 
   .rep-line::before {
@@ -171,20 +209,15 @@
     left: 0;
     right: 0;
     height: var(--rep-fill-height);
-    background: var(--quality-gradient);
+    background: linear-gradient(
+      to top,
+      var(--rep-gradient-start) 0%,
+      var(--rep-gradient-end) 100%
+    );
     border-radius: 99em;
     box-shadow: 0 0 10px
       color-mix(in srgb, var(--rep-glow-color) 40%, transparent);
     transition: height 0.3s ease;
-  }
-
-  @supports (clip-path: inset(0 round 1px)) {
-    .rep-line::before {
-      inset: 0;
-      height: 100%;
-      clip-path: inset(calc(100% - var(--rep-fill-height)) 0 0 0 round 99em);
-      transition: clip-path 0.3s ease;
-    }
   }
 
   /* Overlay positioning helper (used no /train) */
