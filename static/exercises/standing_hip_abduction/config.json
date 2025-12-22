@@ -1,0 +1,53 @@
+{
+  "exerciseName": "standing_hip_abduction",
+  "modelPath": "./exercises/standing_hip_abduction/hip_abduction_autoencoder.onnx",
+  "mlConfig": {
+    "maxFrames": 60,
+    "minFrames": 3,
+    "predictionInterval": 1,
+    "threshold": 0.069
+  },
+  "heuristicConfig": {
+    "minConfidence": 0.7,
+    "hipAbductionAngle": 45,
+    "hipNeutralAngle": 175,
+    "maxTorsoLean": 15,
+    "maxKneeBend": 160,
+    "minFramesInState": 3,
+    "feedbackCooldownMs": 350
+  },
+  "feedbackConfig": {
+    "feedbackMode": "heuristic",
+    "mlWeight": 0,
+    "heuristicWeight": 1,
+    "maxFeedbackItems": 3
+  },
+  "analysisInterval": 16,
+  "components": [
+    "timer",
+    "quality_slider",
+    "rep_bars"
+  ],
+  "metrics": [
+    {
+      "id": "duration",
+      "type": "duration",
+      "target": 60,
+      "label": "Tempo",
+      "unit": "s",
+      "display": "remaining",
+      "showIn": ["next", "training", "summary"]
+    },
+    {
+      "id": "reps",
+      "type": "reps",
+      "target": 12,
+      "label": "Repetições",
+      "unit": "reps",
+      "showIn": ["next", "training", "summary"]
+    }
+  ],
+  "completion": {
+    "mode": "any"
+  }
+}
