@@ -35,28 +35,28 @@
 </script>
 
 <style>
-  .glass-button {
+  .glass-button-auth {
     background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border-radius: var(--radius-standard);
+    border-radius: var(--radius-xl);
     position: relative;
     overflow: hidden;
   }
 </style>
 
-<div class="min-h-screen bg-black flex flex-col items-center justify-center px-4">
+<div class="min-h-screen page-background flex flex-col items-center justify-center px-4">
   <div class="mb-16 text-center">
     <img
       src={asset('/logo-elarin-white.png')}
       alt="Elarin"
-      class="h-20 mx-auto"
+      class="h-20 mx-auto mb-4"
     />
   </div>
 
   <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="w-full max-w-md space-y-4">
     {#if error}
-      <div class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: var(--radius-standard);">
+      <div class="bg-red-500/10 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: var(--radius-xl);">
         {error}
       </div>
     {/if}
@@ -66,8 +66,8 @@
       bind:value={email}
       required
       placeholder="E-mail"
-      class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-      style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
     />
 
     <input
@@ -75,14 +75,14 @@
       bind:value={password}
       required
       placeholder="Senha"
-      class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-      style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
     />
 
     <button
       type="submit"
       disabled={isLoading}
-      class="glass-button w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
+      class="glass-button-auth w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
     >
       {isLoading ? 'Carregando...' : 'Logar'}
     </button>
@@ -98,7 +98,7 @@
     </button>
   </div>
 
-  <!-- <div class="absolute bottom-8 text-center">
+<!--   <div class="absolute bottom-8 text-center">
     <p class="text-white/50 text-sm">
       Politica de Privacidade e Termos de Uso
     </p>

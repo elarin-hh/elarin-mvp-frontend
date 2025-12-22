@@ -156,7 +156,7 @@
 </script>
 
 <div
-  class="min-h-screen bg-black flex flex-col items-center justify-center px-4 py-8"
+  class="min-h-screen page-background flex flex-col items-center justify-center px-4 py-8"
 >
   <div class="mb-8 text-center">
     <img
@@ -174,107 +174,107 @@
       }}
       class="space-y-4"
     >
-      {#if error}
-        <div
-          class="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 text-sm text-center"
-          style="border-radius: var(--radius-standard);"
-        >
-          {error}
-        </div>
-      {/if}
-
-      {#if loadingOrganizations}
-        <div class="text-center py-8">
-          <div
-            class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"
-          ></div>
-          <p class="text-white/70 mt-4">Carregando organizações...</p>
-        </div>
-      {:else}
-        <Select
-          options={organizationOptions}
-          bind:value={selectedOrganizationId}
-          placeholder="Selecione uma organização parceira"
-          label="Organização Parceira"
-          class="mb-4"
-        />
-      {/if}
-
-      <input
-        type="text"
-        bind:value={fullName}
-        required
-        placeholder="Nome Completo"
-        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-        style="border-radius: var(--radius-standard); border-width: 0.8px;"
-      />
-
-      <input
-        type="email"
-        bind:value={email}
-        required
-        placeholder="E-mail"
-        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-        style="border-radius: var(--radius-standard); border-width: 0.8px;"
-      />
-
-      <input
-        type="password"
-        bind:value={password}
-        required
-        placeholder="Senha"
-        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-        style="border-radius: var(--radius-standard); border-width: 0.8px;"
-      />
-
-      <input
-        type="password"
-        bind:value={confirmPassword}
-        required
-        placeholder="Confirmar Senha"
-        class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-        style="border-radius: var(--radius-standard); border-width: 0.8px;"
-      />
-
-      <div>
-        <label for="birth-date" class="text-white/70 text-sm mb-2 block"
-          >Data de Nascimento (mínimo 13 anos)</label
-        >
-        <input
-          type="date"
-          bind:value={birthDate}
-          required
-          id="birth-date"
-          max={new Date(new Date().setFullYear(new Date().getFullYear() - 13))
-            .toISOString()
-            .split("T")[0]}
-          class="w-full px-6 py-3 bg-transparent border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-colors"
-          style="border-radius: var(--radius-standard); border-width: 0.8px;"
-        />
-      </div>
-
-      <div class="flex items-start space-x-3 px-2">
-        <input
-          type="checkbox"
-          id="marketing-consent"
-          bind:checked={marketingConsent}
-          class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-white focus:ring-white/50"
-        />
-        <label
-          for="marketing-consent"
-          class="text-white/70 text-sm cursor-pointer"
-        >
-          Desejo receber comunicações sobre novidades e promoções (opcional)
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        disabled={isLoading || loadingOrganizations}
-        class="glass-button w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
+    {#if error}
+      <div
+        class="bg-red-500/10 text-red-200 px-4 py-3 text-sm text-center"
+        style="border-radius: var(--radius-xl);"
       >
-        {isLoading ? "Carregando..." : "Criar conta"}
-      </button>
+        {error}
+      </div>
+    {/if}
+
+    {#if loadingOrganizations}
+      <div class="text-center py-8">
+        <div
+          class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"
+        ></div>
+        <p class="text-white/70 mt-4">Carregando organizações...</p>
+      </div>
+    {:else}
+      <Select
+        options={organizationOptions}
+        bind:value={selectedOrganizationId}
+        placeholder="Selecione uma organização parceira"
+        label="Organização Parceira"
+        class="mb-4"
+      />
+    {/if}
+
+    <input
+      type="text"
+      bind:value={fullName}
+      required
+      placeholder="Nome Completo"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
+    />
+
+    <input
+      type="email"
+      bind:value={email}
+      required
+      placeholder="E-mail"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
+    />
+
+    <input
+      type="password"
+      bind:value={password}
+      required
+      placeholder="Senha"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
+    />
+
+    <input
+      type="password"
+      bind:value={confirmPassword}
+      required
+      placeholder="Confirmar Senha"
+      class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+      style="border-radius: var(--radius-xl);"
+    />
+
+    <div>
+      <label for="birth-date" class="text-white/70 text-sm mb-2 block"
+        >Data de Nascimento (mínimo 13 anos)</label
+      >
+      <input
+        type="date"
+        bind:value={birthDate}
+        required
+        id="birth-date"
+        max={new Date(new Date().setFullYear(new Date().getFullYear() - 13))
+          .toISOString()
+          .split("T")[0]}
+        class="w-full px-6 py-3 bg-white/5 text-white placeholder-white/50 focus:outline-none focus:bg-white/10 transition-colors"
+        style="border-radius: var(--radius-xl);"
+      />
+    </div>
+
+    <div class="flex items-start space-x-3 px-2">
+      <input
+        type="checkbox"
+        id="marketing-consent"
+        bind:checked={marketingConsent}
+        class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-white focus:ring-white/50"
+      />
+      <label
+        for="marketing-consent"
+        class="text-white/70 text-sm cursor-pointer"
+      >
+        Desejo receber comunicações sobre novidades e promoções (opcional)
+      </label>
+    </div>
+
+    <button
+      type="submit"
+      disabled={isLoading || loadingOrganizations}
+      class="glass-button-auth w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
+    >
+      {isLoading ? "Carregando..." : "Criar conta"}
+    </button>
     </form>
 
     <div class="mt-6 text-center">
@@ -290,11 +290,11 @@
 </div>
 
 <style>
-  .glass-button {
+  .glass-button-auth {
     background: var(--color-glass-light);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border-radius: var(--radius-standard);
+    border-radius: var(--radius-xl);
     position: relative;
     overflow: hidden;
   }

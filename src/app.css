@@ -36,6 +36,10 @@
     display: contents;
   }
 
+  .page-background {
+    background: var(--color-bg-dark);
+  }
+
   @media (max-width: 768px) {
     body {
       padding-bottom: var(--app-footer-offset, var(--app-mobile-footer-height, 72px));

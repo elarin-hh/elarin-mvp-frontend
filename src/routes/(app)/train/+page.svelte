@@ -3693,7 +3693,6 @@ function enterConfirmationPhase() {
     padding-bottom: clamp(1.5rem, 5vw, 2rem);
     animation: slideUp 0.3s ease-out;
     border-radius: var(--radius-lg);
-    box-shadow: var(--glass-shadow);
   }
 
   @keyframes slideUp {
@@ -3713,7 +3712,6 @@ function enterConfirmationPhase() {
     margin-bottom: 2rem;
     padding-bottom: 0.5rem;
     flex-wrap: wrap;
-    border-bottom: 1px solid var(--glass-border);
   }
 
   .tab-btn {
@@ -3816,14 +3814,9 @@ function enterConfirmationPhase() {
   .layout-preview {
     width: 100px;
     height: 60px;
-    border: 2px solid var(--glass-border);
     border-radius: var(--radius-sm);
     background: var(--color-bg-dark-quaternary);
     position: relative;
-  }
-
-  .layout-option.active .layout-preview {
-    border-color: var(--color-primary-500);
   }
 
   .layout-preview.side-by-side {
@@ -3901,7 +3894,6 @@ function enterConfirmationPhase() {
 
   .dev-metric-card {
     background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     padding: 1rem;
     display: flex;
@@ -3972,7 +3964,6 @@ function enterConfirmationPhase() {
 
   .landmark-card {
     background: var(--glass-bg, rgba(255, 255, 255, 0.03));
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
     border-radius: var(--radius-sm);
     padding: 0.75rem;
     display: flex;
@@ -3986,8 +3977,6 @@ function enterConfirmationPhase() {
   .landmark-card:hover {
     background: rgba(255, 255, 255, 0.08);
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .landmark-header {
@@ -4054,7 +4043,6 @@ function enterConfirmationPhase() {
 
   .mini-btn {
     background: var(--color-bg-dark-secondary, #222);
-    border: 1px solid var(--glass-border, #444);
     color: var(--color-text-primary);
     padding: 0.3rem 0.8rem;
     border-radius: 4px;

@@ -76,8 +76,8 @@
       type="button"
       onclick={toggleDropdown}
       disabled={disabled}
-      class="w-full px-6 py-3 bg-transparent border-white/20 text-left focus:outline-none focus:border-white/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-      style="border-radius: var(--radius-standard); border-width: 0.8px;"
+      class="w-full px-6 py-3 bg-white/5 text-left focus:outline-none focus:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+      style="border-radius: var(--radius-xl);"
     >
       <span class={value ? 'text-white' : 'text-white/50'}>{selectedLabel}</span>
       <svg

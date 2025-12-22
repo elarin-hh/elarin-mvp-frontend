@@ -55,7 +55,7 @@
   });
 </script>
 
-<div class="bg-black">
+<div class="page-background">
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
