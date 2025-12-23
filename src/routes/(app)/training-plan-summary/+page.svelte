@@ -155,11 +155,10 @@
             { id: "exercise_count", label: "Exercicios", value: "6" },
           ],
         });
+      } else {
+        goto(`${base}/exercises`);
         return;
       }
-
-      goto(`${base}/exercises`);
-      return;
     }
 
     const handleScroll = (e: Event) => {
@@ -310,6 +309,8 @@
     background: var(--color-bg-dark-secondary);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    border: none;
+    box-shadow: none;
   }
 
   .summary-grid {
