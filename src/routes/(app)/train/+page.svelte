@@ -48,6 +48,7 @@
   } from "$lib/stores/audio-feedback.store";
   import QualitySlider from "$lib/components/training/QualitySlider.svelte";
   import RepBars from "$lib/components/training/RepBars.svelte";
+  import TrainingPlanProgress from "$lib/components/training/TrainingPlanProgress.svelte";
   import TimerOverlay from "$lib/components/training/TimerOverlay.svelte";
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
   import NextExerciseInfo from "$lib/components/training/NextExerciseInfo.svelte";
@@ -462,6 +463,94 @@ let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
   let currentExerciseName = $state("");
   let hasCompletedCountdown = $state(false);
   let hasTriedFetchName = $state(false);
+  const planProgressActive = $derived(
+    $trainingPlanStore.status === "running" &&
+      $trainingPlanStore.items.length > 0,
+  );
+
+  let planProgressPercent = $state(0);
+  let planPositionLabel = $state("");
+  let planExerciseLabel = $state("");
+  let planRemainingLabel = $state("--:--");
+
+  const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+  const formatRemainingLabel = (seconds: number | null): string =>
+    typeof seconds === "number" && Number.isFinite(seconds)
+      ? formatTime(seconds)
+      : "--:--";
+
+  $effect(() => {
+    if (!planProgressActive) {
+      planProgressPercent = 0;
+      planPositionLabel = "";
+      planExerciseLabel = "";
+      planRemainingLabel = "--:--";
+      return;
+    }
+
+    const planItems = $trainingPlanStore.items ?? [];
+    const totalItems = planItems.length;
+    if (totalItems === 0) {
+      planProgressPercent = 0;
+      planPositionLabel = "";
+      planExerciseLabel = "";
+      planRemainingLabel = "--:--";
+      return;
+    }
+
+    const currentIndex = Math.min(
+      Math.max($trainingPlanStore.currentIndex, 0),
+      totalItems - 1,
+    );
+    const currentItem = planItems[currentIndex] ?? null;
+
+    const durationTarget =
+      typeof durationTargetSec === "number" && Number.isFinite(durationTargetSec)
+        ? durationTargetSec
+        : null;
+    const repsTargetValue =
+      typeof repsTarget === "number" && Number.isFinite(repsTarget)
+        ? repsTarget
+        : null;
+
+    let itemProgress = 0;
+    if (durationTarget && durationTarget > 0) {
+      itemProgress = Math.min(elapsedTime / durationTarget, 1);
+    } else if (repsTargetValue && repsTargetValue > 0) {
+      itemProgress = Math.min($trainingStore.reps / repsTargetValue, 1);
+    }
+
+    const overallProgress = (currentIndex + itemProgress) / totalItems;
+    planProgressPercent = clampPercent(Math.round(overallProgress * 100));
+    planPositionLabel = `${currentIndex + 1}/${totalItems}`;
+    planExerciseLabel =
+      currentExerciseName ||
+      currentItem?.exercise_name ||
+      currentItem?.exercise_type ||
+      "";
+
+    const remainingSeconds =
+      durationTarget && durationTarget > 0
+        ? Math.max(0, Math.round(durationTarget - elapsedTime))
+        : null;
+    planRemainingLabel = formatRemainingLabel(remainingSeconds);
+  });
+  const showPlanProgress = $derived(
+    planProgressActive &&
+      hasCompletedCountdown &&
+      (trainingPhase === "training" || (isPaused && hasCompletedCountdown)),
+  );
+  const showRepBars = $derived(
+    hasComponent("rep_bars") &&
+      showReps &&
+      hasCompletedCountdown &&
+      (trainingPhase === "training" || (isPaused && hasCompletedCountdown)),
+  );
+  const showQualitySlider = $derived(
+    hasComponent("quality_slider") &&
+      hasCompletedCountdown &&
+      (trainingPhase === "training" || (isPaused && hasCompletedCountdown)),
+  );
 
   const metricsActive = $derived(
     sessionActive &&
@@ -1624,6 +1713,9 @@ function enterConfirmationPhase() {
         nextItem.exercise_name ?? undefined,
       );
       resetForNextPlanItem();
+      if (isFullscreen) {
+        void requestStartOrResume();
+      }
     }, PLAN_TRANSITION_DELAY_MS);
   }
 
@@ -2366,17 +2458,30 @@ function enterConfirmationPhase() {
         </div>
 
         {#if isCameraRunning || isPaused}
-          {#if layoutMode === "user-centered" && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
-            {#if hasComponent("rep_bars") && showReps}
-              <RepBars
-                className="rep-counter-bar-overlay"
-                {repScores}
-                {currentRepFrames}
-                currentReps={$trainingStore.reps}
-                maxSlots={repMaxSlots}
-              />
+          {#if layoutMode === "user-centered"}
+            {#if showPlanProgress || showRepBars}
+              <div class="plan-overlay-stack">
+                {#if showRepBars}
+                  <RepBars
+                    className="rep-counter-bar-overlay stacked"
+                    {repScores}
+                    {currentRepFrames}
+                    currentReps={$trainingStore.reps}
+                    maxSlots={repMaxSlots}
+                  />
+                {/if}
+                {#if showPlanProgress}
+                  <TrainingPlanProgress
+                    progressPercent={planProgressPercent}
+                    positionLabel={planPositionLabel}
+                    exerciseLabel={planExerciseLabel}
+                    remainingLabel={planRemainingLabel}
+                    className="stacked"
+                  />
+                {/if}
+              </div>
             {/if}
-            {#if hasComponent("quality_slider")}
+            {#if showQualitySlider}
               <QualitySlider className="left-aligned" score={emaScore} />
             {/if}
           {/if}
@@ -2456,17 +2561,30 @@ function enterConfirmationPhase() {
           ></div>
         {/if}
 
-        {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered" && !showCountdown && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
-          {#if hasComponent("rep_bars") && showReps}
-            <RepBars
-              className="rep-counter-bar-overlay"
-              {repScores}
-              {currentRepFrames}
-              currentReps={$trainingStore.reps}
-              maxSlots={repMaxSlots}
-            />
+        {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered"}
+          {#if showPlanProgress || showRepBars}
+            <div class="plan-overlay-stack">
+              {#if showRepBars}
+                <RepBars
+                  className="rep-counter-bar-overlay stacked"
+                  {repScores}
+                  {currentRepFrames}
+                  currentReps={$trainingStore.reps}
+                  maxSlots={repMaxSlots}
+                />
+              {/if}
+              {#if showPlanProgress}
+                <TrainingPlanProgress
+                  progressPercent={planProgressPercent}
+                  positionLabel={planPositionLabel}
+                  exerciseLabel={planExerciseLabel}
+                  remainingLabel={planRemainingLabel}
+                  className="stacked"
+                />
+              {/if}
+            </div>
           {/if}
-          {#if hasComponent("quality_slider")}
+          {#if showQualitySlider}
             <QualitySlider className="left-aligned" score={emaScore} />
           {/if}
           {@render fullscreenButton()}
@@ -2494,17 +2612,32 @@ function enterConfirmationPhase() {
               >
             </div>
           </div>
-        {:else if layoutMode === "side-by-side"}
-          {#if hasComponent("rep_bars") && showReps && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
-            <RepBars
-              className="rep-counter-bar-overlay"
-              {repScores}
-              {currentRepFrames}
-              currentReps={$trainingStore.reps}
-              maxSlots={repMaxSlots}
-            />
+        {/if}
+
+        {#if layoutMode === "side-by-side"}
+          {#if showPlanProgress || showRepBars}
+            <div class="plan-overlay-stack">
+              {#if showRepBars}
+                <RepBars
+                  className="rep-counter-bar-overlay stacked"
+                  {repScores}
+                  {currentRepFrames}
+                  currentReps={$trainingStore.reps}
+                  maxSlots={repMaxSlots}
+                />
+              {/if}
+              {#if showPlanProgress}
+                <TrainingPlanProgress
+                  progressPercent={planProgressPercent}
+                  positionLabel={planPositionLabel}
+                  exerciseLabel={planExerciseLabel}
+                  remainingLabel={planRemainingLabel}
+                  className="stacked"
+                />
+              {/if}
+            </div>
           {/if}
-          {#if hasComponent("quality_slider") && hasCompletedCountdown && (trainingPhase === "training" || (isPaused && hasCompletedCountdown))}
+          {#if showQualitySlider}
             <QualitySlider score={emaScore} />
           {/if}
         {/if}
@@ -3100,6 +3233,32 @@ function enterConfirmationPhase() {
 
   .fullscreen-btn-floating svg {
     flex-shrink: 0;
+  }
+
+  .plan-overlay-stack {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    z-index: 20;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+  }
+
+  .plan-overlay-stack > * {
+    pointer-events: auto;
+  }
+
+  .plan-overlay-stack .rep-counter-bar-overlay {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
   }
 
   .rep-info {

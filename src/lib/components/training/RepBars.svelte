@@ -143,7 +143,6 @@
     );
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
       0 -10px 30px rgba(0, 0, 0, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -240,6 +239,20 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
     z-index: 20;
     pointer-events: none;
+  }
+
+  .rep-counter-bar.stacked {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 0;
+    border-top: 0;
+    border-inline: 0;
+    box-shadow: none;
   }
 
   .rep-counter-bar-overlay * {
