@@ -13,7 +13,7 @@
   import { currentUser } from "$lib/stores/auth.store";
   import type { User } from "$lib/stores/auth.store";
 
-  const DEBUG_SUMMARY = true;
+  const DEBUG_SUMMARY = false;
 
   const formatSummaryBadge = (user: User | null) => {
     const fullName = user?.full_name?.trim();
