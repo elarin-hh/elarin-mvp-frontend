@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { trainingStore, trainingActions } from "$lib/stores/training.store";
+  import {
+    trainingPlanActions,
+    trainingPlanStore,
+  } from "$lib/stores/training-plan.store";
   import { currentUser } from "$lib/stores/auth.store";
   import type { User } from "$lib/stores/auth.store";
   import { authActions } from "$lib/services/auth.facade";
@@ -24,6 +28,8 @@
     type FeedbackMessage,
     type NormalizedExerciseMetric,
   } from "$lib/vision";
+  import type { TrainingPlanItem } from "$lib/api/training-plans.api";
+  import { trainingPlansApi } from "$lib/api/training-plans.api";
   import {
     LANDMARK_GROUPS,
     MEDIAPIPE_LANDMARKS,
@@ -58,6 +64,7 @@
   const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
   const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
   const BIOMETRIC_CONSENT_EXP_KEY = "elarin_biometric_consent_exp";
+  const PLAN_TRANSITION_DELAY_MS = 2000;
 
   type MediaPipePose = {
     setOptions: (options: Record<string, unknown>) => void;
@@ -450,6 +457,7 @@ const DESCRIPTION_DURATION_MS = 3000;
 const COUNTDOWN_FINAL_HOLD_MS = 600;
 let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
 let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
+let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
   let isConfirmingPosition = $state(false);
   let currentExerciseName = $state("");
   let hasCompletedCountdown = $state(false);
@@ -493,6 +501,54 @@ function clearConfirmationTimeout() {
       clearTimeout(descriptionTimeout);
       descriptionTimeout = null;
     }
+  }
+
+  function clearPlanTransitionTimeout() {
+    if (planTransitionTimeout) {
+      clearTimeout(planTransitionTimeout);
+      planTransitionTimeout = null;
+    }
+  }
+
+  function getActivePlanItem(): TrainingPlanItem | null {
+    if ($trainingPlanStore.status !== "running") return null;
+    return $trainingPlanStore.items[$trainingPlanStore.currentIndex] ?? null;
+  }
+
+  function buildPlanContext(planItem: TrainingPlanItem | null) {
+    if (!planItem || $trainingPlanStore.status !== "running") return null;
+    if (!$trainingPlanStore.planSessionId) return null;
+    const sequenceIndex = Number.isFinite(planItem.position)
+      ? planItem.position
+      : $trainingPlanStore.currentIndex + 1;
+    return {
+      plan_session_id: $trainingPlanStore.planSessionId,
+      plan_item_id: planItem.id,
+      sequence_index: sequenceIndex,
+    };
+  }
+
+  function applyPlanMetricOverrides(
+    metrics: NormalizedExerciseMetric[],
+    planItem: TrainingPlanItem | null,
+  ): NormalizedExerciseMetric[] {
+    if (!planItem) return metrics;
+
+    const overrides = new Map<string, number>();
+    if (Number.isFinite(planItem.target_duration_sec)) {
+      overrides.set("duration", planItem.target_duration_sec as number);
+    }
+    if (Number.isFinite(planItem.target_reps)) {
+      overrides.set("reps", planItem.target_reps as number);
+    }
+
+    if (overrides.size === 0) return metrics;
+
+    return metrics.map((metric) => {
+      const override = overrides.get(metric.type);
+      if (typeof override !== "number") return metric;
+      return { ...metric, target: override };
+    });
   }
 
   async function ensureFriendlyExerciseName(exerciseId: string) {
@@ -949,7 +1005,12 @@ function enterConfirmationPhase() {
           : DEFAULT_COMPONENTS) ?? [];
 
       const normalizedMetrics = normalizeExerciseMetrics(exerciseConfig.metrics);
-      exerciseMetrics = normalizedMetrics;
+      const planItem = getActivePlanItem();
+      const adjustedMetrics = applyPlanMetricOverrides(
+        normalizedMetrics,
+        planItem,
+      );
+      exerciseMetrics = adjustedMetrics;
       completionMode = exerciseConfig.completion?.mode ?? "manual";
       completionMetricIds = Array.isArray(exerciseConfig.completion?.metrics)
         ? exerciseConfig.completion.metrics.filter(
@@ -957,7 +1018,7 @@ function enterConfirmationPhase() {
           )
         : null;
 
-      const repsMetric = getMetricByType(normalizedMetrics, "reps");
+      const repsMetric = getMetricByType(adjustedMetrics, "reps");
       const maybeRepSlots =
         typeof repsMetric?.target === "number" && repsMetric.target > 0
           ? Math.round(repsMetric.target)
@@ -1514,6 +1575,58 @@ function enterConfirmationPhase() {
     }
   });
 
+  async function finalizePlanSession() {
+    const sessionId = $trainingPlanStore.planSessionId;
+    if (!sessionId) return;
+    const response = await trainingPlansApi.finishSession(sessionId);
+    if (!response.success) {
+      console.error("training_plan_finish_failed", response.error);
+    }
+  }
+
+  function resetForNextPlanItem() {
+    analyzer = null;
+    pose = null;
+    camera = null;
+    feedbackMessages = [];
+    currentFeedback = null;
+    reconstructionError = null;
+    elapsedTime = 0;
+    resetQualityTracking();
+    hasCompletedCountdown = false;
+    showCountdown = false;
+    countdownActive = false;
+    clearCountdown();
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    isConfirmingPosition = false;
+    showSummaryOverlay = false;
+    startRequested = false;
+    sessionActive = false;
+    isCameraRunning = false;
+    hasStartedCamera = false;
+    trainingPhase = "positioning";
+    countdownValue = "Iniciar";
+  }
+
+  function scheduleNextPlanItem() {
+    clearPlanTransitionTimeout();
+    planTransitionTimeout = setTimeout(() => {
+      const nextItem = trainingPlanActions.advance();
+      const nextExerciseType = nextItem?.exercise_type || null;
+      if (!nextItem || !nextExerciseType) {
+        trainingPlanActions.finish();
+        return;
+      }
+
+      trainingActions.prepareForNextExercise(
+        nextExerciseType,
+        nextItem.exercise_name ?? undefined,
+      );
+      resetForNextPlanItem();
+    }, PLAN_TRANSITION_DELAY_MS);
+  }
+
   async function finishTraining() {
     if (!analyzer) return;
     if (isLoading) return;
@@ -1544,24 +1657,40 @@ function enterConfirmationPhase() {
       hasStartedCamera = false;
       hasCompletedCountdown = false;
 
-      await trainingActions.finish();
+      const planItem = getActivePlanItem();
+      const planContext = buildPlanContext(planItem);
+      await trainingActions.finish(planContext ?? undefined);
 
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
 
-      setTimeout(() => {
-        analyzer = null;
-        pose = null;
-        camera = null;
-        trainingActions.reset();
-        feedbackMessages = [];
-        currentFeedback = null;
-        reconstructionError = null;
-        elapsedTime = 0;
-        resetQualityTracking();
-      }, 2000);
+      const hasNextPlanItem =
+        planItem &&
+        $trainingPlanStore.status === "running" &&
+        $trainingPlanStore.currentIndex < $trainingPlanStore.items.length - 1;
+
+      if (hasNextPlanItem) {
+        scheduleNextPlanItem();
+      } else {
+        if (planItem) {
+          await finalizePlanSession();
+          trainingPlanActions.finish();
+        }
+
+        setTimeout(() => {
+          analyzer = null;
+          pose = null;
+          camera = null;
+          trainingActions.reset();
+          feedbackMessages = [];
+          currentFeedback = null;
+          reconstructionError = null;
+          elapsedTime = 0;
+          resetQualityTracking();
+        }, 2000);
+      }
 
       isLoading = false;
     } catch (error: unknown) {
@@ -2019,6 +2148,7 @@ function enterConfirmationPhase() {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     clearConfirmationTimeout();
     clearDescriptionTimeout();
+    clearPlanTransitionTimeout();
     hasCompletedCountdown = false;
     unsubscribeCurrentUser();
   });

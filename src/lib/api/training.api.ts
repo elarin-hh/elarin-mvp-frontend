@@ -23,6 +23,9 @@ export interface TrainingMetric {
   duration_ms: number;
   valid_ratio: number;
   created_at: string;
+  plan_session_id?: number | null;
+  plan_item_id?: number | null;
+  sequence_index?: number | null;
 }
 
 export interface SaveTrainingRequest {
@@ -31,6 +34,9 @@ export interface SaveTrainingRequest {
   sets_completed: number;
   duration_seconds: number;
   avg_confidence?: number;
+  plan_session_id?: number;
+  plan_item_id?: number;
+  sequence_index?: number;
 }
 
 export const trainingApi = {

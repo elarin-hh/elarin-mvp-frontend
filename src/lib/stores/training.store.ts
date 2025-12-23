@@ -20,6 +20,12 @@ export interface TrainingState {
   avgConfidence?: number | null;
 }
 
+export interface TrainingPlanContext {
+  plan_session_id?: number;
+  plan_item_id?: number;
+  sequence_index?: number;
+}
+
 const initialState: TrainingState = {
   exerciseType: null,
   exerciseName: null,
@@ -101,7 +107,16 @@ export const trainingActions = {
     trainingStore.update((state) => ({ ...state, avgConfidence }));
   },
 
-  async finish() {
+  prepareForNextExercise(exercise: ExerciseType, name?: string | null) {
+    trainingStore.set({
+      ...initialState,
+      exerciseType: exercise,
+      exerciseName: name ?? null,
+      status: 'ready'
+    });
+  },
+
+  async finish(planContext?: TrainingPlanContext) {
     const state = get(trainingStore);
     if (!state.exerciseType) {
       return { success: false, error: 'No exercise selected' };
@@ -126,7 +141,10 @@ export const trainingActions = {
       reps_completed: state.reps,
       sets_completed: state.sets,
       duration_seconds: durationSeconds,
-      avg_confidence: state.avgConfidence ?? undefined
+      avg_confidence: state.avgConfidence ?? undefined,
+      plan_session_id: planContext?.plan_session_id,
+      plan_item_id: planContext?.plan_item_id,
+      sequence_index: planContext?.sequence_index
     });
 
     if (response.success) {
