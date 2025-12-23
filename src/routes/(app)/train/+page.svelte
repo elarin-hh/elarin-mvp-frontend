@@ -5,6 +5,7 @@
     trainingPlanActions,
     trainingPlanStore,
   } from "$lib/stores/training-plan.store";
+  import { trainingPlanSummaryActions } from "$lib/stores/training-plan-summary.store";
   import { currentUser } from "$lib/stores/auth.store";
   import type { User } from "$lib/stores/auth.store";
   import { authActions } from "$lib/services/auth.facade";
@@ -568,9 +569,31 @@ let showSummaryOverlay = $state(SUMMARY_PREVIEW);
 let summaryOverlayMetrics = $state<SummaryMetricDisplay[]>([]);
 let summaryOverlayExerciseName = $state<string | null>(null);
 let summaryOverlayEffectiveness = $state<number | null>(null);
+let planSummaryTotalDuration = $state(0);
+let planSummaryScoreSum = $state(0);
+let planSummaryScoreCount = $state(0);
+let planSummaryExerciseCount = $state(0);
+let planSummarySessionId = $state<number | null>(null);
 let userName = $state(formatSummaryBadge(null));
 const unsubscribeCurrentUser = currentUser.subscribe((user) => {
   userName = formatSummaryBadge(user);
+});
+
+$effect(() => {
+  if ($trainingPlanStore.status !== "running" || !$trainingPlanStore.planSessionId) {
+    return;
+  }
+
+  if ($trainingPlanStore.planSessionId === planSummarySessionId) {
+    return;
+  }
+
+  planSummarySessionId = $trainingPlanStore.planSessionId;
+  planSummaryTotalDuration = 0;
+  planSummaryScoreSum = 0;
+  planSummaryScoreCount = 0;
+  planSummaryExerciseCount = $trainingPlanStore.items.length;
+  trainingPlanSummaryActions.reset();
 });
 
 function clearCountdown() {
@@ -1740,8 +1763,15 @@ function enterConfirmationPhase() {
 
       summaryOverlayMetrics = summaryMetrics.map((m) => ({ ...m }));
       summaryOverlayExerciseName = currentExerciseName || null;
-      summaryOverlayEffectiveness = calculateFinalQualityScore();
-      showSummaryOverlay = true;
+      const exerciseScore = calculateFinalQualityScore();
+      const planItem = getActivePlanItem();
+      const hasNextPlanItem =
+        planItem &&
+        $trainingPlanStore.status === "running" &&
+        $trainingPlanStore.currentIndex < $trainingPlanStore.items.length - 1;
+      const shouldShowExerciseSummary = true;
+      summaryOverlayEffectiveness = exerciseScore;
+      showSummaryOverlay = shouldShowExerciseSummary;
 
       if (camera) camera.stop();
       clearEmulatedState();
@@ -1749,7 +1779,16 @@ function enterConfirmationPhase() {
       hasStartedCamera = false;
       hasCompletedCountdown = false;
 
-      const planItem = getActivePlanItem();
+      if (planItem && $trainingPlanStore.status === "running") {
+        planSummaryTotalDuration += elapsedTime;
+        if (typeof exerciseScore === "number" && Number.isFinite(exerciseScore)) {
+          planSummaryScoreSum += exerciseScore;
+          planSummaryScoreCount += 1;
+        }
+        if (!planSummaryExerciseCount) {
+          planSummaryExerciseCount = $trainingPlanStore.items.length;
+        }
+      }
       const planContext = buildPlanContext(planItem);
       await trainingActions.finish(planContext ?? undefined);
 
@@ -1758,17 +1797,42 @@ function enterConfirmationPhase() {
         animationFrameId = null;
       }
 
-      const hasNextPlanItem =
-        planItem &&
-        $trainingPlanStore.status === "running" &&
-        $trainingPlanStore.currentIndex < $trainingPlanStore.items.length - 1;
-
       if (hasNextPlanItem) {
         scheduleNextPlanItem();
       } else {
         if (planItem) {
           await finalizePlanSession();
           trainingPlanActions.finish();
+          if ($trainingPlanStore.items.length > 0) {
+            const totalDuration = planSummaryTotalDuration;
+            const averageScore =
+              planSummaryScoreCount > 0
+                ? planSummaryScoreSum / planSummaryScoreCount
+                : null;
+            const planSummaryMetrics = [
+              {
+                id: "total_duration",
+                label: "Tempo total",
+                value: formatTime(totalDuration),
+                target: null,
+              },
+              {
+                id: "exercise_count",
+                label: "Exercicios",
+                value: String(planSummaryExerciseCount || $trainingPlanStore.items.length),
+                target: null,
+              },
+            ];
+            trainingPlanSummaryActions.setSummary({
+              planName: $trainingPlanStore.planName ?? "Plano de treino",
+              metrics: planSummaryMetrics,
+              overallScore: averageScore,
+              planSessionId: $trainingPlanStore.planSessionId,
+            });
+            setTimeout(() => {
+              void goto(`${base}/training-plan-summary`);
+            }, PLAN_TRANSITION_DELAY_MS);
+          }
         }
 
         setTimeout(() => {
@@ -2655,6 +2719,7 @@ function enterConfirmationPhase() {
           badge={userName}
         />
       {/if}
+
     </div>
 
     {#if isCameraRunning || isPaused || showSummaryOverlay}

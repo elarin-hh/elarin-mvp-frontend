@@ -177,118 +177,25 @@
   />
 
   <main class="w-full px-4 pb-4 pt-4">
-    <section class="training-plan-section">
-      <div class="training-plan-card" class:empty={!assignedPlan}>
-        <div class="plan-header">
-          <div class="plan-heading">
-            <span class="plan-label">Plano de treino</span>
-            <h2 class="plan-title">
-              {assignedPlan?.name || "Nenhum plano ativo"}
-            </h2>
-            <p class="plan-description">
-              {assignedPlan?.description ||
-                "Assim que um plano estiver ativo, ele aparecera aqui."}
-            </p>
-          </div>
-          <div class="plan-meta">
-            <div class="plan-meta-item">
-              <span class="meta-value">
-                {assignedPlan?.items?.length ?? 0}
-              </span>
-              <span class="meta-label">exercicios</span>
-            </div>
-          </div>
-        </div>
-
-        {#if assignedPlan}
-          <div class="plan-items">
-            {#each assignedPlan.items.slice(0, 3) as item}
-              <span class="plan-chip">
-                {item.exercise_name || item.exercise_type || "exercicio"}
-              </span>
-            {/each}
-            {#if assignedPlan.items.length > 3}
-              <span class="plan-chip muted">
-                +{assignedPlan.items.length - 3}
-              </span>
-            {/if}
-          </div>
-
-          <div class="plan-actions">
-            <button
-              type="button"
-              class="button-primary plan-start-button"
-              onclick={handleStartPlan}
-              disabled={isStartingPlan || assignedPlan.items.length === 0}
-            >
-              {isStartingPlan ? "Iniciando..." : "Iniciar treino"}
-            </button>
-            {#if planStartError}
-              <p class="plan-error">{planStartError}</p>
-            {/if}
-          </div>
-        {:else}
-          <div class="plan-empty">
-            <p class="plan-empty-text">Nenhum plano ativo no momento.</p>
-            <p class="plan-empty-note">
-              Fale com sua organizacao para liberar um plano.
-            </p>
-          </div>
-        {/if}
-
-        {#if planErrorMessage}
-          <p class="plan-error">{planErrorMessage}</p>
-        {/if}
-      </div>
-    </section>
-
-    {#if errorMessage}
-      <ErrorState
-        fullHeight={true}
-        title="Erro ao carregar exercicios"
-        description={errorMessage}
-        actionLabel="Tentar novamente"
-        onAction={handleRefresh}
-      />
-    {:else if exercises.length === 0}
-      <EmptyState
-        fullHeight={true}
-        title="Nenhum exercicio disponivel"
-        description="Entre em contato com o suporte."
-      />
-    {:else}
+    <section class="section-block">
+      <span class="section-label">Planos de treino</span>
       <div
         class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
-        {#each exercises as exercise}
+        <div class="plan-card" class:empty={!assignedPlan}>
           <div
-            class="flex flex-col cursor-pointer group {!exercise.is_active
-              ? 'exercise-inactive'
-              : ''}"
-            onclick={() => handleExerciseSelect(exercise)}
-            onkeypress={(e) =>
-              e.key === "Enter" && handleExerciseSelect(exercise)}
-            role="button"
-            tabindex={exercise.is_active ? 0 : -1}
-            aria-label={exercise.is_active
-              ? `Selecionar ${exercise.name}`
-              : `${exercise.name} - Em Breve`}
+            class="plan-card-media relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
           >
-            <div
-              class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
-            >
-              <img
-                src={getExerciseImage(exercise)}
-                class="absolute inset-0 w-full h-full object-cover"
-              />
+            <div class="plan-card-bg"></div>
+            <div class="glass-overlay plan-card-overlay absolute inset-0"></div>
 
-              <div class="glass-overlay absolute inset-0"></div>
-
-              <div
-                class="absolute inset-0 flex items-center justify-center p-4 sm:p-8"
-              >
-                <div
-                  class="button-primary px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
+            <div class="plan-card-actions">
+              {#if assignedPlan}
+                <button
+                  type="button"
+                  class="button-primary plan-start-button px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
+                  onclick={handleStartPlan}
+                  disabled={isStartingPlan || assignedPlan.items.length === 0}
                 >
                   <svg
                     class="w-4 h-4 sm:w-5 sm:h-5 text-white"
@@ -303,22 +210,107 @@
                       d="M9 5l7 7-7 7"
                     />
                   </svg>
-                  <span class="text-white text-sm sm:text-base font-medium"
-                    >{exercise.name}</span
-                  >
-                </div>
-              </div>
-
-              {#if !exercise.is_active}
-                <div class="absolute top-2 right-2 badge-inactive">
-                  Em Breve
-                </div>
+                  <span class="text-white text-sm sm:text-base font-medium">
+                    {assignedPlan?.name || "Plano de treino"}
+                  </span>
+                </button>
+              {:else}
+                <span class="plan-card-note">Sem plano ativo</span>
               {/if}
             </div>
+
           </div>
-        {/each}
+        </div>
       </div>
-    {/if}
+
+      {#if planStartError}
+        <p class="plan-error">{planStartError}</p>
+      {/if}
+      {#if planErrorMessage}
+        <p class="plan-error">{planErrorMessage}</p>
+      {/if}
+    </section>
+
+    <section class="section-block">
+      <span class="section-label">Exercicios</span>
+      {#if errorMessage}
+        <ErrorState
+          fullHeight={true}
+          title="Erro ao carregar exercicios"
+          description={errorMessage}
+          actionLabel="Tentar novamente"
+          onAction={handleRefresh}
+        />
+      {:else if exercises.length === 0}
+        <EmptyState
+          fullHeight={true}
+          title="Nenhum exercicio disponivel"
+          description="Entre em contato com o suporte."
+        />
+      {:else}
+        <div
+          class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
+        >
+          {#each exercises as exercise}
+            <div
+              class="flex flex-col cursor-pointer group {!exercise.is_active
+                ? 'exercise-inactive'
+                : ''}"
+              onclick={() => handleExerciseSelect(exercise)}
+              onkeypress={(e) =>
+                e.key === "Enter" && handleExerciseSelect(exercise)}
+              role="button"
+              tabindex={exercise.is_active ? 0 : -1}
+              aria-label={exercise.is_active
+                ? `Selecionar ${exercise.name}`
+                : `${exercise.name} - Em Breve`}
+            >
+              <div
+                class="relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
+              >
+                <img
+                  src={getExerciseImage(exercise)}
+                  class="absolute inset-0 w-full h-full object-cover"
+                />
+
+                <div class="glass-overlay absolute inset-0"></div>
+
+                <div
+                  class="absolute inset-0 flex items-center justify-center p-4 sm:p-8"
+                >
+                  <div
+                    class="button-primary px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
+                  >
+                    <svg
+                      class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    <span class="text-white text-sm sm:text-base font-medium"
+                      >{exercise.name}</span
+                    >
+                  </div>
+                </div>
+
+                {#if !exercise.is_active}
+                  <div class="absolute top-2 right-2 badge-inactive">
+                    Em Breve
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
   </main>
 
   {#if isRefreshing}
@@ -338,115 +330,58 @@
     background: var(--color-primary-600);
   }
 
-  .training-plan-section {
-    margin-bottom: 1.5rem;
+  .section-block {
+    margin-bottom: 1.75rem;
   }
 
-  .training-plan-card {
-    background: var(--color-bg-dark-secondary);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
-    padding: clamp(1rem, 3vw, 1.5rem);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .training-plan-card.empty {
-    background: rgba(255, 255, 255, 0.02);
-    border-style: dashed;
-  }
-
-  .plan-header {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-
-  .plan-label {
+  .section-label {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.6rem;
-    border-radius: var(--radius-full);
-    background: rgba(255, 255, 255, 0.08);
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .plan-title {
-    margin: 0.5rem 0 0.2rem;
-    font-size: 1.35rem;
-    color: var(--color-text-primary);
-    font-weight: 700;
-  }
-
-  .plan-description {
-    margin: 0;
-    color: var(--color-text-secondary);
-    font-size: 0.95rem;
-    max-width: 520px;
-  }
-
-  .plan-meta {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .plan-meta-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
-  }
-
-  .meta-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-primary-400);
-  }
-
-  .meta-label {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .plan-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .plan-chip {
-    padding: 0.3rem 0.75rem;
-    border-radius: var(--radius-full);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 0.75rem;
     font-size: 0.8rem;
-    color: var(--color-text-primary);
-  }
-
-  .plan-chip.muted {
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--color-text-secondary);
   }
 
-  .plan-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+  .plan-card {
+    width: 100%;
   }
 
-  .plan-start-button {
-    padding: 0.6rem 1.5rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
+  .plan-card.empty .plan-card-bg {
+    opacity: 0.5;
+  }
+
+  .plan-card-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(116, 198, 17, 0.45),
+      rgba(30, 31, 32, 0.95)
+    );
+  }
+
+  .plan-card-overlay {
+    background: rgba(35, 35, 35, 0.35);
+    backdrop-filter: blur(2px);
+  }
+
+  .plan-card-actions {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    padding: 1rem;
+  }
+
+  .plan-card-note {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   .plan-start-button:disabled {
@@ -458,18 +393,6 @@
     margin: 0;
     color: var(--color-error);
     font-size: 0.85rem;
-  }
-
-  .plan-empty-text {
-    margin: 0;
-    font-weight: 600;
-    color: var(--color-text-primary);
-  }
-
-  .plan-empty-note {
-    margin: 0.35rem 0 0;
-    color: var(--color-text-secondary);
-    font-size: 0.9rem;
   }
 
   .glass-overlay {

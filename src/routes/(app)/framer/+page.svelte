@@ -4,9 +4,19 @@
   import { base } from "$app/paths";
   import AppHeader from "$lib/components/common/AppHeader.svelte";
   import { authActions } from "$lib/services/auth.facade";
+  import { trainingPlanStore } from "$lib/stores/training-plan.store";
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
+  const hasPlan = $derived(
+    $trainingPlanStore.status === "running" &&
+      $trainingPlanStore.items.length > 0,
+  );
+  const planName = $derived($trainingPlanStore.planName ?? "Plano de treino");
+  const planDescription = $derived(
+    $trainingPlanStore.planDescription ?? "Sem descricao disponivel.",
+  );
+  const planItems = $derived($trainingPlanStore.items);
 
   function toggleAvatarMenu() {
     showAvatarMenu = !showAvatarMenu;
@@ -92,64 +102,136 @@
         Antes de Começar
       </h1>
 
-      <div
-        class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20"
-      >
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5"
-          >
-            <svg
-              class="w-4 h-4 text-blue-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
+      {#if hasPlan}
+        <div
+          class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5"
             >
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-white font-semibold mb-2">Aviso</h2>
-            <p class="text-white/70 text-sm">
-              Nosso app demonstra o fluxo da interface. A captura de câmera e
-              detecção de exercícios em tempo real serão habilitadas na próxima
-              fase.
-            </p>
+              <svg
+                class="w-4 h-4 text-blue-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-white font-semibold mb-2">Plano de treino</h2>
+              <p class="text-white/70 text-sm">
+                Nome: {planName}
+                <br />
+                Descricao: {planDescription}
+                <br />
+                Exercícios: {planItems.length}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div
-        class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20"
-      >
-        <div class="flex items-start gap-3">
-          <div
-            class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5"
-          >
-            <svg
-              class="w-4 h-4 text-green-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
+        <div
+          class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5"
             >
-              <path
-                fill-rule="evenodd"
-                d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-white font-semibold mb-2">Privacidade</h2>
-            <p class="text-white/70 text-sm">
-              Sua privacidade é importante. Todo o processamento acontecerá
-              localmente no seu dispositivo.
-            </p>
+              <svg
+                class="w-4 h-4 text-green-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-white font-semibold mb-2">Exercicios do plano</h2>
+              {#if planItems.length > 0}
+                <div class="plan-exercise-tags">
+                  {#each planItems as item}
+                    <span class="plan-exercise-tag">
+                      {item.exercise_name || item.exercise_type || "Exercicio"}
+                    </span>
+                  {/each}
+                </div>
+              {:else}
+                <p class="text-white/70 text-sm">
+                  Sem exercicios cadastrados.
+                </p>
+              {/if}
+            </div>
           </div>
         </div>
-      </div>
+      {:else}
+        <div
+          class="card-secondary mb-4 p-6 rounded-standard border border-blue-500/20"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5"
+            >
+              <svg
+                class="w-4 h-4 text-blue-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-white font-semibold mb-2">Aviso</h2>
+              <p class="text-white/70 text-sm">
+                Nosso app demonstra o fluxo da interface. A captura de câmera e
+                detecção de exercícios em tempo real serão habilitadas na próxima
+                fase.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="card-secondary mb-8 p-6 rounded-standard border border-green-500/20"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5"
+            >
+              <svg
+                class="w-4 h-4 text-green-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-white font-semibold mb-2">Privacidade</h2>
+              <p class="text-white/70 text-sm">
+                Sua privacidade é importante. Todo o processamento acontecerá
+                localmente no seu dispositivo.
+              </p>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <div class="flex justify-center">
         <button
@@ -186,4 +268,19 @@
   .button-primary:hover {
     background: var(--color-primary-600);
   }
+
+  .plan-exercise-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .plan-exercise-tag {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary);
+    font-size: 0.8rem;
+  }
+
 </style>
