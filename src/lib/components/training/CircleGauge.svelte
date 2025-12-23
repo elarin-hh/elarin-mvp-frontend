@@ -222,6 +222,8 @@
         top: 50%;
         transform: translate(-50%, -50%);
         white-space: pre-line;
+        width: 100%;
+        text-align: center;
     }
 
     .btn {

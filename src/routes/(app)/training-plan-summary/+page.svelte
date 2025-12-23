@@ -13,6 +13,8 @@
   import { currentUser } from "$lib/stores/auth.store";
   import type { User } from "$lib/stores/auth.store";
 
+  const DEBUG_SUMMARY = true;
+
   const formatSummaryBadge = (user: User | null) => {
     const fullName = user?.full_name?.trim();
     const fallback = user?.email?.trim();
@@ -143,6 +145,19 @@
   onMount(() => {
     const summary = get(trainingPlanSummaryStore);
     if (!summary) {
+      if (DEBUG_SUMMARY) {
+        trainingPlanSummaryActions.setSummary({
+          planName: "Plano de teste",
+          overallScore: 84,
+          planSessionId: 0,
+          metrics: [
+            { id: "total_duration", label: "Tempo total", value: "18:45" },
+            { id: "exercise_count", label: "Exercicios", value: "6" },
+          ],
+        });
+        return;
+      }
+
       goto(`${base}/exercises`);
       return;
     }
@@ -181,7 +196,7 @@
   <title>Resumo do Plano - Elarin</title>
 </svelte:head>
 
-<main class="plan-summary-page">
+<div class="page-background">
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -193,297 +208,170 @@
   />
 
   {#if $trainingPlanSummaryStore}
-    <section class="summary-shell">
-      <div class="summary-grid">
-        <div class="score-card">
-          <div class="score-top">
-            <div class="score-title-group">
-              <span class="score-label">Score geral</span>
-              <h1 class="score-plan">{$trainingPlanSummaryStore.planName}</h1>
-              <p class="score-subtitle">
-                Resumo geral do seu plano de treino.
-              </p>
-            </div>
-            <div class="score-meta">
-              <span class="summary-status">
-                <span class="status-dot"></span>
-                Plano finalizado
-              </span>
-              <span class="summary-badge">{userName}</span>
-            </div>
-          </div>
-          <div class="score-gauge">
-            <CircleGauge
-              value={scoreValue}
-              thickness="7%"
-              trackColor="var(--color-bg-dark-quaternary)"
-              info="SCORE GERAL"
-              gradientStart={scoreGradient.start}
-              gradientEnd={scoreGradient.end}
-              knobColor={scoreColor}
-            />
-          </div>
-          <div class="score-footer">
-            Media entre todos os exercicios concluidos.
-          </div>
-        </div>
+    <main class="min-h-screen w-full px-4 pt-8 pb-10">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl sm:text-3xl font-bold text-white text-center mb-6">
+          Resumo do treino
+        </h1>
 
-        <div class="metrics-card">
-          <div class="metrics-header">
-            <h2>Metricas do plano</h2>
-            <p>Tempo total e quantidade de exercicios.</p>
-          </div>
-          <div class="metrics-grid">
-            {#each $trainingPlanSummaryStore.metrics as metric (metric.id)}
-              <div class="metric-tile">
-                <div class="metric-value">
-                  {metric.value}
-                  {#if metric.target}
-                    <small>/{metric.target}</small>
-                  {/if}
-                </div>
-                <div class="metric-label">{metric.label}</div>
+        <div class="summary-grid">
+          <div class="card-secondary p-6 rounded-standard">
+            <div class="flex items-start gap-3">
+              <div
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center mt-0.5"
+              >
+                <svg
+                  class="w-4 h-4 text-primary-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
               </div>
-            {/each}
+              <div>
+                <h2 class="text-white font-semibold mb-1">
+                  {$trainingPlanSummaryStore.planName}
+                </h2>
+                <p class="text-white/70 text-sm">
+                  Treino finalizado - {userName}
+                </p>
+              </div>
+            </div>
+
+            <div class="summary-gauge">
+              <CircleGauge
+                value={scoreValue}
+                thickness="7%"
+                trackColor="var(--color-bg-dark-quaternary)"
+                info="SCORE GERAL"
+                gradientStart={scoreGradient.start}
+                gradientEnd={scoreGradient.end}
+                knobColor={scoreColor}
+              />
+            </div>
+            <p class="text-white/60 text-sm text-center mt-4">
+              Media entre todos os exercicios concluidos.
+            </p>
+          </div>
+
+          <div class="card-secondary p-6 rounded-standard">
+            <div class="flex items-start gap-3 mb-4">
+              <div
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mt-0.5"
+              >
+                <svg
+                  class="w-4 h-4 text-white/70"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-white font-semibold mb-1">Metricas do treino</h2>
+                <p class="text-white/70 text-sm">
+                  Tempo total e quantidade de exercicios.
+                </p>
+              </div>
+            </div>
+
+            <div class="metric-list">
+              {#each $trainingPlanSummaryStore.metrics as metric (metric.id)}
+                <div class="metric-row">
+                  <span class="metric-label">{metric.label}</span>
+                  <span class="metric-value">
+                    {metric.value}
+                    {#if metric.target}
+                      <small>/{metric.target}</small>
+                    {/if}
+                  </span>
+                </div>
+              {/each}
+            </div>
           </div>
         </div>
       </div>
-    </section>
+    </main>
   {/if}
-</main>
+</div>
 
 <style>
-  .plan-summary-page {
-    position: relative;
-    min-height: 100vh;
-    background: var(--color-bg-dark);
-    color: var(--color-text-primary);
-    overflow-x: hidden;
-  }
-
-  .plan-summary-page::before {
-    content: "";
-    position: absolute;
-    inset: -20% 0 auto;
-    height: 60%;
-    background:
-      radial-gradient(
-        60% 60% at 50% 0%,
-        rgba(116, 198, 17, 0.18),
-        transparent 70%
-      ),
-      radial-gradient(
-        35% 35% at 85% 20%,
-        rgba(0, 180, 255, 0.12),
-        transparent 60%
-      );
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .summary-shell {
-    position: relative;
-    z-index: 1;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: calc(var(--app-header-offset) + 2rem) 1.5rem 3.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .summary-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.35rem 0.9rem;
-    border-radius: 999px;
-    background: var(--color-bg-dark-quaternary);
-    color: var(--color-text-secondary);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .summary-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.35rem 0.9rem;
-    border-radius: 999px;
-    background: rgba(116, 198, 17, 0.12);
-    color: var(--color-primary-400);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-primary-500);
+  .card-secondary {
+    background: var(--color-bg-dark-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .summary-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     gap: 1.5rem;
-    align-items: stretch;
   }
 
-  .score-card,
-  .metrics-card {
-    background: var(--color-bg-dark-secondary);
-    border-radius: 24px;
-    padding: 1.5rem;
+  @media (min-width: 900px) {
+    .summary-grid {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      align-items: start;
+    }
   }
 
-  .score-card {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: center;
-    text-align: center;
-  }
-
-  .score-top {
-    width: 100%;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1.25rem;
-    flex-wrap: wrap;
-  }
-
-  .score-label {
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-secondary);
-  }
-
-  .score-title-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    text-align: left;
-  }
-
-  .score-plan {
-    margin: 0;
-    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-    font-weight: 500;
-    letter-spacing: -0.02em;
-  }
-
-  .score-subtitle {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: 0.95rem;
-    text-align: left;
-  }
-
-  .score-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.6rem;
-  }
-
-  .score-gauge {
-    width: clamp(220px, 30vw, 300px);
-    height: clamp(220px, 30vw, 300px);
+  .summary-gauge {
+    --gauge-size: clamp(220px, 55vw, 260px);
+    width: var(--gauge-size);
+    height: var(--gauge-size);
+    margin: 1.5rem auto 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .score-footer {
-    color: var(--color-text-muted);
-    font-size: 0.95rem;
-    max-width: 260px;
-  }
-
-  .metrics-card {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+  .summary-gauge :global(.circle) {
+    width: 100%;
     height: 100%;
-    min-height: clamp(220px, 38vh, 360px);
   }
 
-  .metrics-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 500;
-  }
-
-  .metrics-header p {
-    margin: 0.35rem 0 0;
-    color: var(--color-text-muted);
-    font-size: 0.95rem;
-  }
-
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    grid-auto-rows: minmax(90px, 1fr);
-    gap: 1rem;
-    flex: 1;
-    align-content: stretch;
-  }
-
-  .metric-tile {
-    padding: 1rem;
-    border-radius: 18px;
-    background: var(--color-bg-dark-quaternary);
+  .metric-list {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    min-height: 90px;
   }
 
-  .metric-value {
-    font-size: 1.6rem;
-    font-weight: 500;
+  .metric-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
   }
 
-  .metric-value small {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    margin-left: 0.25rem;
+  .metric-row:last-child {
+    padding-bottom: 0;
   }
 
   .metric-label {
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-muted);
   }
 
-  @media (max-width: 900px) {
-    .summary-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .metrics-card {
-      min-height: auto;
-    }
+  .metric-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
   }
 
-  @media (max-width: 600px) {
-    .summary-shell {
-      padding: calc(var(--app-header-offset) + 1.5rem) 1rem 3rem;
-    }
-
-    .score-top {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .score-meta {
-      align-items: flex-start;
-    }
+  .metric-value small {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-left: 0.25rem;
   }
 </style>
