@@ -22,7 +22,9 @@
       "Bash(taskkill /PID 8840 /F)",
       "Bash(taskkill:*)",
       "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-mvp-frontend\\static\\audio\\feedback\" /B)",
-      "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-mvp-frontend\\static\\audio\\feedback\")"
+      "Bash(dir \"C:\\Users\\notebook-guilherme\\Documents\\Elarin-projects\\elarin-mvp-frontend\\static\\audio\\feedback\")",
+      "Bash(ls:*)",
+      "Bash(dir \"C:\\\\Users\\\\Guilherme\\\\Documents\\\\Elarin-projects\\\\elarin-mvp-frontend\\\\static\\\\exercises\\\\standing_hip_abduction\" /B)"
     ],
     "deny": [],
     "ask": []
