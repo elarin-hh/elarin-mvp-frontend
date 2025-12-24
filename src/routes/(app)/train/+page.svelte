@@ -158,7 +158,9 @@
   let frameScore = $state(0);
   let confidence = $state(0);
   let repMaxSlots = $state(DEFAULT_REP_SLOTS);
-  let repScores = $state<(number | null)[]>(Array(DEFAULT_REP_SLOTS).fill(null));
+  let repScores = $state<(number | null)[]>(
+    Array(DEFAULT_REP_SLOTS).fill(null),
+  );
   let currentRepFrames = $state<number[]>([]);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
@@ -187,7 +189,10 @@
     const score = (idx: number) =>
       Math.max(landmarks[idx]?.visibility ?? 0, landmarks[idx]?.presence ?? 0);
     const countVisible = (indices: number[]) =>
-      indices.reduce((count, idx) => count + (score(idx) > threshold ? 1 : 0), 0);
+      indices.reduce(
+        (count, idx) => count + (score(idx) > threshold ? 1 : 0),
+        0,
+      );
 
     const torso = [
       MEDIAPIPE_LANDMARKS.LEFT_SHOULDER,
@@ -218,13 +223,13 @@
   let isDraggingPip = $state(false);
   let dragOffset = { x: 0, y: 0 };
 
-let pipSize = $state({ width: 260, height: 146.25 });
-let isResizingPip = $state(false);
-let resizeStartPos = { x: 0, y: 0 };
-let resizeStartSize = { ...pipSize };
-const PIP_MARGIN = 16;
-const PIP_BOTTOM_BUFFER = 0;
-let emulatedFrameId: number | null = null;
+  let pipSize = $state({ width: 260, height: 146.25 });
+  let isResizingPip = $state(false);
+  let resizeStartPos = { x: 0, y: 0 };
+  let resizeStartSize = { ...pipSize };
+  const PIP_MARGIN = 16;
+  const PIP_BOTTOM_BUFFER = 0;
+  let emulatedFrameId: number | null = null;
 
   const SEVERITY_PENALTIES: Record<string, number> = {
     critical: 60,
@@ -245,7 +250,9 @@ let emulatedFrameId: number | null = null;
   const hasTimerForExercise = $derived(activeComponents.includes("timer"));
   const tracksReps = $derived(Boolean(repsMetric));
 
-  function isMetricEnabledByComponents(metric: NormalizedExerciseMetric): boolean {
+  function isMetricEnabledByComponents(
+    metric: NormalizedExerciseMetric,
+  ): boolean {
     if (metric.type === "duration") return hasComponent("timer");
     if (metric.type === "reps") return hasComponent("rep_bars");
     return hasComponent(metric.id) || hasComponent(metric.type);
@@ -277,7 +284,9 @@ let emulatedFrameId: number | null = null;
   );
   const summaryMetrics = $derived(
     exerciseMetrics
-      .filter((m) => isMetricEnabledByComponents(m) && m.showIn.includes("summary"))
+      .filter(
+        (m) => isMetricEnabledByComponents(m) && m.showIn.includes("summary"),
+      )
       .map((m) => {
         if (m.type === "duration") {
           return {
@@ -449,17 +458,17 @@ let emulatedFrameId: number | null = null;
     });
   }
 
-let showCountdown = $state(false);
-let countdownValue = $state("Iniciar");
-let countdownActive = $state(false);
-let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
-let startRequested = $state(false);
-const CONFIRMATION_DURATION_MS = 2200;
-const DESCRIPTION_DURATION_MS = 3000;
-const COUNTDOWN_FINAL_HOLD_MS = 600;
-let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
-let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
-let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
+  let showCountdown = $state(false);
+  let countdownValue = $state("Iniciar");
+  let countdownActive = $state(false);
+  let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
+  let startRequested = $state(false);
+  const CONFIRMATION_DURATION_MS = 2200;
+  const DESCRIPTION_DURATION_MS = 3000;
+  const COUNTDOWN_FINAL_HOLD_MS = 600;
+  let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
+  let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
+  let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
   let isConfirmingPosition = $state(false);
   let currentExerciseName = $state("");
   let hasCompletedCountdown = $state(false);
@@ -506,7 +515,8 @@ let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
     const currentItem = planItems[currentIndex] ?? null;
 
     const durationTarget =
-      typeof durationTargetSec === "number" && Number.isFinite(durationTargetSec)
+      typeof durationTargetSec === "number" &&
+      Number.isFinite(durationTargetSec)
         ? durationTargetSec
         : null;
     const repsTargetValue =
@@ -559,54 +569,57 @@ let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
       trainingPhase === "training" &&
       !isPaused,
   );
-const SUMMARY_PREVIEW = false;
-const formatSummaryBadge = (user: User | null) => {
-  const fullName = user?.full_name?.trim();
-  const fallback = user?.email?.trim();
-  return fullName || fallback || "[Nome do Usuário]";
-};
-let showSummaryOverlay = $state(SUMMARY_PREVIEW);
-let summaryOverlayMetrics = $state<SummaryMetricDisplay[]>([]);
-let summaryOverlayExerciseName = $state<string | null>(null);
-let summaryOverlayEffectiveness = $state<number | null>(null);
-let planSummaryTotalDuration = $state(0);
-let planSummaryScoreSum = $state(0);
-let planSummaryScoreCount = $state(0);
-let planSummaryExerciseCount = $state(0);
-let planSummarySessionId = $state<number | null>(null);
-let userName = $state(formatSummaryBadge(null));
-const unsubscribeCurrentUser = currentUser.subscribe((user) => {
-  userName = formatSummaryBadge(user);
-});
+  const SUMMARY_PREVIEW = false;
+  const formatSummaryBadge = (user: User | null) => {
+    const fullName = user?.full_name?.trim();
+    const fallback = user?.email?.trim();
+    return fullName || fallback || "[Nome do Usuário]";
+  };
+  let showSummaryOverlay = $state(SUMMARY_PREVIEW);
+  let summaryOverlayMetrics = $state<SummaryMetricDisplay[]>([]);
+  let summaryOverlayExerciseName = $state<string | null>(null);
+  let summaryOverlayEffectiveness = $state<number | null>(null);
+  let planSummaryTotalDuration = $state(0);
+  let planSummaryScoreSum = $state(0);
+  let planSummaryScoreCount = $state(0);
+  let planSummaryExerciseCount = $state(0);
+  let planSummarySessionId = $state<number | null>(null);
+  let userName = $state(formatSummaryBadge(null));
+  const unsubscribeCurrentUser = currentUser.subscribe((user) => {
+    userName = formatSummaryBadge(user);
+  });
 
-$effect(() => {
-  if ($trainingPlanStore.status !== "running" || !$trainingPlanStore.planSessionId) {
-    return;
+  $effect(() => {
+    if (
+      $trainingPlanStore.status !== "running" ||
+      !$trainingPlanStore.planSessionId
+    ) {
+      return;
+    }
+
+    if ($trainingPlanStore.planSessionId === planSummarySessionId) {
+      return;
+    }
+
+    planSummarySessionId = $trainingPlanStore.planSessionId;
+    planSummaryTotalDuration = 0;
+    planSummaryScoreSum = 0;
+    planSummaryScoreCount = 0;
+    planSummaryExerciseCount = $trainingPlanStore.items.length;
+    trainingPlanSummaryActions.reset();
+  });
+
+  function clearCountdown() {
+    countdownTimeouts.forEach(clearTimeout);
+    countdownTimeouts = [];
   }
 
-  if ($trainingPlanStore.planSessionId === planSummarySessionId) {
-    return;
+  function clearConfirmationTimeout() {
+    if (confirmationTimeout) {
+      clearTimeout(confirmationTimeout);
+      confirmationTimeout = null;
+    }
   }
-
-  planSummarySessionId = $trainingPlanStore.planSessionId;
-  planSummaryTotalDuration = 0;
-  planSummaryScoreSum = 0;
-  planSummaryScoreCount = 0;
-  planSummaryExerciseCount = $trainingPlanStore.items.length;
-  trainingPlanSummaryActions.reset();
-});
-
-function clearCountdown() {
-  countdownTimeouts.forEach(clearTimeout);
-  countdownTimeouts = [];
-}
-
-function clearConfirmationTimeout() {
-  if (confirmationTimeout) {
-    clearTimeout(confirmationTimeout);
-    confirmationTimeout = null;
-  }
-}
 
   function clearDescriptionTimeout() {
     if (descriptionTimeout) {
@@ -664,7 +677,11 @@ function clearConfirmationTimeout() {
   }
 
   async function ensureFriendlyExerciseName(exerciseId: string) {
-    if (hasTriedFetchName && currentExerciseName && !isSlugLike(currentExerciseName))
+    if (
+      hasTriedFetchName &&
+      currentExerciseName &&
+      !isSlugLike(currentExerciseName)
+    )
       return;
     try {
       const response = await exercisesApi.getAll();
@@ -687,26 +704,26 @@ function clearConfirmationTimeout() {
   function enterDescriptionPhase() {
     trainingPhase = "description";
     showCountdown = false;
-  clearDescriptionTimeout();
-  descriptionTimeout = setTimeout(() => {
-    startCountdown();
-  }, DESCRIPTION_DURATION_MS);
-}
+    clearDescriptionTimeout();
+    descriptionTimeout = setTimeout(() => {
+      startCountdown();
+    }, DESCRIPTION_DURATION_MS);
+  }
 
-function enterConfirmationPhase() {
-  if (isConfirmingPosition || countdownActive || !startRequested) return;
+  function enterConfirmationPhase() {
+    if (isConfirmingPosition || countdownActive || !startRequested) return;
 
-  isConfirmingPosition = true;
-  trainingPhase = "confirmation";
-  clearConfirmationTimeout();
-  clearDescriptionTimeout();
-  showCountdown = false;
+    isConfirmingPosition = true;
+    trainingPhase = "confirmation";
+    clearConfirmationTimeout();
+    clearDescriptionTimeout();
+    showCountdown = false;
 
-  confirmationTimeout = setTimeout(() => {
-    isConfirmingPosition = false;
-    enterDescriptionPhase();
-  }, CONFIRMATION_DURATION_MS);
-}
+    confirmationTimeout = setTimeout(() => {
+      isConfirmingPosition = false;
+      enterDescriptionPhase();
+    }, CONFIRMATION_DURATION_MS);
+  }
 
   function pauseReferenceVideo() {
     try {
@@ -1101,7 +1118,9 @@ function enterConfirmationPhase() {
 
       const exerciseConfig = await loadExerciseConfig(selectedExercise);
       if (!exerciseConfig) {
-        throw new Error("Falha ao carregar configuração do exercício");
+        throw new Error(
+          "Você ainda não tem exercícios atribuídos. Entre em contato com seu treinador para liberar exercícios.",
+        );
       }
       currentExerciseName =
         exerciseConfig.exerciseName ||
@@ -1116,7 +1135,9 @@ function enterConfirmationPhase() {
           ? exerciseConfig.components
           : DEFAULT_COMPONENTS) ?? [];
 
-      const normalizedMetrics = normalizeExerciseMetrics(exerciseConfig.metrics);
+      const normalizedMetrics = normalizeExerciseMetrics(
+        exerciseConfig.metrics,
+      );
       const planItem = getActivePlanItem();
       const adjustedMetrics = applyPlanMetricOverrides(
         normalizedMetrics,
@@ -1666,7 +1687,8 @@ function enterConfirmationPhase() {
 
     const completionMetrics = exerciseMetrics.filter((m) => {
       if (m.target === null) return false;
-      if (completionMetricIds && !completionMetricIds.includes(m.id)) return false;
+      if (completionMetricIds && !completionMetricIds.includes(m.id))
+        return false;
       return m.type === "duration" || m.type === "reps";
     });
 
@@ -1781,7 +1803,10 @@ function enterConfirmationPhase() {
 
       if (planItem && $trainingPlanStore.status === "running") {
         planSummaryTotalDuration += elapsedTime;
-        if (typeof exerciseScore === "number" && Number.isFinite(exerciseScore)) {
+        if (
+          typeof exerciseScore === "number" &&
+          Number.isFinite(exerciseScore)
+        ) {
           planSummaryScoreSum += exerciseScore;
           planSummaryScoreCount += 1;
         }
@@ -1819,7 +1844,9 @@ function enterConfirmationPhase() {
               {
                 id: "exercise_count",
                 label: "Exercicios",
-                value: String(planSummaryExerciseCount || $trainingPlanStore.items.length),
+                value: String(
+                  planSummaryExerciseCount || $trainingPlanStore.items.length,
+                ),
                 target: null,
               },
             ];
@@ -2455,11 +2482,7 @@ function enterConfirmationPhase() {
             />
           {/if}
           {#if trainingPhase === "description" && layoutMode === "user-centered"}
-            <PhaseOverlay
-              title=""
-              icon={Microscope}
-              fullscreen={false}
-            >
+            <PhaseOverlay title="" icon={Microscope} fullscreen={false}>
               <NextExerciseInfo
                 exerciseName={currentExerciseName || "Exercício selecionado"}
                 metrics={nextGoalMetrics}
@@ -2604,11 +2627,7 @@ function enterConfirmationPhase() {
             />
           {/if}
           {#if trainingPhase === "description" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
-            <PhaseOverlay
-              title=""
-              icon={Microscope}
-              fullscreen={false}
-            >
+            <PhaseOverlay title="" icon={Microscope} fullscreen={false}>
               <NextExerciseInfo
                 exerciseName={currentExerciseName || "Exercício selecionado"}
                 metrics={nextGoalMetrics}
@@ -2670,9 +2689,8 @@ function enterConfirmationPhase() {
             <div class="countdown-circle" class:pulsing={countdownActive}>
               <span
                 class="countdown-text"
-                class:is-number={["3", "2", "1"].includes(
-                  countdownValue,
-                )}>{countdownValue}</span
+                class:is-number={["3", "2", "1"].includes(countdownValue)}
+                >{countdownValue}</span
               >
             </div>
           </div>
@@ -2709,9 +2727,9 @@ function enterConfirmationPhase() {
 
       {#if showSummaryOverlay}
         <ExerciseSummaryOverlay
-          exerciseName={
-            summaryOverlayExerciseName || currentExerciseName || "Exercício"
-          }
+          exerciseName={summaryOverlayExerciseName ||
+            currentExerciseName ||
+            "Exercício"}
           metrics={summaryOverlayMetrics}
           effectiveness={summaryOverlayEffectiveness}
           messageOnly={!isFullscreen}
@@ -2719,7 +2737,6 @@ function enterConfirmationPhase() {
           badge={userName}
         />
       {/if}
-
     </div>
 
     {#if isCameraRunning || isPaused || showSummaryOverlay}

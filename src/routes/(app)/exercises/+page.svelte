@@ -195,7 +195,9 @@
                     type="button"
                     class="button-primary plan-start-button px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
                     onclick={() => handleStartPlan(plan.plan_id)}
-                    disabled={isStartingPlan || plan.items.length === 0}
+                    disabled={isStartingPlan ||
+                      !plan.items ||
+                      plan.items.length === 0}
                   >
                     <svg
                       class="w-4 h-4 sm:w-5 sm:h-5 text-white"
