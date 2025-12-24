@@ -23,9 +23,7 @@
   let isScrolled = $state(false);
   let exercises = $state<Exercise[]>(data.exercises ?? []);
   let errorMessage = $state(data.errorMessage ?? "");
-  let assignedPlan = $state<AssignedTrainingPlan | null>(
-    data.assignedPlan ?? null,
-  );
+  let assignedPlans = $state<AssignedTrainingPlan[]>(data.assignedPlans ?? []);
   let planErrorMessage = $state(data.planErrorMessage ?? "");
   let planStartError = $state("");
   let isStartingPlan = $state(false);
@@ -38,7 +36,7 @@
   $effect(() => {
     exercises = data.exercises ?? [];
     errorMessage = data.errorMessage ?? "";
-    assignedPlan = data.assignedPlan ?? null;
+    assignedPlans = data.assignedPlans ?? [];
     planErrorMessage = data.planErrorMessage ?? "";
   });
 
@@ -91,15 +89,16 @@
     goto(`${base}/framer`);
   }
 
-  async function handleStartPlan() {
-    if (!assignedPlan || isStartingPlan) {
+  async function handleStartPlan(planId: number) {
+    const plan = assignedPlans.find((p) => p.plan_id === planId);
+    if (!plan || isStartingPlan) {
       return;
     }
 
     planStartError = "";
     isStartingPlan = true;
 
-    const response = await trainingPlansApi.startSession(assignedPlan.plan_id);
+    const response = await trainingPlansApi.startSession(planId);
     if (!response.success) {
       planStartError =
         response.error?.message || "Falha ao iniciar plano de treino";
@@ -119,9 +118,8 @@
 
     trainingPlanActions.beginSession({
       planId: session.plan_id,
-      planName: session.plan_name ?? assignedPlan.name,
-      planDescription:
-        session.plan_description ?? assignedPlan.description ?? null,
+      planName: session.plan_name ?? plan.name,
+      planDescription: session.plan_description ?? plan.description ?? null,
       assignmentId: session.assignment_id,
       planSessionId: session.session_id,
       items: session.items,
@@ -162,7 +160,6 @@
       showAvatarMenu = false;
     }
   }
-
 </script>
 
 <div class="page-background">
@@ -182,45 +179,54 @@
       <div
         class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
       >
-        <div class="plan-card" class:empty={!assignedPlan}>
-          <div
-            class="plan-card-media relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
-          >
-            <div class="plan-card-bg"></div>
-            <div class="glass-overlay plan-card-overlay absolute inset-0"></div>
+        {#if assignedPlans.length > 0}
+          {#each assignedPlans as plan}
+            <div class="plan-card">
+              <div
+                class="plan-card-media relative h-36 sm:h-44 rounded overflow-hidden w-full z-10"
+              >
+                <div class="plan-card-bg"></div>
+                <div
+                  class="glass-overlay plan-card-overlay absolute inset-0"
+                ></div>
 
-            <div class="plan-card-actions">
-              {#if assignedPlan}
-                <button
-                  type="button"
-                  class="button-primary plan-start-button px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
-                  onclick={handleStartPlan}
-                  disabled={isStartingPlan || assignedPlan.items.length === 0}
-                >
-                  <svg
-                    class="w-4 h-4 sm:w-5 sm:h-5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div class="plan-card-actions">
+                  <button
+                    type="button"
+                    class="button-primary plan-start-button px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-3"
+                    onclick={() => handleStartPlan(plan.plan_id)}
+                    disabled={isStartingPlan || plan.items.length === 0}
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                  <span class="text-white text-sm sm:text-base font-medium">
-                    {assignedPlan?.name || "Plano de treino"}
-                  </span>
-                </button>
-              {:else}
-                <span class="plan-card-note">Sem plano ativo</span>
-              {/if}
+                    <svg
+                      class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    <span class="text-white text-sm sm:text-base font-medium">
+                      {plan.name || "Plano de treino"}
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
-
+          {/each}
+        {:else}
+          <div class="plan-card empty w-full col-span-full">
+            <div
+              class="plan-card-media relative h-36 sm:h-44 rounded overflow-hidden w-full z-10 flex items-center justify-center border border-white/5 bg-white/5"
+            >
+              <span class="plan-card-note">Sem plano ativo</span>
+            </div>
           </div>
-        </div>
+        {/if}
       </div>
 
       {#if planStartError}
@@ -316,7 +322,6 @@
   {#if isRefreshing}
     <Loading message="Recarregando exercicios..." />
   {/if}
-
 </div>
 
 <style>

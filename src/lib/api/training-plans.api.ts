@@ -33,8 +33,8 @@ const getClient = (fetchFn?: typeof fetch) =>
   fetchFn ? createRestClient(fetchFn) : restClient;
 
 export const trainingPlansApi = {
-  async getAssigned(fetchFn?: typeof fetch): Promise<ApiResponse<AssignedTrainingPlan | null>> {
-    return getClient(fetchFn).get<AssignedTrainingPlan | null>('/training-plans/assigned');
+  async getAssigned(fetchFn?: typeof fetch): Promise<ApiResponse<AssignedTrainingPlan[]>> {
+    return getClient(fetchFn).get<AssignedTrainingPlan[]>('/training-plans/assigned');
   },
 
   async startSession(planId: number): Promise<ApiResponse<TrainingPlanSession>> {

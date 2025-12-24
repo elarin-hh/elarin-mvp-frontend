@@ -11,25 +11,25 @@ export const load: PageLoad = async () => {
     trainingPlansApi.getAssigned()
   ]);
 
-  let assignedPlan = null;
+  let assignedPlans = [];
   let planErrorMessage = '';
   if (planResponse.success) {
-    assignedPlan = planResponse.data;
+    assignedPlans = planResponse.data || [];
   } else if (planResponse.status !== 404) {
     planErrorMessage =
-      planResponse.error?.message || 'Falha ao carregar plano de treino';
+      planResponse.error?.message || 'Falha ao carregar planos de treino';
   }
 
   if (!exercisesResponse.success) {
     const errorMessage =
       exercisesResponse.error?.message || 'Falha ao carregar exercicios';
-    return { exercises: [], errorMessage, assignedPlan, planErrorMessage };
+    return { exercises: [], errorMessage, assignedPlans, planErrorMessage };
   }
 
   return {
     exercises: exercisesResponse.data,
     errorMessage: '',
-    assignedPlan,
+    assignedPlans,
     planErrorMessage
   };
 };
