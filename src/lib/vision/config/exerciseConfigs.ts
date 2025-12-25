@@ -14,7 +14,6 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 	}
 
 	try {
-		// Use restClient which handles JWT authentication automatically
 		const response = await restClient.get<ExerciseConfig>(
 			`/exercises/by-type/${exerciseType}/config`
 		);
@@ -30,7 +29,6 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 
 		const config = response.data;
 
-		// Normalize paths
 		const normalizePath = (path?: string | null) => {
 			if (!path) return path ?? undefined;
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;

@@ -1,6 +1,6 @@
 import { BaseValidator } from './BaseValidator';
 import { MEDIAPIPE_LANDMARKS } from '../constants/mediapipe.constants';
-import type { PoseLandmarks, ValidationResult, ValidationIssue } from '../types';
+import type { PoseLandmarks, ValidationResult, ValidationIssue, Landmark } from '../types';
 
 export interface HipAbductionConfig {
 	minConfidence?: number;
@@ -33,6 +33,14 @@ const DEFAULT_CONFIG: Required<
 	minFramesInState: 3,
 	feedbackCooldownMs: 350
 };
+
+interface ExerciseAngles {
+	leftHipAbductionAngle: number;
+	rightHipAbductionAngle: number;
+	leftKneeAngle: number;
+	rightKneeAngle: number;
+	torsoInclination: number;
+}
 
 export class HipAbductionValidator extends BaseValidator {
 	private currentState: 'NEUTRAL' | 'ABDUCTED' = 'NEUTRAL';
@@ -99,7 +107,7 @@ export class HipAbductionValidator extends BaseValidator {
 		};
 	}
 
-	private calculateKeyAngles(landmarks: PoseLandmarks) {
+	private calculateKeyAngles(landmarks: PoseLandmarks): ExerciseAngles | null {
 		const leftHip = landmarks[MEDIAPIPE_LANDMARKS.LEFT_HIP];
 		const rightHip = landmarks[MEDIAPIPE_LANDMARKS.RIGHT_HIP];
 		const leftKnee = landmarks[MEDIAPIPE_LANDMARKS.LEFT_KNEE];
@@ -122,7 +130,6 @@ export class HipAbductionValidator extends BaseValidator {
 			return null;
 		}
 
-		// Calcular ângulos de abdução do quadril (ângulo entre linha vertical e linha Hip→Ankle)
 		const leftHipAbductionAngle = this.calculateHipAbductionAngle(leftHip, leftAnkle);
 		const rightHipAbductionAngle = this.calculateHipAbductionAngle(rightHip, rightAnkle);
 
@@ -140,21 +147,19 @@ export class HipAbductionValidator extends BaseValidator {
 		};
 	}
 
-	private calculateHipAbductionAngle(hip: any, ankle: any): number {
-		// Calcular ângulo entre linha vertical e linha Hip→Ankle
+	private calculateHipAbductionAngle(hip: Landmark, ankle: Landmark): number {
 		const deltaX = Math.abs(ankle.x - hip.x);
 		const deltaY = Math.abs(ankle.y - hip.y);
 
-		// atan2 retorna ângulo em radianos, convertemos para graus
 		const angle = (Math.atan2(deltaX, deltaY) * 180) / Math.PI;
 		return angle;
 	}
 
 	private calculateTorsoInclination(
-		leftShoulder: any,
-		rightShoulder: any,
-		leftHip: any,
-		rightHip: any
+		leftShoulder: Landmark,
+		rightShoulder: Landmark,
+		leftHip: Landmark,
+		rightHip: Landmark
 	): number {
 		const shoulderCenter = {
 			x: (leftShoulder.x + rightShoulder.x) / 2,
@@ -171,7 +176,7 @@ export class HipAbductionValidator extends BaseValidator {
 		return Math.abs((Math.atan2(Math.abs(deltaX), Math.abs(deltaY)) * 180) / Math.PI);
 	}
 
-	private updateAngleHistory(angles: ReturnType<typeof this.calculateKeyAngles>) {
+	private updateAngleHistory(angles: ExerciseAngles) {
 		this.angleHistory.push({
 			timestamp: Date.now(),
 			...angles
@@ -182,8 +187,7 @@ export class HipAbductionValidator extends BaseValidator {
 		}
 	}
 
-	private updateState(angles: ReturnType<typeof this.calculateKeyAngles>) {
-		// Determinar qual perna está sendo abduzida (a que tem maior ângulo)
+	private updateState(angles: ExerciseAngles) {
 		const maxAbductionAngle = Math.max(
 			angles.leftHipAbductionAngle,
 			angles.rightHipAbductionAngle
@@ -193,7 +197,6 @@ export class HipAbductionValidator extends BaseValidator {
 
 		let newState: 'NEUTRAL' | 'ABDUCTED' = this.currentState;
 
-		// Transição NEUTRAL → ABDUCTED quando perna é elevada
 		if (
 			this.currentState === 'NEUTRAL' &&
 			this.config.hipAbductionAngle !== null &&
@@ -204,7 +207,6 @@ export class HipAbductionValidator extends BaseValidator {
 			newState = 'ABDUCTED';
 		}
 
-		// Transição ABDUCTED → NEUTRAL quando perna retorna
 		if (
 			this.currentState === 'ABDUCTED' &&
 			this.config.hipNeutralAngle !== null &&
@@ -242,7 +244,7 @@ export class HipAbductionValidator extends BaseValidator {
 
 	private runChecks(
 		landmarks: PoseLandmarks,
-		angles: ReturnType<typeof this.calculateKeyAngles>
+		angles: ExerciseAngles
 	): ValidationIssue[] {
 		const checks: Array<() => ValidationIssue | null> = [
 			() => this.validateKneeExtension(angles),
@@ -257,9 +259,8 @@ export class HipAbductionValidator extends BaseValidator {
 	}
 
 	private validateKneeExtension(
-		angles: ReturnType<typeof this.calculateKeyAngles>
+		angles: ExerciseAngles
 	): ValidationIssue | null {
-		// Verificar se o joelho está estendido durante o movimento
 		const minKneeAngle = Math.min(angles.leftKneeAngle, angles.rightKneeAngle);
 
 		if (
@@ -293,9 +294,8 @@ export class HipAbductionValidator extends BaseValidator {
 	}
 
 	private validateTorsoAlignment(
-		angles: ReturnType<typeof this.calculateKeyAngles>
+		angles: ExerciseAngles
 	): ValidationIssue | null {
-		// Verificar se o torso está alinhado (sem inclinação lateral compensatória)
 		if (
 			this.config.maxTorsoLean !== null &&
 			angles.torsoInclination > this.config.maxTorsoLean
@@ -325,9 +325,8 @@ export class HipAbductionValidator extends BaseValidator {
 	}
 
 	private detectValidRepetition(
-		angles: ReturnType<typeof this.calculateKeyAngles>
+		angles: ExerciseAngles
 	): ValidationIssue | null {
-		// Contar repetição quando retorna de ABDUCTED para NEUTRAL
 		if (this.currentState !== 'NEUTRAL') {
 			return null;
 		}
@@ -361,7 +360,7 @@ export class HipAbductionValidator extends BaseValidator {
 	}
 
 	private getCurrentPositionFeedback(
-		angles: ReturnType<typeof this.calculateKeyAngles>
+		angles: ExerciseAngles
 	): ValidationIssue | null {
 		const maxAbductionAngle = Math.max(
 			angles.leftHipAbductionAngle,
@@ -394,7 +393,7 @@ export class HipAbductionValidator extends BaseValidator {
 
 		if (feedback) {
 			const isCoolingDown = cooldown > 0 && currentTime - this.lastFeedbackTime < cooldown;
-			if (isCoolingDown && severity !== 'medium' && severity !== 'high') {
+			if (isCoolingDown && severity === 'low') {
 				return null;
 			}
 

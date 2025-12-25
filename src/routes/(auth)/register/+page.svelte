@@ -174,10 +174,9 @@
         fullName.trim(),
         birthDate,
         organizationId,
-        "pt-BR",
-        marketingConsent,
         heightCm!,
         weightKg!,
+        marketingConsent,
       );
 
       if (!result.success) {

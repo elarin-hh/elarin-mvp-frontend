@@ -11,7 +11,7 @@ export const load: PageLoad = async () => {
     trainingPlansApi.getAssigned()
   ]);
 
-  let assignedPlans = [];
+  let assignedPlans: import('$lib/api/training-plans.api').AssignedTrainingPlan[] = [];
   let planErrorMessage = '';
   if (planResponse.success) {
     assignedPlans = planResponse.data || [];

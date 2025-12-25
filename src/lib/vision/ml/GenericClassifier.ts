@@ -77,7 +77,6 @@ export class GenericExerciseClassifier {
     try {
       this.session = await ort.InferenceSession.create(modelPath);
 
-      // Aplicar threshold vindo do config
       if (typeof this.config.threshold === 'number' && !isNaN(this.config.threshold)) {
         this.threshold = this.config.threshold;
       }
