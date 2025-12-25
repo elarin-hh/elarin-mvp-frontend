@@ -7,9 +7,7 @@ export interface TrainingPlanItem {
   exercise_type: string | null;
   exercise_name?: string | null;
   target_reps?: number | null;
-  target_sets?: number | null;
   target_duration_sec?: number | null;
-  rest_seconds?: number | null;
 }
 
 export interface AssignedTrainingPlan {
