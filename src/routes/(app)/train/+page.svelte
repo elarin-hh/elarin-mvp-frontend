@@ -1165,6 +1165,10 @@
 
       resetQualityTracking();
 
+      if (!exerciseConfig.exerciseType) {
+        exerciseConfig.exerciseType = selectedExercise;
+      }
+
       analyzer = new ExerciseAnalyzer(exerciseConfig);
       analyzer.setCallbacks({
         onFeedback: handleFeedback,

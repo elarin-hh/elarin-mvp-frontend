@@ -135,7 +135,7 @@ export class ExerciseAnalyzer {
 
   private async initializeHeuristicValidator(): Promise<void> {
     try {
-      const exerciseId = this.config.exerciseName;
+      const exerciseId = this.config.exerciseType;
 
       if (!hasValidator(exerciseId)) {
         this.heuristicValidator = null;
