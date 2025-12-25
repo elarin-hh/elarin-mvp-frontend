@@ -69,7 +69,9 @@ export const authActions = {
     birthDate: string,
     organizationId: number,
     locale?: string,
-    marketingConsent?: boolean
+    marketingConsent?: boolean,
+    heightCm?: number,
+    weightKg?: number
   ) {
     setAuthLoading(true);
     setAuthError(null);
@@ -81,7 +83,9 @@ export const authActions = {
       birthDate,
       organizationId,
       locale,
-      marketingConsent
+      marketingConsent,
+      heightCm,
+      weightKg
     );
 
     setAuthLoading(false);

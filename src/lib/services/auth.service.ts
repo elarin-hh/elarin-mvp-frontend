@@ -65,19 +65,31 @@ export const authService = {
     birthDate: string,
     organizationId: number,
     locale = 'pt-BR',
-    marketingConsent = false
+    marketingConsent = false,
+    heightCm?: number,
+    weightKg?: number
   ): Promise<ApiResponse<AuthPayload>> {
+    const payload: Record<string, any> = {
+      email,
+      password,
+      full_name: fullName,
+      birth_date: birthDate,
+      organization_id: organizationId,
+      locale,
+      marketing_consent: marketingConsent
+    };
+
+    if (heightCm !== undefined && heightCm !== null) {
+      payload.height_cm = heightCm;
+    }
+
+    if (weightKg !== undefined && weightKg !== null) {
+      payload.weight_kg = weightKg;
+    }
+
     return restClient.post(
       '/auth/register-with-organization',
-      {
-        email,
-        password,
-        full_name: fullName,
-        birth_date: birthDate,
-        organization_id: organizationId,
-        locale,
-        marketing_consent: marketingConsent
-      },
+      payload,
       authPayloadSchema
     );
   },
