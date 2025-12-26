@@ -237,7 +237,7 @@
     </section>
 
     <section class="section-block">
-      <span class="section-label">Exercicios</span>
+      <span class="section-label">Exercícios</span>
       {#if errorMessage}
         <ErrorState
           fullHeight={true}

@@ -152,7 +152,7 @@
           planSessionId: 0,
           metrics: [
             { id: "total_duration", label: "Tempo total", value: "18:45" },
-            { id: "exercise_count", label: "Exercicios", value: "6" },
+            { id: "exercise_count", label: "Exercícios", value: "6" },
           ],
         });
       } else {

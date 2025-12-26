@@ -1821,7 +1821,7 @@
               },
               {
                 id: "exercise_count",
-                label: "Exercicios",
+                label: "Exercícios",
                 value: String(
                   planSummaryExerciseCount || $trainingPlanStore.items.length,
                 ),

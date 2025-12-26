@@ -94,7 +94,7 @@
       onclick={goToRegister}
       class="text-white/70 hover:text-white text-sm transition-colors"
     >
-      Nao tem uma conta? Clique aqui
+      Não tem uma conta? Clique aqui
     </button>
   </div>
 

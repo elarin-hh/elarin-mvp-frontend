@@ -19,6 +19,8 @@
     Building2,
     Shield,
     CheckCircle,
+    Mail,
+    MessageCircle,
   } from "lucide-svelte";
 
   let isScrolled = $state(false);
@@ -344,7 +346,9 @@
 
                 <div class="contact-options">
                   <a href="mailto:elarinfit@gmail.com" class="contact-card">
-                    <div class="contact-icon">??</div>
+                    <div class="contact-icon">
+                      <Mail size={24} />
+                    </div>
                     <div class="contact-info">
                       <div class="contact-title">Email</div>
                       <div class="contact-detail">elarinfit@gmail.com</div>
@@ -357,7 +361,9 @@
                     rel="noopener noreferrer"
                     class="contact-card"
                   >
-                    <div class="contact-icon">??</div>
+                    <div class="contact-icon">
+                      <MessageCircle size={24} />
+                    </div>
                     <div class="contact-info">
                       <div class="contact-title">WhatsApp</div>
                       <div class="contact-detail">+55 41 97890787</div>
@@ -526,8 +532,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    background: var(--color-bg-dark-secondary);
-    border: 1px solid var(--color-border-light);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-md);
     padding: 10px;
     height: fit-content;
@@ -564,8 +569,7 @@
   }
 
   .tab-content {
-    background: var(--color-bg-dark-secondary);
-    border: 1px solid var(--color-border-light);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-md);
     padding: 2rem;
   }
@@ -611,7 +615,6 @@
     border-radius: var(--radius-full);
     overflow: hidden;
     background: var(--color-border-light);
-    border: 1px solid var(--color-border-light);
     cursor: not-allowed;
     transition: all 0.2s ease;
     opacity: 0.6;
@@ -645,7 +648,6 @@
     gap: 0.5rem;
     padding: 0.45rem 1rem;
     background: var(--color-border-light);
-    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: 14px;
@@ -675,8 +677,7 @@
 
   .form-input {
     padding: 0.75rem 1rem;
-    background: var(--color-glass-light);
-    border: 1px solid var(--color-border-light);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: 1rem;
@@ -835,7 +836,6 @@
   .btn-secondary {
     background: var(--color-border-light);
     color: var(--color-text-primary);
-    border: 1px solid var(--color-border-light);
   }
 
   .btn-secondary:hover {
@@ -864,9 +864,8 @@
 
   .privacy-card {
     padding: 1.25rem;
-    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
-    background: var(--color-bg-dark-secondary);
+    background: rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -963,8 +962,7 @@
   .danger-zone {
     margin-top: 2rem;
     padding: 1rem;
-    background: rgba(255, 68, 68, 0.05);
-    border: 1px solid var(--color-error);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-md);
   }
 
@@ -1001,8 +999,8 @@
 
   .organization-card {
     padding: 1.5rem;
-    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
     margin-bottom: 1.5rem;
   }
 
@@ -1071,8 +1069,8 @@
 
   .plan-card {
     padding: 1.5rem;
-    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .plan-header {
@@ -1090,7 +1088,6 @@
     align-items: center;
     justify-content: center;
     background: rgba(174, 246, 92, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
     border-radius: var(--radius-sm);
   }
 
@@ -1151,8 +1148,8 @@
 
   .help-section {
     padding: 1.5rem;
-    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
     margin-bottom: 1.5rem;
   }
 
@@ -1178,8 +1175,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem;
-    background: var(--color-bg-dark-secondary);
-    border: 1px solid var(--color-border-light);
+    background: transparent;
     border-radius: var(--radius-sm);
     text-decoration: none;
     transition: all 0.2s ease;
@@ -1250,7 +1246,7 @@
   .about-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0;
   }
 
   .about-item {
@@ -1258,9 +1254,8 @@
     align-items: baseline;
     gap: 0.5rem;
     margin: 0;
-    padding: 0.75rem;
-    background: var(--color-bg-dark-secondary);
-    border: 1px solid var(--color-border-light);
+    padding: 0.25rem 0.5rem;
+    background: transparent;
     border-radius: var(--radius-sm);
   }
 
@@ -1278,7 +1273,7 @@
   .about-copyright {
     margin: 0;
     margin-top: 0.5rem;
-    padding-top: 1rem;
+    padding-top: 0.75rem;
     border-top: 1px solid var(--color-border-light);
     text-align: center;
     color: var(--color-text-secondary);

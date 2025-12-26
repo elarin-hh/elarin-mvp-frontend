@@ -206,7 +206,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="text-white font-semibold mb-2">Exercicios do plano</h2>
+              <h2 class="text-white font-semibold mb-2">Exercícios do plano</h2>
               {#if planItems.length > 0}
                 <div class="plan-exercise-tags">
                   {#each planItems as item}

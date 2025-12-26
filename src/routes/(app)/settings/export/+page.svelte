@@ -86,8 +86,8 @@
       <h4 class="font-semibold mb-2">Importante:</h4>
       <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
         <li>- Formato: JSON (compatvel com qualquer software)</li>
-        <li>- Dados sensiveis: Senha nao e exportada</li>
-        <li>- Dados biometricos: Nao armazenamos, entao nao ha o que exportar</li>
+        <li>- Dados sensíveis: Senha não é exportada</li>
+        <li>- Dados biométricos: Não armazenamos, então não há o que exportar</li>
         <li>- Prazo de entrega: Imediato (download instantaneo)</li>
       </ul>
     </div>

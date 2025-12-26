@@ -94,10 +94,12 @@ export class HttpClient {
     return `${this.baseUrl}${path}`;
   }
 
-  private buildHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
+  private buildHeaders(body?: unknown): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     const token = this.tokenStorage?.getAccessToken();
     if (token) {
@@ -192,7 +194,7 @@ export class HttpClient {
     try {
       const response = await this.fetchFn(this.buildUrl(path), {
         method,
-        headers: this.buildHeaders(),
+        headers: this.buildHeaders(body),
         credentials: 'include',
         body: body !== undefined ? JSON.stringify(body) : undefined
       });

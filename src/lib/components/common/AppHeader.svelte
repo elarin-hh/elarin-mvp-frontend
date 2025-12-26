@@ -196,7 +196,7 @@
             <div class="avatar-menu-container desktop-avatar">
               <button
                 type="button"
-                class="glass glass-hover w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0 rounded-full"
+                class="profile-btn glass-hover w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden p-0 rounded-full"
                 aria-label="Perfil do usuário"
                 onclick={onToggleAvatarMenu}
               >
@@ -430,10 +430,7 @@
     top: calc(100% + 8px);
     right: 0;
     min-width: 180px;
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-backdrop);
-    -webkit-backdrop-filter: var(--glass-backdrop);
-    border: 1px solid var(--glass-border);
+    background: var(--color-bg-dark-secondary);
     border-radius: var(--radius-standard);
     padding: 8px;
     box-shadow: var(--glass-shadow);
@@ -448,6 +445,11 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: all;
+  }
+
+  .profile-btn {
+    background: var(--color-bg-dark-secondary);
+    box-shadow: var(--glass-shadow);
   }
 
   .menu-item {
