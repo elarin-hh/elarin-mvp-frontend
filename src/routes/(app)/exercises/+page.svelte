@@ -84,7 +84,7 @@
     trainingPlanActions.reset();
     trainingActions.selectExercise(
       exercise.type as ExerciseType,
-      exercise.name_pt || exercise.name,
+      exercise.name,
     );
     goto(`${base}/framer`);
   }

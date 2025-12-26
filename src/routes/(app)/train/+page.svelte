@@ -54,41 +54,45 @@
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
   import NextExerciseInfo from "$lib/components/training/NextExerciseInfo.svelte";
   import ExerciseSummaryOverlay from "$lib/components/training/ExerciseSummaryOverlay.svelte";
+  import type {
+    TrainingPhase,
+    LayoutMode,
+    SettingsTab,
+    FeedbackMode,
+    GoalMetricDisplay,
+    SummaryMetricDisplay,
+  } from "$lib/types/training.types";
+  import type {
+    MediaPipePose,
+    MediaPipeCamera,
+    PoseResults,
+  } from "$lib/types/mediapipe.types";
+  import {
+    BIOMETRIC_CONSENT_KEY,
+    BIOMETRIC_CONSENT_TS_KEY,
+    BIOMETRIC_CONSENT_EXP_KEY,
+    PLAN_TRANSITION_DELAY_MS,
+    SKELETON_COLORS,
+    SCORE_ALPHA,
+    ML_WEIGHT,
+    HEUR_WEIGHT,
+    DEFAULT_REP_SLOTS,
+    MAX_REP_SLOTS_CAP,
+    SCORE_BANDS,
+    DEFAULT_COMPONENTS,
+    SEVERITY_PENALTIES,
+    PIP_MARGIN,
+    PIP_BOTTOM_BUFFER,
+    CONFIRMATION_DURATION_MS,
+    DESCRIPTION_DURATION_MS,
+    COUNTDOWN_FINAL_HOLD_MS,
+    FRAME_THROTTLE_MS,
+    SKELETON_STYLE,
+    TORSO_LINE,
+    EMULATED_VIDEO_FILENAME,
+  } from "$lib/constants";
 
-  type TrainingPhase =
-    | "positioning"
-    | "confirmation"
-    | "description"
-    | "countdown"
-    | "training"
-    | "summary";
-
-  const BIOMETRIC_CONSENT_KEY = "elarin_biometric_consent";
-  const BIOMETRIC_CONSENT_TS_KEY = "elarin_biometric_consent_ts";
-  const BIOMETRIC_CONSENT_EXP_KEY = "elarin_biometric_consent_exp";
-  const PLAN_TRANSITION_DELAY_MS = 2000;
-
-  type MediaPipePose = {
-    setOptions: (options: Record<string, unknown>) => void;
-    onResults: (callback: (results: PoseResults) => void) => void;
-    send: (inputs: { image: HTMLVideoElement }) => Promise<void>;
-  };
-
-  type MediaPipeCamera = {
-    start: () => Promise<void>;
-    stop: () => void;
-  };
-
-  type PoseResults = {
-    poseLandmarks?: Array<{
-      x: number;
-      y: number;
-      z: number;
-      visibility?: number;
-      presence?: number;
-    }>;
-    image: HTMLVideoElement | HTMLCanvasElement;
-  };
+  const EMULATED_VIDEO_SRC = `${base}/videos/${EMULATED_VIDEO_FILENAME}`;
 
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
@@ -121,12 +125,6 @@
   let isPaused = $state(false);
   let reconstructionError = $state<number | null>(null);
   let activeComponents = $state<string[]>([]);
-  const SKELETON_COLORS = {
-    correct: "var(--color-skeleton-correct)",
-    incorrect: "var(--color-skeleton-incorrect)",
-    neutral: "var(--color-skeleton-neutral)",
-  };
-  const EMULATED_VIDEO_SRC = `${base}/videos/squat.mp4`;
 
   const resolveCssColor = (value: string): string => {
     if (!value.startsWith("var(") || typeof document === "undefined")
@@ -137,19 +135,6 @@
       .trim();
     return resolved || value;
   };
-
-  const DEFAULT_COMPONENTS: string[] = [];
-  const SCORE_ALPHA = 0.2;
-  const ML_WEIGHT = 0.6;
-  const HEUR_WEIGHT = 0.4;
-  const DEFAULT_REP_SLOTS = 30;
-  const MAX_REP_SLOTS_CAP = 60;
-  const SCORE_BANDS = [
-    { min: 85, color: "#22c55e" },
-    { min: 70, color: "#fbbf24" },
-    { min: 50, color: "#f97316" },
-    { min: 0, color: "#ef4444" },
-  ];
 
   let skeletonColor = $state(resolveCssColor(SKELETON_COLORS.correct));
   let feedbackMessages: FeedbackMessage[] = $state([]);
@@ -227,16 +212,7 @@
   let isResizingPip = $state(false);
   let resizeStartPos = { x: 0, y: 0 };
   let resizeStartSize = { ...pipSize };
-  const PIP_MARGIN = 16;
-  const PIP_BOTTOM_BUFFER = 0;
   let emulatedFrameId: number | null = null;
-
-  const SEVERITY_PENALTIES: Record<string, number> = {
-    critical: 60,
-    high: 40,
-    medium: 25,
-    low: 10,
-  };
 
   const clampScore = (value: number) => Math.max(0, Math.min(100, value));
   const hasComponent = (component: string) =>
@@ -258,13 +234,6 @@
     return hasComponent(metric.id) || hasComponent(metric.type);
   }
 
-  type GoalMetricDisplay = { id: string; label: string; value: string };
-  type SummaryMetricDisplay = {
-    id: string;
-    label: string;
-    value: string;
-    target: string | null;
-  };
   const nextGoalMetrics = $derived(
     exerciseMetrics
       .filter(
@@ -463,9 +432,6 @@
   let countdownActive = $state(false);
   let countdownTimeouts: ReturnType<typeof setTimeout>[] = [];
   let startRequested = $state(false);
-  const CONFIRMATION_DURATION_MS = 2200;
-  const DESCRIPTION_DURATION_MS = 3000;
-  const COUNTDOWN_FINAL_HOLD_MS = 600;
   let confirmationTimeout: ReturnType<typeof setTimeout> | null = null;
   let descriptionTimeout: ReturnType<typeof setTimeout> | null = null;
   let planTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -687,8 +653,7 @@
       const response = await exercisesApi.getAll();
       if (response.success) {
         const match = response.data.find((ex) => ex.type === exerciseId);
-        const friendly =
-          match?.name_pt || match?.name || humanizeExercise(exerciseId);
+        const friendly = match?.name || humanizeExercise(exerciseId);
         if (friendly) {
           currentExerciseName = friendly;
           trainingActions.selectExercise(exerciseId, friendly);
@@ -850,18 +815,6 @@
     countdownTimeouts = [t1, t2, t3, t4];
   }
 
-  const SKELETON_STYLE = {
-    lineWidth: 5,
-    pointRadius: 7,
-    opacity: 0.9,
-    glow: 0,
-  };
-
-  const TORSO_LINE = {
-    enabled: true,
-    lineWidth: 5,
-    color: "",
-  };
   let drawConnectors:
     | ((
         ctx: CanvasRenderingContext2D,
@@ -879,7 +832,6 @@
     | null = null;
   let POSE_CONNECTIONS: unknown = null;
   let lastFrameTime = 0;
-  const FRAME_THROTTLE_MS = 0;
   let animationFrameId: number | null = null;
 
   function debounce<T extends (...args: any[]) => any>(

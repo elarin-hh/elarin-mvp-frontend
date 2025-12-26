@@ -1,19 +1,12 @@
 import { restClient } from './rest.client';
+import type { OrganizationDto } from './dtos';
 
-export interface Organization {
-  id: number;
-  name: string;
-  code: string;
-  email: string;
-  owner_user_id: number | null;
-  plan_id: number | null;
-  is_active: boolean;
-  created_at: string;
-}
+// Re-export for backwards compatibility
+export type Organization = OrganizationDto;
 
 export const organizationsApi = {
   async getActiveOrganizations() {
-    const response = await restClient.get<Organization[]>('/organizations/active');
+    const response = await restClient.get<OrganizationDto[]>('/organizations/active');
 
     if (!response.success) {
       return {
@@ -26,7 +19,7 @@ export const organizationsApi = {
   },
 
   async linkUserToOrganization(userId: number, organizationId: number) {
-    const response = await restClient.post<{ message: string; link: any }>(
+    const response = await restClient.post<{ message: string; link: unknown }>(
       '/organizations/link-user',
       { user_id: userId, organization_id: organizationId }
     );

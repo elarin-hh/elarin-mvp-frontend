@@ -1,26 +1,18 @@
 import { createRestClient, restClient, type ApiResponse } from './rest.client';
+import type { ExerciseDto } from './dtos';
 
-export interface Exercise {
-  id: number;
-  user_id: number;
-  type: string;
-  name: string;
-  name_pt?: string | null;
-  is_active: boolean;
-  image_url?: string | null;
-  config?: Record<string, any>;
-  created_at: string;
-}
+// Re-export for backwards compatibility
+export type Exercise = ExerciseDto;
 
 const getClient = (fetchFn?: typeof fetch) =>
   fetchFn ? createRestClient(fetchFn) : restClient;
 
 export const exercisesApi = {
-  async getAll(fetchFn?: typeof fetch): Promise<ApiResponse<Exercise[]>> {
-    return getClient(fetchFn).get<Exercise[]>('/exercises');
+  async getAll(fetchFn?: typeof fetch): Promise<ApiResponse<ExerciseDto[]>> {
+    return getClient(fetchFn).get<ExerciseDto[]>('/exercises');
   },
 
-  async updateConfig(id: number, config: Record<string, any>): Promise<ApiResponse<Exercise>> {
-    return restClient.patch<Exercise>(`/exercises/${id}/config`, { config });
+  async updateConfig(id: number, config: Record<string, unknown>): Promise<ApiResponse<ExerciseDto>> {
+    return restClient.patch<ExerciseDto>(`/exercises/${id}/config`, { config });
   }
 };
