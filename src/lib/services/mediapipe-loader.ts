@@ -69,7 +69,7 @@ function loadScript({ src, name, integrity }: ScriptDefinition): Promise<void> {
       if (existingScript.integrity && existingScript.integrity === integrity) {
         resolve();
       } else {
-        reject(new Error(`Integridade invalida ou ausente para ${name}`));
+        reject(new Error(`Integridade inválida ou ausente para ${name}`));
       }
       return;
     }
@@ -122,7 +122,7 @@ export async function loadPoseModules(): Promise<MediaPipePoseModules> {
 
 export function getPoseAssetUrl(file: string): string {
   if (!ALLOWED_POSE_ASSETS.has(file)) {
-    throw new Error(`Asset MediaPipe nao permitido: ${file}`);
+    throw new Error(`Asset MediaPipe não permitido: ${file}`);
   }
   return `${MEDIAPIPE_POSE_BASE}/${file}`;
 }

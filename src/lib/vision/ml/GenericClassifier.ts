@@ -84,7 +84,7 @@ export class GenericExerciseClassifier {
       this.isLoaded = true;
     } catch (error) {
       console.error('ONNX model load failed', error);
-      throw error instanceof Error ? error : new Error('Failed to load ML model');
+      throw error instanceof Error ? error : new Error('Falha ao carregar modelo ML');
     }
   }
 
@@ -169,7 +169,7 @@ export class GenericExerciseClassifier {
 
   private async predict(): Promise<MLResult> {
     if (!this.isLoaded) {
-      throw new Error('Model not loaded');
+      throw new Error('Modelo não carregado');
     }
 
     if (this.frameBuffer.length < this.config.minFrames) {

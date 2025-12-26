@@ -19,7 +19,7 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 		);
 
 		if (!response.success) {
-			console.error(`Failed to load config for exercise type ${exerciseType}:`, response.error);
+			console.error(`Falha ao carregar configuração do tipo de exercício ${exerciseType}:`, response.error);
 			return null;
 		}
 
@@ -39,7 +39,7 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 		configCache[exerciseType] = config;
 		return config;
 	} catch (error) {
-		console.error(`Error loading config for exercise type ${exerciseType}:`, error);
+		console.error(`Erro ao carregar configuração do tipo de exercício ${exerciseType}:`, error);
 		return null;
 	}
 }

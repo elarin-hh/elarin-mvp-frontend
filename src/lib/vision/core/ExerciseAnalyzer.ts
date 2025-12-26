@@ -122,7 +122,7 @@ export class ExerciseAnalyzer {
 
     const rawModelPath = this.config.modelPath;
     if (!rawModelPath) {
-      throw new Error('Modelo do exercicio nao configurado');
+      throw new Error('Modelo do exercício não configurado');
     }
     const modelPath = rawModelPath.startsWith('http')
       ? rawModelPath

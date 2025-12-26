@@ -121,7 +121,7 @@ export class HttpClient {
         success: false,
         status,
         error: {
-          message: 'Invalid content type, expected application/json',
+          message: 'Tipo de conteúdo inválido, esperado application/json',
           code: 'INVALID_CONTENT_TYPE',
           status
         }
@@ -136,7 +136,7 @@ export class HttpClient {
         success: false,
         status,
         error: {
-          message: 'Failed to parse JSON response',
+          message: 'Falha ao interpretar resposta JSON',
           code: 'INVALID_JSON',
           status
         }
@@ -151,7 +151,7 @@ export class HttpClient {
       const message =
         (payload as { message?: string; error?: string })?.message ||
         (payload as { error?: string })?.error ||
-        `HTTP error ${status}`;
+        `Erro HTTP ${status}`;
 
       return {
         success: false,
@@ -171,7 +171,7 @@ export class HttpClient {
           success: false,
           status,
           error: {
-            message: 'Response validation failed',
+            message: 'Falha na validação da resposta',
             code: 'INVALID_RESPONSE_SCHEMA',
             status
           }
@@ -214,7 +214,7 @@ export class HttpClient {
 
       return parsed;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       return {
         success: false,
         status: 0,

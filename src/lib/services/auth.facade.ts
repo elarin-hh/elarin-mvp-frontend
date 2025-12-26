@@ -117,7 +117,7 @@ export const authActions = {
     setAuthLoading(true);
     const response = await authService.logout();
     if (!response.success) {
-      console.error('Failed to call backend logout endpoint', response.error);
+      console.error('Falha ao chamar endpoint de logout do backend', response.error);
     }
     persistDevFlag(null);
     tokenStorage.clear();

@@ -16,7 +16,6 @@
   import AppHeader from "$lib/components/common/AppHeader.svelte";
   import Loading from "$lib/components/common/Loading.svelte";
   import ErrorState from "$lib/components/common/ErrorState.svelte";
-  import EmptyState from "$lib/components/common/EmptyState.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -109,7 +108,7 @@
     const firstExerciseType = firstItem?.exercise_type;
 
     if (!firstItem || !firstExerciseType) {
-      planStartError = "Plano sem exercicios disponiveis";
+      planStartError = "Plano sem exercícios disponíveis";
       isStartingPlan = false;
       return;
     }
@@ -242,17 +241,23 @@
       {#if errorMessage}
         <ErrorState
           fullHeight={true}
-          title="Erro ao carregar exercicios"
+          title="Erro ao carregar exercícios"
           description={errorMessage}
           actionLabel="Tentar novamente"
           onAction={handleRefresh}
         />
       {:else if exercises.length === 0}
-        <EmptyState
-          fullHeight={true}
-          title="Nenhum exercicio disponivel"
-          description="Entre em contato com o suporte."
-        />
+        <div
+          class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
+        >
+          <div class="plan-card empty w-full col-span-full">
+            <div
+              class="plan-card-media relative h-36 sm:h-44 rounded overflow-hidden w-full z-10 flex items-center justify-center border border-white/5 bg-white/5"
+            >
+              <span class="plan-card-note">Nenhum exercício disponível</span>
+            </div>
+          </div>
+        </div>
       {:else}
         <div
           class="grid grid-cols-2 max-[420px]:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full"
@@ -320,7 +325,7 @@
   </main>
 
   {#if isRefreshing}
-    <Loading message="Recarregando exercicios..." />
+    <Loading message="Recarregando exercícios..." />
   {/if}
 </div>
 

@@ -9,6 +9,6 @@ export const handleError: HandleError = ({ error, event, status }) => {
 	} catch {
 	}
 	return {
-		message: 'Internal error'
+		message: 'Erro interno'
 	};
 };
