@@ -143,6 +143,7 @@ export class FeedbackSystem {
         feedback.combined = this.hybridDecision(feedback.ml, feedback.heuristic);
         break;
     }
+
     feedback.messages = this.generateMessages(feedback);
     feedback.visualization = this.generateVisualization(feedback);
 
@@ -200,7 +201,7 @@ export class FeedbackSystem {
       available: true,
       isValid: heuristicResult.isValid,
       issues: heuristicResult.issues || [],
-      summary: heuristicResult.summary || null,
+      summary: heuristicResult.summary as Record<string, unknown> | undefined,
       details: (heuristicResult as unknown as { details?: unknown[] }).details || []
     };
   }

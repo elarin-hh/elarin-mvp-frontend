@@ -15,8 +15,8 @@ export interface ExerciseTemplateDto {
     is_active: boolean;
     created_at?: string;
     updated_at?: string;
-    fixed_config?: Record<string, unknown>;
-    default_config?: Record<string, unknown>;
+    config?: Record<string, unknown>;
+    editable_fields?: string[];
 }
 
 /**

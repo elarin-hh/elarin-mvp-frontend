@@ -7,10 +7,7 @@ export * from './utils/distances.utils';
 export * from './utils/landmarks.utils';
 export * from './utils/exercise-metrics.utils';
 
-export { BaseValidator } from './validators/BaseValidator';
-export { SquatBodyweightValidator } from './validators/SquatBodyweightValidator';
-
-export { createValidator, hasValidator, getRegisteredExercises } from './validators';
+export { BaseValidator, GenericValidator, createValidator, hasValidator, getRegisteredExercises } from './validators';
 
 export { FeedbackSystem } from './core/FeedbackSystem';
 export { ExerciseAnalyzer } from './core/ExerciseAnalyzer';

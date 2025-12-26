@@ -47,7 +47,7 @@ Forma completa:
       "id": "duration",
       "type": "duration",
       "target": 60,
-      "label": "Tempo",
+      "name": "Tempo",
       "unit": "s",
       "display": "remaining",
       "showIn": ["next", "training", "summary"]
@@ -56,7 +56,7 @@ Forma completa:
       "id": "reps",
       "type": "reps",
       "target": 30,
-      "label": "Repetições",
+      "name": "Repetições",
       "unit": "reps",
       "showIn": ["next", "training", "summary"]
     }
@@ -69,7 +69,7 @@ Campos principais:
 - `id`: identificador único (string).
 - `type`: tipo (hoje o sistema entende `duration` e `reps` “de verdade”; outros tipos são aceitos e podem ser exibidos/estendidos).
 - `target`: meta (ex.: 60 segundos, 30 reps). Pode ser `null`/omitido.
-- `label`: nome exibido na UI.
+- `name`: nome exibido na UI.
 - `unit`: unidade (informativo).
 - `display`: apenas para `duration` (`elapsed` ou `remaining`).
 - `showIn`: onde essa métrica deve aparecer: `next` | `training` | `summary`.
@@ -197,7 +197,7 @@ Se futuramente você quiser salvar novas métricas (ex.: `hold_time`, `stability
       "type": "duration",
       "target": 45,
       "display": "remaining",
-      "label": "Tempo",
+      "name": "Tempo",
       "showIn": ["next", "training", "summary"]
     }
   ],

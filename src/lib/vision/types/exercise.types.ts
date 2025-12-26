@@ -14,6 +14,7 @@ export interface HeuristicConfig {
 }
 
 export interface ExerciseConfig {
+  exerciseType?: string;
   exerciseName: string;
   modelPath?: string;
   analysisInterval?: number;

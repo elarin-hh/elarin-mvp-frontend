@@ -1561,22 +1561,47 @@
           : SKELETON_COLORS.neutral,
     );
 
+    // Follow same logic as skeleton: use verdict to control feedback messages
     const newMessages = feedback.messages || [];
-    const hasNewMessages =
-      JSON.stringify(newMessages) !== JSON.stringify(feedbackMessages);
 
-    if (hasNewMessages) {
-      feedbackMessages = newMessages;
-      if (isFeedbackEnabled) {
-        const warningMessages = newMessages.filter(
-          (msg) => msg.type === "warning",
-        );
-        if (warningMessages.length > 0) {
-          audioFeedbackActions.playFeedback(warningMessages, {
-            mode: feedbackMode,
-            exercise: $trainingStore.exerciseType,
-          });
+    // STRICT SYNC WITH SKELETON (VERDICT)
+    if (feedback.combined.verdict === "incorrect") {
+      const warningMessages = newMessages.filter(
+        (msg) => msg.type === "warning" || msg.type === "error",
+      );
+
+      // If verdict is incorrect, we MUST show something.
+      if (warningMessages.length > 0) {
+        const warningsJson = JSON.stringify(warningMessages);
+        const currentJson = JSON.stringify(feedbackMessages);
+
+        // Update only if content actually changed
+        if (warningsJson !== currentJson) {
+          feedbackMessages = warningMessages;
+
+          if (isFeedbackEnabled) {
+            audioFeedbackActions.playFeedback(warningMessages, {
+              mode: feedbackMode,
+              exercise: $trainingStore.exerciseType,
+            });
+          }
         }
+      } else if (feedbackMessages.length === 0) {
+        // Fallback: Verdict is incorrect but no specific heuristic warning?
+        // Fallback message to match red skeleton
+        feedbackMessages = [
+          {
+            type: "error",
+            text: "Posição incorreta",
+            severity: "high",
+            priority: 1,
+          },
+        ];
+      }
+    } else if (feedback.combined.verdict === "correct") {
+      // Verdict is correct -> Green Skeleton -> No Messages
+      if (feedbackMessages.length > 0) {
+        feedbackMessages = [];
       }
     }
 

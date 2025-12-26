@@ -33,6 +33,7 @@ export interface ValidationResult {
   validReps?: number;
   currentState?: string;
   angles?: Record<string, number>;
+  debug?: Record<string, unknown>;
 }
 
 export interface ValidatorConfig {

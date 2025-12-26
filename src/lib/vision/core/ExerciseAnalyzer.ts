@@ -137,12 +137,21 @@ export class ExerciseAnalyzer {
     try {
       const exerciseId = this.config.exerciseType;
 
+      if (!exerciseId) {
+        this.heuristicValidator = null;
+        return;
+      }
+
       if (!hasValidator(exerciseId)) {
         this.heuristicValidator = null;
         return;
       }
 
-      this.heuristicValidator = createValidator(exerciseId, this.config.heuristicConfig || {});
+      this.heuristicValidator = createValidator(
+        exerciseId,
+        this.config.heuristicConfig || {},
+        this.config.exerciseName
+      );
     } catch (error) {
       this.heuristicValidator = null;
     }
