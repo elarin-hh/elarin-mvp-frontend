@@ -16,13 +16,11 @@ export const load: PageLoad = async () => {
   if (planResponse.success) {
     assignedPlans = planResponse.data || [];
   } else if (planResponse.status !== 404) {
-    planErrorMessage =
-      planResponse.error?.message || 'Falha ao carregar planos de treino';
+    planErrorMessage = planResponse.error?.message;
   }
 
   if (!exercisesResponse.success) {
-    const errorMessage =
-      exercisesResponse.error?.message || 'Falha ao carregar exercicios';
+    const errorMessage = exercisesResponse.error?.message;
     return { exercises: [], errorMessage, assignedPlans, planErrorMessage };
   }
 

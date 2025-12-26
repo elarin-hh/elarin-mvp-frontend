@@ -23,10 +23,8 @@ export type LayoutMode = 'side-by-side' | 'user-centered' | 'coach-centered';
  */
 export type SettingsTab = 'display' | 'skeleton' | 'sound' | 'dev';
 
-/**
- * Feedback mode for analysis
- */
-export type FeedbackMode = 'hybrid' | 'ml_only' | 'heuristic_only';
+// Re-export FeedbackMode from vision types (single source of truth)
+export type { FeedbackMode } from '$lib/vision/types/feedback.types';
 
 /**
  * Display metric for goals in "next exercise" view

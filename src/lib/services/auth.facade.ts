@@ -22,7 +22,7 @@ function applyAuthPayload(payload: AuthPayload) {
   const sessionInfo = session ? { expires_in: session.expires_in ?? null } : { expires_in: null };
 
   if (session?.access_token) {
-    tokenStorage.setAccessToken(session.access_token);
+    tokenStorage.setAccessToken(session.access_token!);
   }
 
   persistDevFlag(user as User | null);
@@ -51,7 +51,7 @@ export const authActions = {
     setAuthLoading(false);
 
     if (!response.success) {
-      const message = response.error?.message || 'Registration failed';
+      const message = response.error?.message;
       setAuthError(message);
       return { success: false, error: message };
     }
@@ -87,7 +87,7 @@ export const authActions = {
     setAuthLoading(false);
 
     if (!response.success) {
-      const message = response.error?.message || 'Registration failed';
+      const message = response.error?.message;
       setAuthError(message);
       return { success: false, error: message };
     }
@@ -104,7 +104,7 @@ export const authActions = {
     setAuthLoading(false);
 
     if (!response.success) {
-      const message = response.error?.message || 'Login failed';
+      const message = response.error?.message;
       setAuthError(message);
       return { success: false, error: message };
     }

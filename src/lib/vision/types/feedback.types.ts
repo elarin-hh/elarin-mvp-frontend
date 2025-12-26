@@ -1,4 +1,6 @@
 export type FeedbackMode = 'hybrid' | 'ml_only' | 'heuristic_only';
+export type MLResultStatus = 'waiting' | 'processing' | 'error' | 'correct' | 'incorrect' | 'unavailable';
+export type VerdictStatus = 'correct' | 'incorrect' | 'unknown';
 export type MessageType = 'success' | 'warning' | 'error' | 'info';
 export type Severity = 'low' | 'medium' | 'high' | 'critical';
 

@@ -1602,7 +1602,7 @@
   }
 
   function handleError(error: Error) {
-    errorMessage = error.message || "Erro desconhecido";
+    errorMessage = error.message;
     console.error("vision_error:processing", error);
   }
 
@@ -2440,7 +2440,7 @@
           {#if trainingPhase === "description" && layoutMode === "user-centered"}
             <PhaseOverlay title="" icon={Microscope} fullscreen={false}>
               <NextExerciseInfo
-                exerciseName={currentExerciseName || "Exercício selecionado"}
+                exerciseName={currentExerciseName}
                 metrics={nextGoalMetrics}
               />
             </PhaseOverlay>
@@ -2585,7 +2585,7 @@
           {#if trainingPhase === "description" && (layoutMode === "side-by-side" || layoutMode === "coach-centered")}
             <PhaseOverlay title="" icon={Microscope} fullscreen={false}>
               <NextExerciseInfo
-                exerciseName={currentExerciseName || "Exercício selecionado"}
+                exerciseName={currentExerciseName}
                 metrics={nextGoalMetrics}
               />
             </PhaseOverlay>

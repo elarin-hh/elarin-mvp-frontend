@@ -57,11 +57,11 @@ export class GenericExerciseClassifier {
     this.isLoaded = false;
 
     this.config = {
-      maxFrames: config.maxFrames || 60,
-      minFrames: config.minFrames || 15,
-      predictionInterval: config.predictionInterval || 1,
-      threshold: config.threshold || 0.05,
-      maxHistorySize: config.maxHistorySize || 100
+      maxFrames: config.maxFrames!,
+      minFrames: config.minFrames!,
+      predictionInterval: config.predictionInterval!,
+      threshold: config.threshold!,
+      maxHistorySize: config.maxHistorySize!
     };
 
     this.frameBuffer = [];

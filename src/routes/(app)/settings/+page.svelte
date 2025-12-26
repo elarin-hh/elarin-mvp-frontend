@@ -49,7 +49,6 @@
 
   function handleSettings() {
     showAvatarMenu = false;
-   
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -81,11 +80,10 @@
       const response = await authApi.deleteAccount();
 
       if (!response.success) {
-        deleteError = response.error?.message || "Falha ao excluir conta";
+        deleteError = response.error?.message;
         return;
       }
 
-     
       await authActions.logout();
       goto(`${base}/`);
     } catch (error) {
@@ -100,17 +98,17 @@
     if (typeof window === "undefined") return;
 
     const consentExp = localStorage.getItem("elarin_consent_exp");
-    generalConsentExp = consentExp || null;
+    generalConsentExp = consentExp;
 
     const biometricExp = localStorage.getItem("elarin_biometric_consent_exp");
-    biometricConsentExp = biometricExp || null;
+    biometricConsentExp = biometricExp;
   }
 
   onMount(() => {
     const user = $authStore.user;
     if (user) {
-      userName = user.full_name || "";
-      userEmail = user.email || "";
+      userName = user.full_name;
+      userEmail = user.email;
     }
 
     const handleScroll = (e: Event) => {
@@ -1000,7 +998,6 @@
     text-decoration: none;
   }
 
-  
   .organization-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1071,7 +1068,6 @@
     height: 16px !important;
   }
 
-  
   .plan-card {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1152,7 +1148,6 @@
     }
   }
 
-  
   .help-section {
     padding: 1.5rem;
     border: 1px solid var(--color-border-light);
@@ -1251,7 +1246,6 @@
     text-decoration: underline;
   }
 
-  
   .about-content {
     display: flex;
     flex-direction: column;
@@ -1290,7 +1284,6 @@
     font-size: 0.875rem;
   }
 
-  
   @media (max-width: 768px) {
     .tab-content {
       padding: 1.5rem;

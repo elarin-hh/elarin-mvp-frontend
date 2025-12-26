@@ -69,8 +69,7 @@
     try {
       await invalidateAll();
     } catch (err) {
-      errorMessage =
-        (err as Error)?.message || "Falha ao recarregar exercicios";
+      errorMessage = (err as Error)?.message;
     } finally {
       isRefreshing = false;
     }
@@ -100,15 +99,14 @@
 
     const response = await trainingPlansApi.startSession(planId);
     if (!response.success) {
-      planStartError =
-        response.error?.message || "Falha ao iniciar plano de treino";
+      planStartError = response.error?.message;
       isStartingPlan = false;
       return;
     }
 
     const session = response.data;
     const firstItem = session.items[0];
-    const firstExerciseType = firstItem?.exercise_type || "";
+    const firstExerciseType = firstItem?.exercise_type;
 
     if (!firstItem || !firstExerciseType) {
       planStartError = "Plano sem exercicios disponiveis";
@@ -213,7 +211,7 @@
                       />
                     </svg>
                     <span class="text-white text-sm sm:text-base font-medium">
-                      {plan.name || "Plano de treino"}
+                      {plan.name}
                     </span>
                   </button>
                 </div>

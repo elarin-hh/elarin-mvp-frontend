@@ -159,7 +159,7 @@ export const trainingActions = {
     trainingStore.update((s) => ({
       ...s,
       isLoading: false,
-      error: response.error?.message || 'Failed to save training'
+      error: response.error?.message
     }));
     return { success: false, error: response.error?.message };
   },

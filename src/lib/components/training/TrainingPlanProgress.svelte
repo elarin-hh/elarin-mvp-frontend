@@ -14,7 +14,7 @@
   $: hasExercise = exerciseLabel.trim().length > 0;
   $: subtitleParts = [
     hasPosition ? positionLabel.trim() : "",
-    hasExercise ? exerciseLabel.trim() : ""
+    hasExercise ? exerciseLabel.trim() : "",
   ].filter(Boolean);
   $: subtitle = subtitleParts.join(" | ");
 </script>
@@ -22,7 +22,7 @@
 <div class={`plan-progress-shell ${className}`.trim()}>
   <div class="plan-progress-row">
     <span class="plan-progress-label">
-      {subtitle || "Plano de treino"}
+      {subtitle}
     </span>
     <span class="plan-progress-time">{remainingLabel}</span>
   </div>

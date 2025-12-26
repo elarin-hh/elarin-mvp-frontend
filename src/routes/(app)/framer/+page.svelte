@@ -12,10 +12,8 @@
     $trainingPlanStore.status === "running" &&
       $trainingPlanStore.items.length > 0,
   );
-  const planName = $derived($trainingPlanStore.planName ?? "Plano de treino");
-  const planDescription = $derived(
-    $trainingPlanStore.planDescription ?? "Sem descricao disponivel.",
-  );
+  const planName = $derived($trainingPlanStore.planName);
+  const planDescription = $derived($trainingPlanStore.planDescription);
   const planItems = $derived($trainingPlanStore.items);
 
   function toggleAvatarMenu() {
@@ -191,7 +189,9 @@
             </div>
           </div>
 
-          <div class="flex items-start gap-3 mt-4 pt-4 border-t border-white/10">
+          <div
+            class="flex items-start gap-3 mt-4 pt-4 border-t border-white/10"
+          >
             <div
               class="flex-shrink-0 w-6 h-6 rounded-full bg-warning/20 flex items-center justify-center mt-0.5"
             >
@@ -211,14 +211,12 @@
                 <div class="plan-exercise-tags">
                   {#each planItems as item}
                     <span class="plan-exercise-tag">
-                      {item.exercise_name || item.exercise_type || "Exercicio"}
+                      {item.exercise_name}
                     </span>
                   {/each}
                 </div>
               {:else}
-                <p class="text-white/70 text-sm">
-                  Sem exercicios cadastrados.
-                </p>
+                <p class="text-white/70 text-sm">Sem exercicios cadastrados.</p>
               {/if}
             </div>
           </div>
@@ -274,5 +272,4 @@
     color: var(--color-text-primary);
     font-size: 0.8rem;
   }
-
 </style>

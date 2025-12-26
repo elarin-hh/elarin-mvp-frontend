@@ -1,8 +1,8 @@
-import type { FeedbackMode, FeedbackMessage, Severity } from '../types';
+import type { FeedbackMode, FeedbackMessage, Severity, MLResultStatus, VerdictStatus } from '../types';
 import type { ValidationResult } from '../types/validator.types';
 
 export interface MLResult {
-  status: 'waiting' | 'processing' | 'error' | 'correct' | 'incorrect' | 'unavailable';
+  status: MLResultStatus;
   message?: string;
   frames?: number;
   isCorrect?: boolean;
@@ -39,7 +39,7 @@ export interface ProcessedHeuristicResult {
 export interface CombinedDecision {
   isCorrect: boolean | null;
   confidence: number;
-  verdict: 'correct' | 'incorrect' | 'unknown';
+  verdict: VerdictStatus;
   reason: string;
   mlContribution: number;
   heuristicContribution: number;
@@ -92,10 +92,10 @@ export class FeedbackSystem {
 
   constructor(config: FeedbackSystemConfig = {}) {
     this.config = {
-      feedbackMode: config.feedbackMode || 'hybrid',
-      mlWeight: config.mlWeight || 0.6,
-      heuristicWeight: config.heuristicWeight || 0.4,
-      maxFeedbackItems: config.maxFeedbackItems || 3,
+      feedbackMode: config.feedbackMode!,
+      mlWeight: config.mlWeight!,
+      heuristicWeight: config.heuristicWeight!,
+      maxFeedbackItems: config.maxFeedbackItems!,
       ...config
     };
 
@@ -159,7 +159,7 @@ export class FeedbackSystem {
     if (!mlResult || mlResult.status === 'waiting' || mlResult.status === 'error') {
       return {
         available: false,
-        status: mlResult?.status || 'unavailable',
+        status: mlResult?.status,
         message: mlResult?.message
       };
     }
@@ -211,7 +211,7 @@ export class FeedbackSystem {
         isCorrect: null,
         confidence: 0,
         verdict: 'unknown',
-        reason: mlData.message || 'ML não disponível',
+        reason: mlData.message!,
         mlContribution: 1.0,
         heuristicContribution: 0.0
       };

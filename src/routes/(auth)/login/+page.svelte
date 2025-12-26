@@ -1,30 +1,30 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { base } from '$app/paths';
-  import { authActions } from '$lib/services/auth.facade';
-  import { asset } from '$lib/utils/assets';
+  import { goto } from "$app/navigation";
+  import { base } from "$app/paths";
+  import { authActions } from "$lib/services/auth.facade";
+  import { asset } from "$lib/utils/assets";
 
-  let email = $state('');
-  let password = $state('');
+  let email = $state("");
+  let password = $state("");
   let isLoading = $state(false);
-  let error = $state('');
+  let error = $state("");
 
   async function handleLogin() {
-    error = '';
+    error = "";
     isLoading = true;
 
     try {
       const result = await authActions.login(email, password);
 
       if (!result.success) {
-        error = result.error || 'Credenciais invalidas';
+        error = result.error;
         isLoading = false;
         return;
       }
 
       goto(`${base}/exercises`);
     } catch (e: any) {
-      error = e.message || 'Erro ao fazer login';
+      error = e.message;
       isLoading = false;
     }
   }
@@ -34,29 +34,29 @@
   }
 </script>
 
-<style>
-  .glass-button-auth {
-    background: var(--color-glass-light);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: var(--radius-xl);
-    position: relative;
-    overflow: hidden;
-  }
-</style>
-
-<div class="min-h-screen page-background flex flex-col items-center justify-center px-4">
+<div
+  class="min-h-screen page-background flex flex-col items-center justify-center px-4"
+>
   <div class="mb-16 text-center">
     <img
-      src={asset('/logo-elarin-white.png')}
+      src={asset("/logo-elarin-white.png")}
       alt="Elarin"
       class="h-20 mx-auto mb-4"
     />
   </div>
 
-  <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="w-full max-w-md space-y-4">
+  <form
+    onsubmit={(e) => {
+      e.preventDefault();
+      handleLogin();
+    }}
+    class="w-full max-w-md space-y-4"
+  >
     {#if error}
-      <div class="bg-red-500/10 text-red-200 px-4 py-3 text-sm text-center" style="border-radius: var(--radius-xl);">
+      <div
+        class="bg-red-500/10 text-red-200 px-4 py-3 text-sm text-center"
+        style="border-radius: var(--radius-xl);"
+      >
         {error}
       </div>
     {/if}
@@ -84,7 +84,7 @@
       disabled={isLoading}
       class="glass-button-auth w-full px-6 py-3 text-white font-medium transition-all disabled:opacity-50"
     >
-      {isLoading ? 'Carregando...' : 'Logar'}
+      {isLoading ? "Carregando..." : "Logar"}
     </button>
   </form>
 
@@ -98,9 +98,20 @@
     </button>
   </div>
 
-<!--   <div class="absolute bottom-8 text-center">
+  <!--   <div class="absolute bottom-8 text-center">
     <p class="text-white/50 text-sm">
       Politica de Privacidade e Termos de Uso
     </p>
   </div> -->
 </div>
+
+<style>
+  .glass-button-auth {
+    background: var(--color-glass-light);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: var(--radius-xl);
+    position: relative;
+    overflow: hidden;
+  }
+</style>

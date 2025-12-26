@@ -85,10 +85,10 @@
       if (result.success && result.data) {
         organizations = result.data;
       } else {
-        error = result.error || "Erro ao carregar organizações";
+        error = result.error!;
       }
     } catch (e: any) {
-      error = e.message || "Erro ao carregar organizações";
+      error = e.message;
     } finally {
       loadingOrganizations = false;
     }
@@ -103,7 +103,7 @@
 
     const nameValidation = isValidFullName(fullName);
     if (!nameValidation.valid) {
-      error = nameValidation.error || "Nome inválido";
+      error = nameValidation.error!;
       return;
     }
 
@@ -114,7 +114,7 @@
 
     const passwordValidation = isValidPassword(password);
     if (!passwordValidation.valid) {
-      error = passwordValidation.error || "Senha inválida";
+      error = passwordValidation.error!;
       return;
     }
 
@@ -125,7 +125,7 @@
 
     const ageValidation = validateAge(birthDate);
     if (!ageValidation.valid) {
-      error = ageValidation.error || "Data de nascimento inválida";
+      error = ageValidation.error!;
       return;
     }
 
@@ -180,12 +180,12 @@
       );
 
       if (!result.success) {
-        error = result.error || "Erro ao criar conta";
+        error = result.error!;
       } else {
         goto(`${base}/exercises`);
       }
     } catch (e: any) {
-      error = e.message || "Erro ao criar conta";
+      error = e.message;
     } finally {
       isLoading = false;
     }

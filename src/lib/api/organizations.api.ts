@@ -11,7 +11,7 @@ export const organizationsApi = {
     if (!response.success) {
       return {
         success: false,
-        error: response.error?.message || 'Failed to fetch active organizations'
+        error: response.error?.message
       };
     }
 
@@ -27,7 +27,7 @@ export const organizationsApi = {
     if (!response.success) {
       return {
         success: false,
-        error: response.error?.message || 'Failed to link user to organization'
+        error: response.error?.message
       };
     }
 
