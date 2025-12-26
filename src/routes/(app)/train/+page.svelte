@@ -220,7 +220,7 @@
   const durationMetric = $derived(getMetricByType(exerciseMetrics, "duration"));
   const repsMetric = $derived(getMetricByType(exerciseMetrics, "reps"));
   const durationTargetSec = $derived(durationMetric?.target ?? null);
-  const durationDisplayMode = $derived(durationMetric?.display ?? "elapsed");
+  const durationDisplayMode = $derived(durationMetric?.display);
   const repsTarget = $derived(repsMetric?.target ?? null);
   const hasTimerForExercise = $derived(activeComponents.includes("timer"));
   const tracksReps = $derived(Boolean(repsMetric));
@@ -365,9 +365,8 @@
     const issues = heuristic.issues || [];
     const penalty = issues.reduce((acc, issue) => {
       const weight =
-        SEVERITY_PENALTIES[
-          (issue.severity as keyof typeof SEVERITY_PENALTIES) ?? "low"
-        ] ?? 0;
+        SEVERITY_PENALTIES[issue.severity as keyof typeof SEVERITY_PENALTIES] ??
+        0;
       return acc + weight;
     }, 0);
 
@@ -1054,8 +1053,7 @@
           "Nenhum exercício selecionado. Por favor, volte e selecione um exercício.",
         );
       }
-      currentExerciseName =
-        selectedName || humanizeExercise(selectedExercise) || "Exercício";
+      currentExerciseName = selectedName;
 
       if (!$trainingStore.backendSessionId) {
         trainingActions.selectExercise(
@@ -1095,7 +1093,7 @@
         planItem,
       );
       exerciseMetrics = adjustedMetrics;
-      completionMode = exerciseConfig.completion?.mode ?? "manual";
+      completionMode = exerciseConfig.completion?.mode!;
       completionMetricIds = Array.isArray(exerciseConfig.completion?.metrics)
         ? exerciseConfig.completion.metrics.filter(
             (id): id is string => typeof id === "string" && id.length > 0,
@@ -1806,7 +1804,7 @@
               },
             ];
             trainingPlanSummaryActions.setSummary({
-              planName: $trainingPlanStore.planName ?? "Plano de treino",
+              planName: $trainingPlanStore.planName!,
               metrics: planSummaryMetrics,
               overallScore: averageScore,
               planSessionId: $trainingPlanStore.planSessionId,

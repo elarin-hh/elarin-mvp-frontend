@@ -1,6 +1,7 @@
 ﻿import { BaseValidator } from './BaseValidator';
 import { MEDIAPIPE_LANDMARKS } from '../constants/mediapipe.constants';
-import type { PoseLandmarks, ValidationResult, ValidationIssue } from '../types';
+import type { PoseLandmarks, ValidationResult, ValidationIssue, Severity } from '../types';
+import type { LateralDirection } from '$lib/types/training.types';
 
 export interface SquatConfig {
 	minConfidence?: number;
@@ -314,7 +315,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 		);
 	}
 
-	private getLateralDirection(landmarks: PoseLandmarks): 'left' | 'right' | 'neutral' {
+	private getLateralDirection(landmarks: PoseLandmarks): LateralDirection {
 		const leftShoulder = landmarks[MEDIAPIPE_LANDMARKS.LEFT_SHOULDER];
 		const rightShoulder = landmarks[MEDIAPIPE_LANDMARKS.RIGHT_SHOULDER];
 
@@ -424,7 +425,7 @@ export class SquatBodyweightValidator extends BaseValidator {
 		const cooldown = this.config.feedbackCooldownMs ?? 0;
 
 		let feedback: string | null = null;
-		let severity: 'low' | 'medium' | 'high' | 'critical' | 'success' = 'low';
+		let severity: Severity | 'success' = 'low';
 
 		if (this.currentState === 'UP') {
 			if (this.config.kneeDownAngle !== null && this.config.kneeUpAngle !== null) {

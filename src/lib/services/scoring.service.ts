@@ -51,7 +51,7 @@ export function getHeuristicScore(feedback: FeedbackRecord): number | null {
     const penalty = issues.reduce((acc, issue) => {
         const weight =
             SEVERITY_PENALTIES[
-            (issue.severity as keyof typeof SEVERITY_PENALTIES) ?? 'low'
+            (issue.severity as keyof typeof SEVERITY_PENALTIES)
             ] ?? 0;
         return acc + weight;
     }, 0);

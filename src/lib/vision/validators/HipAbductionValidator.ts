@@ -1,6 +1,6 @@
 import { BaseValidator } from './BaseValidator';
 import { MEDIAPIPE_LANDMARKS } from '../constants/mediapipe.constants';
-import type { PoseLandmarks, ValidationResult, ValidationIssue, Landmark } from '../types';
+import type { PoseLandmarks, ValidationResult, ValidationIssue, Landmark, Severity } from '../types';
 
 export interface HipAbductionConfig {
 	minConfidence?: number;
@@ -370,7 +370,7 @@ export class HipAbductionValidator extends BaseValidator {
 		const cooldown = this.config.feedbackCooldownMs ?? 0;
 
 		let feedback: string | null = null;
-		let severity: 'low' | 'medium' | 'high' | 'critical' | 'success' = 'low';
+		let severity: Severity | 'success' = 'low';
 
 		if (this.currentState === 'NEUTRAL') {
 			if (this.config.hipAbductionAngle !== null) {

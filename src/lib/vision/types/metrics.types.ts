@@ -1,3 +1,5 @@
+import type { CompletionMode } from '$lib/types/training.types';
+
 export type MetricDisplayContext = 'next' | 'training' | 'summary';
 
 export type DurationDisplayMode = 'elapsed' | 'remaining';
@@ -15,7 +17,6 @@ export interface ExerciseMetricDefinition {
 }
 
 export interface ExerciseCompletionConfig {
-  mode?: 'manual' | 'any' | 'all';
+  mode?: CompletionMode;
   metrics?: string[];
 }
-

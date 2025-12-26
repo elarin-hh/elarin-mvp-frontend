@@ -34,7 +34,6 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
 		};
 
-		config.exerciseName = config.exerciseName || exerciseType;
 		config.modelPath = normalizePath(config.modelPath);
 
 		configCache[exerciseType] = config;

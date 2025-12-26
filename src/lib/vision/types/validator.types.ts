@@ -13,7 +13,7 @@ export interface ValidationIssue {
 export interface ValidationSummary {
   totalIssues: number;
   message: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: Severity;
   issuesBySeverity?: {
     critical: number;
     high: number;
