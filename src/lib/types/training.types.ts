@@ -19,9 +19,34 @@ export type TrainingPhase =
 export type LayoutMode = 'side-by-side' | 'user-centered' | 'coach-centered';
 
 /**
- * Tab options for the settings panel
+ * Tab options for the training settings panel
  */
 export type SettingsTab = 'display' | 'skeleton' | 'sound' | 'dev';
+
+/**
+ * Tab options for the account settings page
+ */
+export type SettingsPageTab = 'account' | 'subscription' | 'help';
+
+/**
+ * Exercise completion mode
+ */
+export type CompletionMode = 'manual' | 'any' | 'all';
+
+/**
+ * Lateral direction for body position
+ */
+export type LateralDirection = 'left' | 'right' | 'neutral';
+
+/**
+ * Exercise difficulty level
+ */
+export type ExerciseDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+/**
+ * Training session status
+ */
+export type SessionStatus = 'in_progress' | 'completed' | 'abandoned';
 
 // Re-export FeedbackMode from vision types (single source of truth)
 export type { FeedbackMode } from '$lib/vision/types/feedback.types';

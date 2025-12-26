@@ -1,4 +1,4 @@
-import type { PoseLandmarks } from '../types';
+import type { PoseLandmarks, FeedbackMode } from '../types';
 import type { ValidationResult } from '../types/validator.types';
 import type { ExerciseConfig } from '../types/exercise.types';
 import type { MLResult, FeedbackRecord, FeedbackStatistics } from './FeedbackSystem';
@@ -338,9 +338,9 @@ export class ExerciseAnalyzer {
     if (onError) this.onError = onError;
   }
 
-  setFeedbackMode(mode: string): void {
+  setFeedbackMode(mode: FeedbackMode): void {
     if (this.feedbackSystem) {
-      this.feedbackSystem.setMode(mode as 'hybrid' | 'ml_only' | 'heuristic_only');
+      this.feedbackSystem.setMode(mode);
     }
   }
 

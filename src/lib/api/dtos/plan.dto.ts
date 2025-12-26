@@ -4,6 +4,8 @@
  * app_training_plan_assignments, app_training_plan_sessions tables
  */
 
+import type { SessionStatus } from '$lib/types/training.types';
+
 /**
  * Training plan from app_training_plans
  */
@@ -64,7 +66,7 @@ export interface TrainingPlanSessionDto {
     plan_id: number;
     user_id: number;
     assignment_id?: number | null;
-    status: 'in_progress' | 'completed' | 'abandoned';
+    status: SessionStatus;
     started_at?: string;
     completed_at?: string | null;
     // Joined fields for API response

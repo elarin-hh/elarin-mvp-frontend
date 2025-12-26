@@ -8,6 +8,7 @@
   import AppHeader from "$lib/components/common/AppHeader.svelte";
   import Modal from "$lib/components/common/Modal.svelte";
   import Loading from "$lib/components/common/Loading.svelte";
+  import type { SettingsPageTab } from "$lib/types/training.types";
   import {
     User,
     CreditCard,
@@ -22,7 +23,7 @@
 
   let isScrolled = $state(false);
   let showAvatarMenu = $state(false);
-  let activeTab = $state<"account" | "subscription" | "help">("account");
+  let activeTab = $state<SettingsPageTab>("account");
 
   let userName = $state("");
   let userEmail = $state("");
@@ -58,7 +59,7 @@
     }
   }
 
-  function changeTab(tab: "account" | "subscription" | "help") {
+  function changeTab(tab: SettingsPageTab) {
     activeTab = tab;
   }
 

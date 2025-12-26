@@ -59,6 +59,7 @@
     LayoutMode,
     SettingsTab,
     FeedbackMode,
+    CompletionMode,
     GoalMetricDisplay,
     SummaryMetricDisplay,
   } from "$lib/types/training.types";
@@ -149,7 +150,7 @@
   let currentRepFrames = $state<number[]>([]);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
-  let feedbackMode = $state<"hybrid" | "ml_only" | "heuristic_only">("ml_only");
+  let feedbackMode = $state<FeedbackMode>("ml_only");
   let modeIndicator = $state("ML Only (Autoencoder)");
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
@@ -158,12 +159,10 @@
   let showTimer = $state(false);
   let showReps = $state(true);
   let exerciseMetrics = $state<NormalizedExerciseMetric[]>([]);
-  let completionMode = $state<"manual" | "any" | "all">("manual");
+  let completionMode = $state<CompletionMode>("manual");
   let completionMetricIds = $state<string[] | null>(null);
-  let activeTab = $state<"display" | "skeleton" | "sound" | "dev">("display");
-  let layoutMode = $state<"side-by-side" | "user-centered" | "coach-centered">(
-    "side-by-side",
-  );
+  let activeTab = $state<SettingsTab>("display");
+  let layoutMode = $state<LayoutMode>("side-by-side");
   let sessionActive = $state(false);
   let countdownResetTimer = $state(true);
 
@@ -1867,7 +1866,7 @@
     }
   }
 
-  function changeFeedbackMode(mode: "hybrid" | "ml_only" | "heuristic_only") {
+  function changeFeedbackMode(mode: FeedbackMode) {
     feedbackMode = mode;
 
     if (mode === "ml_only") {

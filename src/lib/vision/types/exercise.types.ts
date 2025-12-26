@@ -1,4 +1,5 @@
 import type { FeedbackConfig } from './feedback.types';
+import type { ExerciseDifficulty } from '$lib/types/training.types';
 import type { ExerciseCompletionConfig, ExerciseMetricDefinition } from './metrics.types';
 
 export interface MLConfig {
@@ -29,5 +30,5 @@ export interface Exercise {
   name: string;
   description?: string;
   available: boolean;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  difficulty?: ExerciseDifficulty;
 }
