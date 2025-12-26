@@ -14,4 +14,7 @@ export const createRestClient = (fetchFn?: typeof fetch) =>
 export const restClient = createRestClient();
 
 export type { ApiResponse };
+export const setUnauthorizedHandler = (
+  handler: ((context: { path: string; status: number; message?: string }) => void) | null
+) => restClient.setUnauthorizedHandler(handler);
 export { createHttpClient };

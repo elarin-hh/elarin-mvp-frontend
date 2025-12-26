@@ -126,6 +126,13 @@ export const authActions = {
     return { success: true };
   },
 
+  forceLogout() {
+    persistDevFlag(null);
+    tokenStorage.clear();
+    resetAuthState();
+    setAuthLoading(false);
+  },
+
   async checkSession() {
     setAuthLoading(true);
     const response = await authService.me();

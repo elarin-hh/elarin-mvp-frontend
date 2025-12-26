@@ -28,11 +28,38 @@ export class HttpClient {
   private baseUrl: string;
   private fetchFn: typeof fetch;
   private tokenStorage?: TokenStorage;
+  private unauthorizedHandler: ((context: { path: string; status: number; message?: string }) => void) | null =
+    null;
 
   constructor(config: HttpClientConfig) {
     this.baseUrl = config.baseUrl;
     this.fetchFn = config.fetchFn || fetch;
     this.tokenStorage = config.tokenStorage;
+  }
+
+  setUnauthorizedHandler(
+    handler: ((context: { path: string; status: number; message?: string }) => void) | null
+  ) {
+    this.unauthorizedHandler = handler;
+  }
+
+  private isAuthEndpoint(path: string): boolean {
+    const normalizedPath = path.startsWith('http')
+      ? (() => {
+          try {
+            return new URL(path).pathname;
+          } catch {
+            return path;
+          }
+        })()
+      : path;
+
+    return (
+      normalizedPath.startsWith('/auth/login') ||
+      normalizedPath.startsWith('/auth/register') ||
+      normalizedPath.startsWith('/auth/register-with-organization') ||
+      normalizedPath.startsWith('/auth/logout')
+    );
   }
 
   async get<T>(path: string, schema?: ZodSchema<T>): Promise<ApiResponse<T>> {
@@ -170,7 +197,22 @@ export class HttpClient {
         body: body !== undefined ? JSON.stringify(body) : undefined
       });
 
-      return this.parseResponse<T>(response, schema);
+      const parsed = await this.parseResponse<T>(response, schema);
+
+      if (
+        !parsed.success &&
+        parsed.status === 401 &&
+        !this.isAuthEndpoint(path) &&
+        this.unauthorizedHandler
+      ) {
+        this.unauthorizedHandler({
+          path,
+          status: parsed.status,
+          message: parsed.error?.message
+        });
+      }
+
+      return parsed;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       return {
