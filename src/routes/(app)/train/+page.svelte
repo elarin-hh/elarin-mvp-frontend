@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { trainingStore, trainingActions } from "$lib/stores/training.store";
   import {
     trainingPlanActions,
@@ -98,6 +98,7 @@
   let videoElement: HTMLVideoElement;
   let canvasElement: HTMLCanvasElement;
   let referenceVideoElement: HTMLVideoElement;
+  let referenceVideoSrc = $state<string | null>(null);
   let videoContainerElement: HTMLDivElement;
   let splitContainerElement: HTMLDivElement;
   let analyzer: ExerciseAnalyzer | null = $state(null);
@@ -695,7 +696,10 @@
   }
 
   function resumeReferenceVideo() {
-    if (!referenceVideoElement) return;
+    if (!referenceVideoElement || !referenceVideoSrc) return;
+    if (referenceVideoElement.readyState < 2) {
+      referenceVideoElement.load();
+    }
     const playPromise = referenceVideoElement.play();
     if (playPromise) {
       playPromise.catch(() => {});
@@ -939,7 +943,7 @@
   function createEmulatedCamera(reason?: string): MediaPipeCamera {
     return {
       async start() {
-        if (!videoElement) throw new Error("Elemento de vídeo indisponível");
+        await ensureMediaElementsReady();
         if (!pose) throw new Error("Pose não inicializado");
 
         setEmulatedState(reason);
@@ -1025,6 +1029,17 @@
     return true;
   }
 
+  async function ensureMediaElementsReady() {
+    if (videoElement && canvasElement) return;
+    await tick();
+    if (!videoElement || !canvasElement) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    if (!videoElement || !canvasElement) {
+      throw new Error("Elemento de vídeo indisponível");
+    }
+  }
+
   async function startCamera() {
     try {
       isLoading = true;
@@ -1045,6 +1060,8 @@
           "Dependências ainda não foram carregadas completamente. Aguarde...",
         );
       }
+
+      await ensureMediaElementsReady();
 
       const selectedExercise = $trainingStore.exerciseType;
       const selectedName = $trainingStore.exerciseName;
@@ -1083,6 +1100,7 @@
         (exerciseConfig.components && exerciseConfig.components.length > 0
           ? exerciseConfig.components
           : DEFAULT_COMPONENTS) ?? [];
+      referenceVideoSrc = exerciseConfig.referenceVideoUrl ?? null;
 
       const normalizedMetrics = normalizeExerciseMetrics(
         exerciseConfig.metrics,
@@ -2571,10 +2589,12 @@
         <video
           class="reference-video"
           bind:this={referenceVideoElement}
-          src="{base}/videos/squat.mp4"
+          src={referenceVideoSrc ?? undefined}
+          autoplay
           playsinline
           loop
           muted
+          preload="auto"
         >
           <track kind="captions" src="" label="No captions" />
         </video>

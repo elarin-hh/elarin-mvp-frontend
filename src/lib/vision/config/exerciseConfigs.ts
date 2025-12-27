@@ -34,7 +34,14 @@ export async function loadExerciseConfig(exerciseType: string): Promise<Exercise
 			return path.startsWith('http') ? path : `${base}${path.replace(/^\./, '')}`;
 		};
 
+		const rawReferenceVideoUrl =
+			(config as { referenceVideoUrl?: string | null }).referenceVideoUrl ??
+			(config as { videoUrl?: string | null }).videoUrl ??
+			(config as { video_url?: string | null }).video_url ??
+			null;
+
 		config.modelPath = normalizePath(config.modelPath);
+		config.referenceVideoUrl = normalizePath(rawReferenceVideoUrl) ?? null;
 
 		configCache[exerciseType] = config;
 		return config;

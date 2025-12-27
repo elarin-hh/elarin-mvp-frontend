@@ -12,6 +12,7 @@ export interface ExerciseTemplateDto {
     name: string;
     description?: string | null;
     image_url?: string | null;
+    video_url?: string | null;
     is_active: boolean;
     created_at?: string;
     updated_at?: string;
@@ -43,6 +44,7 @@ export interface ExerciseDto {
     name: string;
     description?: string | null;
     image_url?: string | null;
+    video_url?: string | null;
     is_active: boolean;
     config?: Record<string, unknown> | null;
     created_at?: string;

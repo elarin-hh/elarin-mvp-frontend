@@ -16,6 +16,7 @@ export interface HeuristicConfig {
 export interface ExerciseConfig {
   exerciseType?: string;
   exerciseName: string;
+  referenceVideoUrl?: string | null;
   modelPath?: string;
   analysisInterval?: number;
   mlConfig?: MLConfig;

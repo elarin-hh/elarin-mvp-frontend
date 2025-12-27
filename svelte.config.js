@@ -37,6 +37,7 @@ const config = {
         'script-src': ["'self'", 'https://cdn.jsdelivr.net', "'wasm-unsafe-eval'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https://images.unsplash.com'],
+        'media-src': ["'self'", 'blob:', 'https:'],
         'font-src': ["'self'", 'data:'],
         'connect-src': [
           "'self'",
