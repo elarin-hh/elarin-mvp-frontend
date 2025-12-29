@@ -116,9 +116,6 @@
 
   let trainingPhase = $state<TrainingPhase>("positioning");
 
-  let currentLandmarks = $state<
-    Array<{ x: number; y: number; z: number; visibility?: number }>
-  >([]);
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
@@ -1336,10 +1333,6 @@
       queueMicrotask(() => {
         analyzer?.analyzeFrame(landmarks);
       });
-    }
-
-    if (activeTab === "dev" && landmarks) {
-      currentLandmarks = landmarks;
     }
 
     const isPresent = checkUserPresence(landmarks);
@@ -3011,49 +3004,6 @@
               <div class="debug-info-mini">{modeIndicator}</div>
             </div>
 
-            <div class="settings-group settings-group-full">
-              <h4>Landmarks em Tempo Real (33 Pontos)</h4>
-              <div class="landmark-grid">
-                {#each Object.entries(MEDIAPIPE_LANDMARKS) as [name, index]}
-                  {@const lm = currentLandmarks[index]}
-                  <div class="landmark-card">
-                    <div class="landmark-header">
-                      <span class="landmark-id">{index}</span>
-                      <span class="landmark-name">{name}</span>
-                    </div>
-                    {#if lm}
-                      <div class="landmark-values">
-                        <div class="val-row">
-                          <span class="val-label">X:</span>
-                          <span class="val-data">{lm.x.toFixed(4)}</span>
-                        </div>
-                        <div class="val-row">
-                          <span class="val-label">Y:</span>
-                          <span class="val-data">{lm.y.toFixed(4)}</span>
-                        </div>
-                        <div class="val-row">
-                          <span class="val-label">Z:</span>
-                          <span class="val-data">{lm.z.toFixed(4)}</span>
-                        </div>
-                        <div class="val-row">
-                          <span class="val-label">Vis:</span>
-                          <span
-                            class="val-data"
-                            style:color={lm.visibility && lm.visibility > 0.5
-                              ? "var(--color-success)"
-                              : "var(--color-error)"}
-                          >
-                            {(lm.visibility ?? 0).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    {:else}
-                      <div class="landmark-waiting">Aguardando dados...</div>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </div>
           {/if}
         </div>
       </div>
@@ -4322,86 +4272,6 @@
 
   .toggle-btn.on::before {
     transform: translateX(20px);
-  }
-
-  .landmark-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .landmark-card {
-    background: var(--glass-bg, rgba(255, 255, 255, 0.03));
-    border-radius: var(--radius-sm);
-    padding: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    transition:
-      transform 0.2s ease,
-      background 0.2s ease;
-  }
-
-  .landmark-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
-  }
-
-  .landmark-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .landmark-id {
-    font-size: 0.7rem;
-    background: var(--glass-bg, rgba(255, 255, 255, 0.1));
-    color: var(--color-text-secondary, #aaa);
-    padding: 2px 4px;
-    border-radius: 4px;
-  }
-
-  .landmark-name {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .landmark-values {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .val-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-  }
-
-  .val-label {
-    color: var(--color-text-secondary, #666);
-  }
-
-  .val-data {
-    color: var(--color-text-primary);
-    font-weight: 500;
-  }
-
-  .landmark-waiting {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary, #666);
-    font-style: italic;
-    text-align: center;
-    padding: 1rem 0;
   }
 
   .mode-buttons-mini {
