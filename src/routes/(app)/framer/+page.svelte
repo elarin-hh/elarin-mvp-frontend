@@ -223,7 +223,7 @@
         </div>
       {/if}
 
-      <div class="flex justify-center">
+      <div class="flex justify-center mb-8">
         <button
           type="button"
           class="button-primary px-8 py-3 text-white font-semibold text-lg"
