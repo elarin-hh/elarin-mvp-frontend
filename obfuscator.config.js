@@ -1,68 +1,55 @@
 
 
 export default {
+  optionsPreset: 'high-obfuscation',
 
   compact: true,
   controlFlowFlattening: true,
-  controlFlowFlatteningThreshold: 0.75,
-
+  controlFlowFlatteningThreshold: 1,
 
   deadCodeInjection: true,
-  deadCodeInjectionThreshold: 0.4,
+  deadCodeInjectionThreshold: 0.6,
 
-
-  debugProtection: false,
-  debugProtectionInterval: 0,
-
+  debugProtection: true,
+  debugProtectionInterval: 3000,
 
   disableConsoleOutput: true,
 
-
-  identifierNamesGenerator: 'hexadecimal',
+  identifierNamesGenerator: 'mangled-shuffled',
   identifiersPrefix: '',
 
-
   log: false,
-
+  sourceMap: false,
 
   numbersToExpressions: true,
 
-
   renameGlobals: false,
-
-
   renameProperties: false,
-
 
   selfDefending: true,
 
-
   simplify: true,
 
-
   splitStrings: true,
-  splitStringsChunkLength: 10,
-
+  splitStringsChunkLength: 6,
 
   stringArray: true,
   stringArrayCallsTransform: true,
-  stringArrayCallsTransformThreshold: 0.75,
-  stringArrayEncoding: ['base64'],
+  stringArrayCallsTransformThreshold: 1,
+  stringArrayEncoding: ['rc4'],
+  stringArrayIndexesType: ['hexadecimal-number', 'hexadecimal-numeric-string'],
   stringArrayIndexShift: true,
   stringArrayRotate: true,
   stringArrayShuffle: true,
-  stringArrayWrappersCount: 2,
+  stringArrayWrappersCount: 3,
   stringArrayWrappersChainedCalls: true,
-  stringArrayWrappersParametersMaxCount: 4,
+  stringArrayWrappersParametersMaxCount: 6,
   stringArrayWrappersType: 'function',
-  stringArrayThreshold: 0.75,
+  stringArrayThreshold: 1,
 
-
-  target: 'browser',
-
+  target: 'browser-no-eval',
 
   transformObjectKeys: true,
 
-
-  unicodeEscapeSequence: false,
+  unicodeEscapeSequence: true,
 };

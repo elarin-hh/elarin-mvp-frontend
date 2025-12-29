@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:prod": "NODE_ENV=production vite build",
+    "build:prod": "cross-env NODE_ENV=production vite build && node scripts/obfuscate-build.mjs",
+    "obfuscate:build": "node scripts/obfuscate-build.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf node_modules .svelte-kit build"
