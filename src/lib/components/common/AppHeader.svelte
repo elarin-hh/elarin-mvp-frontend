@@ -38,6 +38,8 @@
   let isDevMode = $state(false);
   let headerElement: HTMLElement;
   let mobileFooterElement: HTMLElement;
+  let mainContentElement: HTMLElement | null = null;
+  let mainBasePaddingBottom = "0px";
 
   if (typeof document !== "undefined") {
     const root = document.documentElement;
@@ -98,6 +100,26 @@
     const root = document.documentElement;
     root.style.setProperty("--app-header-offset", `${headerHeight}px`);
     root.style.setProperty("--app-footer-offset", `${footerHeight}px`);
+    document.body.style.paddingBottom = footerHeight > 0 ? "0px" : "";
+
+    const currentMain = document.querySelector("main");
+    if (currentMain) {
+      if (mainContentElement !== currentMain) {
+        mainContentElement = currentMain;
+        mainBasePaddingBottom = getComputedStyle(currentMain).paddingBottom || "0px";
+      }
+
+      if (footerHeight > 0) {
+        const basePaddingValue = parseFloat(mainBasePaddingBottom);
+        const extraFooterPadding = Number.isFinite(basePaddingValue)
+          ? Math.max(0, footerHeight - basePaddingValue)
+          : footerHeight;
+
+        currentMain.style.paddingBottom = `calc(${mainBasePaddingBottom} + ${extraFooterPadding}px + env(safe-area-inset-bottom, 0px))`;
+      } else {
+        currentMain.style.paddingBottom = mainBasePaddingBottom;
+      }
+    }
   }
 
   onMount(() => {
@@ -134,6 +156,10 @@
       const root = document.documentElement;
       root.style.setProperty("--app-header-offset", "0px");
       root.style.setProperty("--app-footer-offset", "0px");
+      document.body.style.paddingBottom = "";
+      if (mainContentElement) {
+        mainContentElement.style.paddingBottom = mainBasePaddingBottom;
+      }
     }
   });
 </script>
@@ -513,7 +539,6 @@
   }
 
   :global(body) {
-    padding-bottom: 0;
     min-height: 100vh;
   }
 
