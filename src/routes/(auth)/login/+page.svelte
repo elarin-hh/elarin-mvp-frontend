@@ -88,7 +88,7 @@
     </button>
   </form>
 
-  <div class="mt-8 text-center">
+<!--   <div class="mt-8 text-center">
     <button
       type="button"
       onclick={goToRegister}
@@ -96,7 +96,7 @@
     >
       Não tem uma conta? Clique aqui
     </button>
-  </div>
+  </div> -->
 
   <!--   <div class="absolute bottom-8 text-center">
     <p class="text-white/50 text-sm">
