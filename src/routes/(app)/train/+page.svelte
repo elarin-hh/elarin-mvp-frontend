@@ -124,6 +124,7 @@
   let isPaused = $state(false);
   let reconstructionError = $state<number | null>(null);
   let activeComponents = $state<string[]>([]);
+  let distanceFeedbackPairs = $state<Array<[number, number]>>([]);
 
   const resolveCssColor = (value: string): string => {
     if (!value.startsWith("var(") || typeof document === "undefined")
@@ -1323,6 +1324,8 @@
           drawTorsoLine(ctx, renderLandmarks);
         }
 
+        drawDistanceFeedbackArrows(ctx, renderLandmarks);
+
         ctx.restore();
       }
 
@@ -1508,6 +1511,110 @@
     ctx.restore();
   }
 
+  const DISTANCE_ARROW_COLOR = "#a855f7";
+  const DISTANCE_ARROW_MIN_CONFIDENCE = 0.4;
+
+  function isLandmarkVisibleForArrow(
+    landmark:
+      | { x: number; y: number; visibility?: number; presence?: number }
+      | undefined,
+  ): boolean {
+    if (!landmark) return false;
+    const confidence = Math.max(
+      landmark.visibility ?? 0,
+      landmark.presence ?? 0,
+    );
+    return (
+      Number.isFinite(landmark.x) &&
+      Number.isFinite(landmark.y) &&
+      confidence >= DISTANCE_ARROW_MIN_CONFIDENCE
+    );
+  }
+
+  function drawArrowHead(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    angle: number,
+    size: number,
+  ) {
+    const spread = Math.PI / 7;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(
+      x - size * Math.cos(angle - spread),
+      y - size * Math.sin(angle - spread),
+    );
+    ctx.moveTo(x, y);
+    ctx.lineTo(
+      x - size * Math.cos(angle + spread),
+      y - size * Math.sin(angle + spread),
+    );
+    ctx.stroke();
+  }
+
+  function drawBidirectionalArrow(
+    ctx: CanvasRenderingContext2D,
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+  ) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 8) return;
+
+    const padding = Math.max(8, SKELETON_STYLE.pointRadius * 3);
+    const unitX = dx / distance;
+    const unitY = dy / distance;
+    const startX = start.x + unitX * padding;
+    const startY = start.y + unitY * padding;
+    const endX = end.x - unitX * padding;
+    const endY = end.y - unitY * padding;
+    const angle = Math.atan2(endY - startY, endX - startX);
+    const headSize = Math.min(22, Math.max(12, distance * 0.18));
+
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    drawArrowHead(ctx, endX, endY, angle, headSize);
+    drawArrowHead(ctx, startX, startY, angle + Math.PI, headSize);
+  }
+
+  function drawDistanceFeedbackArrows(
+    ctx: CanvasRenderingContext2D,
+    landmarks: PoseResults["poseLandmarks"],
+  ) {
+    if (!landmarks) return;
+    if (!shouldShowDistanceArrows(distanceFeedbackPairs.length)) return;
+
+    ctx.save();
+    ctx.strokeStyle = DISTANCE_ARROW_COLOR;
+    ctx.lineWidth = Math.max(2, SKELETON_STYLE.lineWidth * 0.9);
+    ctx.lineCap = "round";
+    ctx.globalAlpha = 0.95;
+    ctx.shadowColor = DISTANCE_ARROW_COLOR;
+    ctx.shadowBlur = 6;
+
+    for (const [startIdx, endIdx] of distanceFeedbackPairs) {
+      const start = landmarks[startIdx];
+      const end = landmarks[endIdx];
+      if (!isLandmarkVisibleForArrow(start) || !isLandmarkVisibleForArrow(end))
+        continue;
+
+      drawBidirectionalArrow(ctx, {
+        x: start.x * ctx.canvas.width,
+        y: start.y * ctx.canvas.height,
+      }, {
+        x: end.x * ctx.canvas.width,
+        y: end.y * ctx.canvas.height,
+      });
+    }
+
+    ctx.restore();
+  }
+
   function resetQualityTracking() {
     repScores = Array(repMaxSlots).fill(null);
     currentRepFrames = [];
@@ -1616,6 +1723,8 @@
       }
     }
 
+    distanceFeedbackPairs = getDistanceFeedbackPairs(feedback);
+
     maybeRegisterRep(feedback);
 
     if (feedback.ml?.error !== undefined) {
@@ -1712,6 +1821,7 @@
     pose = null;
     camera = null;
     feedbackMessages = [];
+    distanceFeedbackPairs = [];
     currentFeedback = null;
     reconstructionError = null;
     elapsedTime = 0;
@@ -1857,6 +1967,7 @@
           camera = null;
           trainingActions.reset();
           feedbackMessages = [];
+          distanceFeedbackPairs = [];
           currentFeedback = null;
           reconstructionError = null;
           elapsedTime = 0;
@@ -2143,6 +2254,38 @@
       isFeedbackEnabled &&
       messageCount > 0
     );
+  }
+
+  function getDistanceFeedbackPairs(feedback: FeedbackRecord): Array<[number, number]> {
+    const issues = feedback.heuristic?.issues ?? [];
+    const pairs: Array<[number, number]> = [];
+    const seen = new Set<string>();
+
+    for (const issue of issues) {
+      const details = issue.details as
+        | { conditionType?: string; landmarks?: number[] }
+        | undefined;
+      if (details?.conditionType !== "distance") continue;
+      if (!Array.isArray(details.landmarks) || details.landmarks.length !== 2)
+        continue;
+
+      const [first, second] = details.landmarks;
+      if (!Number.isFinite(first) || !Number.isFinite(second)) continue;
+
+      const a = Math.min(first, second);
+      const b = Math.max(first, second);
+      const pair: [number, number] = [a, b];
+      const key = `${a}-${b}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pairs.push(pair);
+    }
+
+    return pairs;
+  }
+
+  function shouldShowDistanceArrows(pairCount: number) {
+    return shouldShowFeedbackMessages(pairCount);
   }
 
   function toggleAudio() {

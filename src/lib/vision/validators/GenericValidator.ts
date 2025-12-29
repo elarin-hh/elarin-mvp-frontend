@@ -347,13 +347,30 @@ export class GenericValidator extends BaseValidator {
 
                 // Always add to issues list so UI shows persistent feedback
                 // Audio/notification throttling should be handled by the consumer (FeedbackSystem/UI)
-                issues.push(this.createValidationResult(
+                const issueDetails: Record<string, unknown> = {
+                    checkName: check.name,
+                    conditionType: check.condition.type
+                };
+
+                if (check.condition.type === 'distance') {
+                    issueDetails.landmarks = [...check.condition.landmarks];
+                    issueDetails.operator = check.condition.operator;
+                    issueDetails.value = check.condition.value;
+                }
+
+                const issue = this.createValidationResult(
                     false,
                     check.id,
                     check.messages.fail,
                     check.severity,
-                    { checkName: check.name }
-                ));
+                    issueDetails
+                );
+
+                if (check.condition.type === 'distance') {
+                    issue.affectedLandmarks = [...check.condition.landmarks];
+                }
+
+                issues.push(issue);
             }
         }
 
@@ -442,4 +459,3 @@ export function createValidatorConfig(
         angleHistoryLength: DEFAULT_CONFIG.angleHistoryLength
     };
 }
-
