@@ -2122,6 +2122,29 @@
     }
   }
 
+  function getDisplayFeedbackMessages() {
+    return feedbackMessages
+      .filter(
+        (message) =>
+          !(message.text || "")
+            .toLowerCase()
+            .startsWith("erro de reconstrução"),
+      )
+      .slice(0, 3);
+  }
+
+  function shouldShowFeedbackMessages(messageCount: number) {
+    return (
+      (isCameraRunning || isPaused) &&
+      (trainingPhase === "training" ||
+        (isPaused && hasCompletedCountdown)) &&
+      !showCountdown &&
+      hasCompletedCountdown &&
+      isFeedbackEnabled &&
+      messageCount > 0
+    );
+  }
+
   function toggleAudio() {
     audioFeedbackActions.toggleEnabled();
   }
@@ -2368,6 +2391,22 @@
   </button>
 {/snippet}
 
+{#snippet feedbackMessagesBlock()}
+  {@const displayFeedbackMessages = getDisplayFeedbackMessages()}
+  {#if shouldShowFeedbackMessages(displayFeedbackMessages.length)}
+    <div class="feedback-strip">
+      {#each displayFeedbackMessages as message}
+        <div
+          class="feedback-message feedback-message-large card glass {message.type}"
+          class:critical={message.severity === "critical"}
+        >
+          <span>{message.text}</span>
+        </div>
+      {/each}
+    </div>
+  {/if}
+{/snippet}
+
 <svelte:head>
   <title>Elarin</title>
 </svelte:head>
@@ -2486,7 +2525,7 @@
             />
           {/if}
 
-          {#if (isCameraRunning || isPaused) && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && !showCountdown && hasCompletedCountdown && isFeedbackEnabled && (isDevMode || feedbackMessages.length > 0 || reconstructionError !== null)}
+          {#if (isCameraRunning || isPaused) && (trainingPhase === "training" || (isPaused && hasCompletedCountdown)) && !showCountdown && hasCompletedCountdown && isFeedbackEnabled && (isDevMode || reconstructionError !== null)}
             <div class="feedback-card">
               {#if isDevMode}
                 <div class="mode-indicator in-card card glass">
@@ -2512,48 +2551,38 @@
                   </div>
                 </div>
               {/if}
-
-              {#if feedbackMessages.length > 0}
-                <div class="feedback-overlay">
-                  {#each feedbackMessages
-                    .filter((m) => !(m.text || "")
-                          .toLowerCase()
-                          .startsWith("erro de reconstrução"))
-                    .slice(0, 3) as message}
-                    <div
-                      class="feedback-message card glass {message.type}"
-                      class:critical={message.severity === "critical"}
-                    >
-                      <span>{message.text}</span>
-                    </div>
-                  {/each}
-                </div>
-              {/if}
             </div>
           {/if}
         </div>
 
         {#if isCameraRunning || isPaused}
           {#if layoutMode === "user-centered"}
-            {#if showPlanProgress || showRepBars}
-              <div class="plan-overlay-stack">
-                {#if showRepBars}
-                  <RepBars
-                    className="rep-counter-bar-overlay stacked"
-                    {repScores}
-                    {currentRepFrames}
-                    currentReps={$trainingStore.reps}
-                    maxSlots={repMaxSlots}
-                  />
-                {/if}
-                {#if showPlanProgress}
-                  <TrainingPlanProgress
-                    progressPercent={planProgressPercent}
-                    positionLabel={planPositionLabel}
-                    exerciseLabel={planExerciseLabel}
-                    remainingLabel={planRemainingLabel}
-                    className="stacked"
-                  />
+            {#if showPlanProgress ||
+              showRepBars ||
+              shouldShowFeedbackMessages(getDisplayFeedbackMessages().length)}
+              <div class="bottom-overlay-stack">
+                {@render feedbackMessagesBlock()}
+                {#if showPlanProgress || showRepBars}
+                  <div class="plan-overlay-stack">
+                    {#if showRepBars}
+                      <RepBars
+                        className="rep-counter-bar-overlay stacked"
+                        {repScores}
+                        {currentRepFrames}
+                        currentReps={$trainingStore.reps}
+                        maxSlots={repMaxSlots}
+                      />
+                    {/if}
+                    {#if showPlanProgress}
+                      <TrainingPlanProgress
+                        progressPercent={planProgressPercent}
+                        positionLabel={planPositionLabel}
+                        exerciseLabel={planExerciseLabel}
+                        remainingLabel={planRemainingLabel}
+                        className="stacked"
+                      />
+                    {/if}
+                  </div>
                 {/if}
               </div>
             {/if}
@@ -2636,25 +2665,32 @@
         {/if}
 
         {#if (isCameraRunning || isPaused) && layoutMode === "coach-centered"}
-          {#if showPlanProgress || showRepBars}
-            <div class="plan-overlay-stack">
-              {#if showRepBars}
-                <RepBars
-                  className="rep-counter-bar-overlay stacked"
-                  {repScores}
-                  {currentRepFrames}
-                  currentReps={$trainingStore.reps}
-                  maxSlots={repMaxSlots}
-                />
-              {/if}
-              {#if showPlanProgress}
-                <TrainingPlanProgress
-                  progressPercent={planProgressPercent}
-                  positionLabel={planPositionLabel}
-                  exerciseLabel={planExerciseLabel}
-                  remainingLabel={planRemainingLabel}
-                  className="stacked"
-                />
+          {#if showPlanProgress ||
+            showRepBars ||
+            shouldShowFeedbackMessages(getDisplayFeedbackMessages().length)}
+            <div class="bottom-overlay-stack">
+              {@render feedbackMessagesBlock()}
+              {#if showPlanProgress || showRepBars}
+                <div class="plan-overlay-stack">
+                  {#if showRepBars}
+                    <RepBars
+                      className="rep-counter-bar-overlay stacked"
+                      {repScores}
+                      {currentRepFrames}
+                      currentReps={$trainingStore.reps}
+                      maxSlots={repMaxSlots}
+                    />
+                  {/if}
+                  {#if showPlanProgress}
+                    <TrainingPlanProgress
+                      progressPercent={planProgressPercent}
+                      positionLabel={planPositionLabel}
+                      exerciseLabel={planExerciseLabel}
+                      remainingLabel={planRemainingLabel}
+                      className="stacked"
+                    />
+                  {/if}
+                </div>
               {/if}
             </div>
           {/if}
@@ -2688,25 +2724,32 @@
         {/if}
 
         {#if layoutMode === "side-by-side"}
-          {#if showPlanProgress || showRepBars}
-            <div class="plan-overlay-stack">
-              {#if showRepBars}
-                <RepBars
-                  className="rep-counter-bar-overlay stacked"
-                  {repScores}
-                  {currentRepFrames}
-                  currentReps={$trainingStore.reps}
-                  maxSlots={repMaxSlots}
-                />
-              {/if}
-              {#if showPlanProgress}
-                <TrainingPlanProgress
-                  progressPercent={planProgressPercent}
-                  positionLabel={planPositionLabel}
-                  exerciseLabel={planExerciseLabel}
-                  remainingLabel={planRemainingLabel}
-                  className="stacked"
-                />
+          {#if showPlanProgress ||
+            showRepBars ||
+            shouldShowFeedbackMessages(getDisplayFeedbackMessages().length)}
+            <div class="bottom-overlay-stack">
+              {@render feedbackMessagesBlock()}
+              {#if showPlanProgress || showRepBars}
+                <div class="plan-overlay-stack">
+                  {#if showRepBars}
+                    <RepBars
+                      className="rep-counter-bar-overlay stacked"
+                      {repScores}
+                      {currentRepFrames}
+                      currentReps={$trainingStore.reps}
+                      maxSlots={repMaxSlots}
+                    />
+                  {/if}
+                  {#if showPlanProgress}
+                    <TrainingPlanProgress
+                      progressPercent={planProgressPercent}
+                      positionLabel={planPositionLabel}
+                      exerciseLabel={planExerciseLabel}
+                      remainingLabel={planRemainingLabel}
+                      className="stacked"
+                    />
+                  {/if}
+                </div>
               {/if}
             </div>
           {/if}
@@ -3265,15 +3308,24 @@
     flex-shrink: 0;
   }
 
-  .plan-overlay-stack {
+  .bottom-overlay-stack {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: clamp(6px, 1.4vh, 12px);
     z-index: 20;
+    pointer-events: none;
+  }
+
+  .plan-overlay-stack {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     pointer-events: none;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(10px) saturate(130%);
@@ -3836,6 +3888,30 @@
     align-items: flex-end;
   }
 
+  .feedback-strip {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.6vh, 12px);
+    align-items: center;
+    padding: clamp(20px, 3vh, 26px) clamp(22px, 4.8vw, 38px);
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .feedback-message.feedback-message-large {
+    width: min(100%, 720px);
+    font-size: clamp(21px, 3.6vw, 30px);
+    text-align: center;
+    align-self: center;
+    padding: clamp(18px, 3.2vh, 22px) clamp(22px, 5.6vw, 40px);
+  }
+
+  .split-container.layout-side-by-side .feedback-strip {
+    width: 50%;
+    margin-left: auto;
+  }
+
   .feedback-message {
     position: relative;
     overflow: hidden;
@@ -3983,6 +4059,20 @@
     .overlays-container {
       padding: clamp(8px, 1.5vh, 15px) clamp(6px, 1.2vw, 8px);
       gap: 0;
+    }
+
+    .feedback-strip {
+      padding: clamp(14px, 2.2vh, 18px) clamp(16px, 4.4vw, 22px);
+    }
+
+    .feedback-message.feedback-message-large {
+      font-size: clamp(18px, 5vw, 23px);
+      padding: clamp(16px, 2.6vh, 20px) clamp(18px, 5.6vw, 26px);
+    }
+
+    .split-container.layout-side-by-side .feedback-strip {
+      width: 100%;
+      margin-left: 0;
     }
 
     .mode-indicator {

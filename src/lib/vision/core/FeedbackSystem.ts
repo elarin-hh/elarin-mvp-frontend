@@ -397,27 +397,11 @@ export class FeedbackSystem {
         messages.push({
           type: 'info',
           priority: 1,
-          text: '? Aguardando análise ML...',
+          text: 'Aguardando análise ML...',
           severity: 'low'
         });
       }
       return messages;
-    }
-
-    if (feedback.combined.verdict === 'correct') {
-      messages.push({
-        type: 'success',
-        priority: 1,
-        text: 'Execução correta!',
-        severity: 'low'
-      });
-    } else if (feedback.combined.verdict === 'incorrect') {
-      messages.push({
-        type: 'error',
-        priority: 1,
-        text: 'Movimento incorreto',
-        severity: 'high'
-      });
     }
 
     if (
@@ -470,14 +454,7 @@ export class FeedbackSystem {
   private getIssueFeedbackText(
     issue: NonNullable<ProcessedHeuristicResult['issues']>[number]
   ): string {
-    const icons: Record<Severity, string> = {
-      critical: '??',
-      high: '??',
-      medium: '??',
-      low: '??'
-    };
-
-    return `${icons[issue.severity]} ${issue.message}`;
+    return issue.message;
   }
 
   private generateVisualization(feedback: FeedbackRecord) {
