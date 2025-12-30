@@ -21,6 +21,7 @@ export interface MediaPipePose {
     setOptions: (options: Record<string, unknown>) => void;
     onResults: (callback: (results: PoseResults) => void) => void;
     send: (inputs: { image: HTMLVideoElement }) => Promise<void>;
+    close?: () => void;
 }
 
 /**

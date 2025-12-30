@@ -895,6 +895,44 @@
     isCameraEmulated = false;
   }
 
+  function stopCameraSession() {
+    if (camera) {
+      try {
+        camera.stop();
+      } catch (error) {
+        console.warn("vision_warning:camera_stop_failed", error);
+      }
+    }
+
+    if (emulatedFrameId) {
+      cancelAnimationFrame(emulatedFrameId);
+      emulatedFrameId = null;
+    }
+
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+
+    if (videoElement) {
+      try {
+        const stream = videoElement.srcObject;
+        if (stream && typeof (stream as MediaStream).getTracks === "function") {
+          (stream as MediaStream).getTracks().forEach((track) => track.stop());
+        }
+        videoElement.pause();
+        videoElement.currentTime = 0;
+        videoElement.srcObject = null;
+        videoElement.removeAttribute("src");
+        videoElement.load();
+      } catch (error) {
+        console.warn("vision_warning:video_cleanup_failed", error);
+      }
+    }
+
+    clearEmulatedState();
+  }
+
   function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
     if (video.readyState >= 2) return Promise.resolve();
 
@@ -965,10 +1003,12 @@
         const renderFrame = async () => {
           if (!isCameraEmulated || !pose || !videoElement) return;
 
-          try {
-            await pose.send({ image: videoElement });
-          } catch (err) {
-            console.error("vision_error:emulated_frame", err);
+          if (!isLoading) {
+            try {
+              await pose.send({ image: videoElement });
+            } catch (err) {
+              console.error("vision_error:emulated_frame", err);
+            }
           }
 
           emulatedFrameId = requestAnimationFrame(renderFrame);
@@ -1038,7 +1078,7 @@
     }
   }
 
-  async function startCamera() {
+  async function startCamera(reuseCamera = false) {
     try {
       isLoading = true;
       errorMessage = "";
@@ -1150,13 +1190,16 @@
         throw new Error("Elemento de vídeo não foi carregado corretamente.");
       }
 
-      const Pose = (window as unknown as Record<string, unknown>)
-        .Pose as new (config: {
-        locateFile: (file: string) => string;
-      }) => MediaPipePose;
-      pose = new Pose({
-        locateFile: getPoseAssetUrl,
-      });
+      const globalScope = window as unknown as Record<string, unknown>;
+      const Pose = globalScope.Pose as
+        | (new (config: { locateFile: (file: string) => string }) => MediaPipePose)
+        | undefined;
+      if (!pose) {
+        if (!Pose) throw new Error("Biblioteca de pose não encontrada.");
+        pose = new Pose({
+          locateFile: getPoseAssetUrl,
+        });
+      }
 
       pose.setOptions({
         modelComplexity: 1,
@@ -1169,11 +1212,11 @@
 
       pose.onResults(onPoseResults);
 
-      const globalScope = window as unknown as Record<string, unknown>;
       drawConnectors = globalScope.drawConnectors as typeof drawConnectors;
       drawLandmarks = globalScope.drawLandmarks as typeof drawLandmarks;
       POSE_CONNECTIONS = globalScope.POSE_CONNECTIONS;
 
+      const canReuseCamera = reuseCamera && camera && isCameraRunning;
       const Camera = globalScope.Camera as
         | (new (
             video: HTMLVideoElement,
@@ -1185,46 +1228,53 @@
           ) => MediaPipeCamera)
         | undefined;
 
-      const hasPhysicalCamera = await hasVideoInputAvailable();
-      const startWithRealCamera = async () => {
-        if (!Camera) throw new Error("Biblioteca de câmera não encontrada.");
+      if (!canReuseCamera) {
+        const hasPhysicalCamera = await hasVideoInputAvailable();
+        const startWithRealCamera = async () => {
+          if (!Camera) throw new Error("Biblioteca de câmera não encontrada.");
 
-        clearEmulatedState();
-        camera = new Camera(videoElement, {
+          clearEmulatedState();
+          camera = new Camera(videoElement, {
           onFrame: async () => {
-            if (pose && videoElement) {
+            if (!pose || !videoElement || isLoading) return;
+            try {
               await pose.send({ image: videoElement });
+            } catch (error) {
+              console.error("vision_error:pose_send_failed", error);
             }
           },
-          width: 1280,
-          height: 720,
-        });
+            width: 1280,
+            height: 720,
+          });
 
-        await camera.start();
-        syncCanvasSize(true);
-      };
+          await camera.start();
+          syncCanvasSize(true);
+        };
 
-      const startWithEmulatedCamera = async (reason: string) => {
-        camera = createEmulatedCamera(reason);
-        await camera.start();
-      };
+        const startWithEmulatedCamera = async (reason: string) => {
+          camera = createEmulatedCamera(reason);
+          await camera.start();
+        };
 
-      if (hasPhysicalCamera && Camera) {
-        try {
-          await startWithRealCamera();
-        } catch (cameraError) {
-          console.warn(
-            "vision_warning:camera_start_failed_fallback_to_emulation",
-            cameraError,
-          );
+        if (hasPhysicalCamera && Camera) {
+          try {
+            await startWithRealCamera();
+          } catch (cameraError) {
+            console.warn(
+              "vision_warning:camera_start_failed_fallback_to_emulation",
+              cameraError,
+            );
+            await startWithEmulatedCamera(
+              "Não conseguimos acessar a câmera. Usando vídeo de demonstração para testar.",
+            );
+          }
+        } else {
           await startWithEmulatedCamera(
-            "Não conseguimos acessar a câmera. Usando vídeo de demonstração para testar.",
+            "Nenhuma câmera detectada. Usando vídeo de demonstração para testar.",
           );
         }
       } else {
-        await startWithEmulatedCamera(
-          "Nenhuma câmera detectada. Usando vídeo de demonstração para testar.",
-        );
+        syncCanvasSize(true);
       }
 
       syncCanvasSize();
@@ -1241,7 +1291,7 @@
   }
 
   async function onPoseResults(results: PoseResults) {
-    if (!canvasElement || !results.poseLandmarks) return;
+    if (!canvasElement) return;
     const landmarks = results.poseLandmarks;
 
     const now = Date.now();
@@ -1278,7 +1328,7 @@
         canvasElement.height,
       );
 
-      const renderLandmarks = filterLandmarks(landmarks);
+      const renderLandmarks = landmarks ? filterLandmarks(landmarks) : null;
 
       if (
         renderLandmarks &&
@@ -1332,7 +1382,11 @@
       ctx.restore();
     });
 
-    if (analyzer && landmarks && metricsActive) {
+    if (!landmarks) {
+      return;
+    }
+
+    if (analyzer && metricsActive) {
       queueMicrotask(() => {
         analyzer?.analyzeFrame(landmarks);
       });
@@ -1817,9 +1871,8 @@
   }
 
   function resetForNextPlanItem() {
+    if (analyzer) analyzer.destroy();
     analyzer = null;
-    pose = null;
-    camera = null;
     feedbackMessages = [];
     distanceFeedbackPairs = [];
     currentFeedback = null;
@@ -1836,8 +1889,6 @@
     showSummaryOverlay = false;
     startRequested = false;
     sessionActive = false;
-    isCameraRunning = false;
-    hasStartedCamera = false;
     trainingPhase = "positioning";
     countdownValue = "Iniciar";
   }
@@ -1857,6 +1908,7 @@
         nextItem.exercise_name ?? undefined,
       );
       resetForNextPlanItem();
+      void startCamera(true);
       if (isFullscreen) {
         void requestStartOrResume();
       }
@@ -1894,10 +1946,11 @@
       summaryOverlayEffectiveness = exerciseScore;
       showSummaryOverlay = shouldShowExerciseSummary;
 
-      if (camera) camera.stop();
-      clearEmulatedState();
-      isCameraRunning = false;
-      hasStartedCamera = false;
+      if (!hasNextPlanItem) {
+        stopCameraSession();
+        isCameraRunning = false;
+        hasStartedCamera = false;
+      }
       hasCompletedCountdown = false;
 
       if (planItem && $trainingPlanStore.status === "running") {
@@ -1915,11 +1968,6 @@
       }
       const planContext = buildPlanContext(planItem);
       await trainingActions.finish(planContext ?? undefined);
-
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
 
       if (hasNextPlanItem) {
         scheduleNextPlanItem();
@@ -2479,11 +2527,9 @@
   }
 
   onDestroy(() => {
-    if (camera) camera.stop();
-    clearEmulatedState();
+    stopCameraSession();
     if (analyzer) analyzer.destroy();
     if (timerInterval) clearInterval(timerInterval);
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
     clearConfirmationTimeout();
     clearDescriptionTimeout();
     clearPlanTransitionTimeout();
