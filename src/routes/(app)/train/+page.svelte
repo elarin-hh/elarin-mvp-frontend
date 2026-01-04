@@ -119,6 +119,9 @@
   let isFullscreen = $state(false);
   let showAvatarMenu = $state(false);
   let isDevMode = $state(false);
+  let showDevMetricPrecision = $state(false);
+  let showDevMetricConfidence = $state(false);
+  let showDevMetricFps = $state(false);
   let orientation = $state<"portrait" | "landscape">("landscape");
   let currentFeedback: FeedbackRecord | null = $state(null);
   let isPaused = $state(false);
@@ -531,6 +534,13 @@
       hasCompletedCountdown &&
       trainingPhase === "training" &&
       !isPaused,
+  );
+  const showDevMetricsOverlay = $derived(
+    isDevMode &&
+      (showDevMetricPrecision ||
+        showDevMetricConfidence ||
+        showDevMetricFps) &&
+      (isCameraRunning || isPaused),
   );
   const SUMMARY_PREVIEW = false;
   const formatSummaryBadge = (user: User | null) => {
@@ -2644,6 +2654,30 @@
       class:layout-user-centered={layoutMode === "user-centered"}
       class:layout-coach-centered={layoutMode === "coach-centered"}
     >
+      {#if showDevMetricsOverlay}
+        <div class="dev-metrics-overlay">
+          {#if showDevMetricPrecision}
+            <div class="dev-metric-pill">
+              <span class="dev-metric-pill-label">Precisao</span>
+              <span class="dev-metric-pill-value">{emaScore.toFixed(1)}%</span>
+            </div>
+          {/if}
+          {#if showDevMetricConfidence}
+            <div class="dev-metric-pill">
+              <span class="dev-metric-pill-label">Confianca</span>
+              <span class="dev-metric-pill-value"
+                >{confidence.toFixed(1)}%</span
+              >
+            </div>
+          {/if}
+          {#if showDevMetricFps}
+            <div class="dev-metric-pill">
+              <span class="dev-metric-pill-label">FPS</span>
+              <span class="dev-metric-pill-value">{fps}</span>
+            </div>
+          {/if}
+        </div>
+      {/if}
       <div
         class="video-container"
         class:portrait={orientation === "portrait"}
@@ -3197,19 +3231,49 @@
             </div>
           {:else if activeTab === "dev"}
             <div class="settings-group settings-group-full">
-              <h4>Métricas de Desenvolvimento</h4>
-              <div class="dev-metrics">
-                <div class="dev-metric-card">
-                  <span class="dev-metric-label">Precisão</span>
-                  <span class="dev-metric-value">{emaScore.toFixed(1)}%</span>
+              <h4>Metricas de desenvolvimento</h4>
+              <div class="toggle-row">
+                <span>Precisao</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={showDevMetricPrecision}
+                    onclick={() =>
+                      (showDevMetricPrecision = !showDevMetricPrecision)}
+                    aria-label="Toggle Precision Metric"
+                  ></button>
+                  <span class="toggle-label"
+                    >{showDevMetricPrecision ? "On" : "Off"}</span
+                  >
                 </div>
-                <div class="dev-metric-card">
-                  <span class="dev-metric-label">Confiança</span>
-                  <span class="dev-metric-value">{confidence.toFixed(1)}%</span>
+              </div>
+              <div class="toggle-row">
+                <span>Confianca</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={showDevMetricConfidence}
+                    onclick={() =>
+                      (showDevMetricConfidence = !showDevMetricConfidence)}
+                    aria-label="Toggle Confidence Metric"
+                  ></button>
+                  <span class="toggle-label"
+                    >{showDevMetricConfidence ? "On" : "Off"}</span
+                  >
                 </div>
-                <div class="dev-metric-card">
-                  <span class="dev-metric-label">FPS</span>
-                  <span class="dev-metric-value">{fps}</span>
+              </div>
+              <div class="toggle-row">
+                <span>FPS</span>
+                <div class="toggle-wrapper">
+                  <button
+                    class="toggle-btn"
+                    class:on={showDevMetricFps}
+                    onclick={() => (showDevMetricFps = !showDevMetricFps)}
+                    aria-label="Toggle FPS Metric"
+                  ></button>
+                  <span class="toggle-label"
+                    >{showDevMetricFps ? "On" : "Off"}</span
+                  >
                 </div>
               </div>
 
@@ -4483,34 +4547,47 @@
     text-align: left;
   }
 
-  .dev-metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .dev-metric-card {
-    background: var(--glass-bg);
-    border-radius: var(--radius-sm);
-    padding: 1rem;
+  .dev-metrics-overlay {
+    position: absolute;
+    top: 0.35rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
     align-items: center;
-    text-align: center;
+    padding: 0.35rem 0.6rem;
+    z-index: 200;
+    pointer-events: none;
+    max-width: calc(100% - 1rem);
   }
 
-  .dev-metric-label {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary, #888);
+  .dev-metric-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.7rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+    border-radius: 999px;
+    color: var(--color-text-primary, #fff);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dev-metric-pill-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-secondary, #cbd5f5);
+    letter-spacing: 0.04em;
+  }
+
+  .dev-metric-pill-value {
+    font-size: 0.9rem;
     font-weight: 500;
-  }
-
-  .dev-metric-value {
-    font-size: 1.5rem;
-    font-weight: 300;
-    color: var(--color-primary-500);
+    color: var(--color-primary-300, #93c5fd);
   }
 
   .toggle-btn {
