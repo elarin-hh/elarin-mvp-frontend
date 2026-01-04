@@ -69,6 +69,9 @@ export interface TrainingPlanSessionDto {
     status: SessionStatus;
     started_at?: string;
     completed_at?: string | null;
+    total_duration_ms?: number | null;
+    exercise_count?: number | null;
+    score?: number | null;
     // Joined fields for API response
     plan_name?: string | null;
     plan_description?: string | null;

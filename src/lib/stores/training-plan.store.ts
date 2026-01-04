@@ -87,6 +87,13 @@ export const trainingPlanActions = {
     }));
   },
 
+  setPlanSessionId(planSessionId: number | null) {
+    trainingPlanStore.update((state) => ({
+      ...state,
+      planSessionId
+    }));
+  },
+
   reset() {
     trainingPlanStore.set(initialState);
   },

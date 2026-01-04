@@ -15,6 +15,7 @@ export interface TrainingMetricDto {
     sets: number;
     duration_ms: number;
     valid_ratio: number;
+    score?: number | null;
     created_at: string;
     plan_session_id?: number | null;
     plan_item_id?: number | null;
@@ -30,6 +31,7 @@ export interface SaveTrainingRequestDto {
     sets_completed: number;
     duration_seconds: number;
     avg_confidence?: number;
+    score?: number;
     plan_session_id?: number;
     plan_item_id?: number;
     sequence_index?: number;

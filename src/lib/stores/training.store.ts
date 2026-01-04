@@ -18,6 +18,7 @@ export interface TrainingState {
   error: string | null;
   backendSessionId: string | null;
   avgConfidence?: number | null;
+  score?: number | null;
 }
 
 export interface TrainingPlanContext {
@@ -38,7 +39,8 @@ const initialState: TrainingState = {
   isLoading: false,
   error: null,
   backendSessionId: null,
-  avgConfidence: null
+  avgConfidence: null,
+  score: null
 };
 
 export const trainingStore = writable<TrainingState>(initialState);
@@ -107,6 +109,10 @@ export const trainingActions = {
     trainingStore.update((state) => ({ ...state, avgConfidence }));
   },
 
+  setScore(score: number | null) {
+    trainingStore.update((state) => ({ ...state, score }));
+  },
+
   prepareForNextExercise(exercise: ExerciseType, name?: string | null) {
     trainingStore.set({
       ...initialState,
@@ -142,6 +148,7 @@ export const trainingActions = {
       sets_completed: state.sets,
       duration_seconds: durationSeconds,
       avg_confidence: state.avgConfidence ?? undefined,
+      score: state.score ?? undefined,
       plan_session_id: planContext?.plan_session_id,
       plan_item_id: planContext?.plan_item_id,
       sequence_index: planContext?.sequence_index

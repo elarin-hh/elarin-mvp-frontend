@@ -22,7 +22,13 @@ export const trainingPlansApi = {
     return restClient.post<TrainingPlanSessionDto>(`/training-plans/${planId}/start`, {});
   },
 
-  async finishSession(sessionId: number): Promise<ApiResponse<{ message: string }>> {
-    return restClient.post<{ message: string }>(`/training-plans/sessions/${sessionId}/finish`, {});
+  async finishSession(
+    sessionId: number,
+    summary?: { total_duration_ms?: number; exercise_count?: number; score?: number | null },
+  ): Promise<ApiResponse<{ message: string }>> {
+    return restClient.post<{ message: string }>(
+      `/training-plans/sessions/${sessionId}/finish`,
+      summary ?? {},
+    );
   }
 };

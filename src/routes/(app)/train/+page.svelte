@@ -167,6 +167,9 @@
   let layoutMode = $state<LayoutMode>("side-by-side");
   let sessionActive = $state(false);
   let countdownResetTimer = $state(true);
+  let isPlanSessionSyncing = false;
+  let lastSyncedPlanId: number | null = null;
+  let lastSyncedPlanSessionId: number | null = null;
 
   function checkUserPresence(landmarks: PoseResults["poseLandmarks"]): boolean {
     if (!landmarks || landmarks.length < 33) return false;
@@ -582,6 +585,23 @@
     trainingPlanSummaryActions.reset();
   });
 
+  $effect(() => {
+    if ($trainingPlanStore.status !== "running") {
+      lastSyncedPlanId = null;
+      lastSyncedPlanSessionId = null;
+      return;
+    }
+    const planId = $trainingPlanStore.planId;
+    if (!planId) return;
+    if (
+      lastSyncedPlanId === planId &&
+      lastSyncedPlanSessionId === $trainingPlanStore.planSessionId
+    ) {
+      return;
+    }
+    void syncPlanSession(planId);
+  });
+
   function clearCountdown() {
     countdownTimeouts.forEach(clearTimeout);
     countdownTimeouts = [];
@@ -624,6 +644,28 @@
       plan_item_id: planItem.id,
       sequence_index: sequenceIndex,
     };
+  }
+
+  async function syncPlanSession(planId: number) {
+    if (isPlanSessionSyncing) return;
+    isPlanSessionSyncing = true;
+    const response = await trainingPlansApi.startSession(planId);
+    if (response.success) {
+      const sessionId =
+        (response.data as { session_id?: number }).session_id ??
+        (response.data as { id?: number }).id ??
+        null;
+      if (typeof sessionId === "number") {
+        if (sessionId !== $trainingPlanStore.planSessionId) {
+          trainingPlanActions.setPlanSessionId(sessionId);
+        }
+        lastSyncedPlanSessionId = sessionId;
+        lastSyncedPlanId = planId;
+      }
+    } else {
+      console.error("plan_session_sync_failed", response.error);
+    }
+    isPlanSessionSyncing = false;
   }
 
   function applyPlanMetricOverrides(
@@ -1871,10 +1913,14 @@
     }
   });
 
-  async function finalizePlanSession() {
+  async function finalizePlanSession(summary?: {
+    total_duration_ms?: number;
+    exercise_count?: number;
+    score?: number | null;
+  }) {
     const sessionId = $trainingPlanStore.planSessionId;
     if (!sessionId) return;
-    const response = await trainingPlansApi.finishSession(sessionId);
+    const response = await trainingPlansApi.finishSession(sessionId, summary);
     if (!response.success) {
       console.error("training_plan_finish_failed", response.error);
     }
@@ -1947,6 +1993,7 @@
       summaryOverlayMetrics = summaryMetrics.map((m) => ({ ...m }));
       summaryOverlayExerciseName = currentExerciseName || null;
       const exerciseScore = calculateFinalQualityScore();
+      trainingActions.setScore(exerciseScore);
       const planItem = getActivePlanItem();
       const hasNextPlanItem =
         planItem &&
@@ -1983,14 +2030,22 @@
         scheduleNextPlanItem();
       } else {
         if (planItem) {
-          await finalizePlanSession();
+          const totalDuration = planSummaryTotalDuration;
+          const exerciseCount =
+            planSummaryExerciseCount || $trainingPlanStore.items.length;
+          const averageScore =
+            planSummaryScoreCount > 0
+              ? Math.round(
+                  clampScore(planSummaryScoreSum / planSummaryScoreCount) * 10,
+                ) / 10
+              : null;
+          await finalizePlanSession({
+            total_duration_ms: Math.round(totalDuration * 1000),
+            exercise_count: exerciseCount,
+            score: averageScore ?? undefined,
+          });
           trainingPlanActions.finish();
           if ($trainingPlanStore.items.length > 0) {
-            const totalDuration = planSummaryTotalDuration;
-            const averageScore =
-              planSummaryScoreCount > 0
-                ? planSummaryScoreSum / planSummaryScoreCount
-                : null;
             const planSummaryMetrics = [
               {
                 id: "total_duration",
@@ -2001,9 +2056,7 @@
               {
                 id: "exercise_count",
                 label: "Exercícios",
-                value: String(
-                  planSummaryExerciseCount || $trainingPlanStore.items.length,
-                ),
+                value: String(exerciseCount),
                 target: null,
               },
             ];
@@ -2018,6 +2071,7 @@
             }, PLAN_TRANSITION_DELAY_MS);
           }
         }
+
 
         setTimeout(() => {
           analyzer = null;
