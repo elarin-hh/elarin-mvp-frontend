@@ -6,7 +6,7 @@
 \usepackage{geometry}
 \geometry{margin=1in}
 
-\title{Elarin MVP --- Metrica de Qualidade (Slider \& Repeticoes)}
+\title{Elarin MVP --- Metrica de Qualidade (Slider e Repeticoes)}
 \author{Elarin Engineering}
 \date{\today}
 
@@ -16,16 +16,16 @@
 \section{Resumo}
 Definimos uma metrica unificada de qualidade (0--100) para:
 \begin{itemize}
-  \item Slider de precisao em tempo real.
-  \item Barras de repeticao (``tubinhos'') preenchidas pela qualidade media de cada repeticao.
+  \item Slider de precisao em tempo real (EMA do score por frame).
+  \item Barras de repeticao preenchidas pela qualidade media de cada repeticao.
 \end{itemize}
-A metrica combina os sinais de ML (autoencoder) e heuristica (validator) e aplica suavizacao temporal (EMA).
+A metrica combina sinais de ML (autoencoder) e heuristica (validator).
 
 \section{Fontes de Sinal}
 \begin{itemize}
-  \item \textbf{ML}: $q_{\text{ml}}$ vem de \texttt{qualityScore} (0--100) em \texttt{feedback.ml.details}; fallback: \texttt{confidence} $\times 100$.
+  \item \textbf{ML}: $q_{\text{ml}}$ vem de \texttt{qualityScore} (0--100) em \texttt{feedback.ml.details}; fallback: \texttt{feedback.ml.confidence} $\times 100$, depois \texttt{feedback.combined.confidence} $\times 100$.
   \item \textbf{Heuristica}: $q_{\text{heur}}$ vem de \texttt{isValid} e lista de \texttt{issues} com severidade.
-  \item \textbf{Repeticao}: evento \texttt{valid\_repetition} e contador \texttt{validReps}.
+  \item \textbf{Repeticao}: contador \texttt{validReps} em \texttt{feedback.heuristic.summary} quando disponivel.
 \end{itemize}
 
 \section{Penalidades de Heuristica}
@@ -47,7 +47,7 @@ q_{\text{heur}} =
 \end{cases}
 \]
 
-\section{Combinação ML + Heuristica}
+\section{Combinacao ML + Heuristica}
 Pesos default: $w_{\text{ml}} = 0.6$, $w_{\text{heur}} = 0.4$.
 \[
 q_{\text{frame}} =
@@ -58,7 +58,7 @@ q_{\text{heur}}, & \text{se apenas heuristica}\\
 \end{cases}
 \]
 
-\section{Suavização Temporal (EMA)}
+\section{Suavizacao Temporal (EMA)}
 Usamos uma media exponencial para o slider:
 \[
 q_{\text{ema}}(t) =
@@ -67,39 +67,57 @@ q_{\text{frame}}(t), & \text{se } q_{\text{ema}}(t-1) = 0\\
 \alpha\, q_{\text{frame}}(t) + (1-\alpha)\, q_{\text{ema}}(t-1), & \text{caso contrario}
 \end{cases}
 \]
-com $\alpha = 0.2$ (ajustavel).
+com $\alpha = 0.2$ (ajustavel). Se $q_{\text{frame}}$ for nulo, a EMA nao e atualizada.
 
-\section{Qualidade por Repetição}
+\section{Qualidade por Repeticao}
 \begin{enumerate}
-  \item Acumular $q_{\text{frame}}$ em um buffer da repeticao corrente.
-  \item Ao detectar \texttt{valid\_repetition} (ou incremento de \texttt{validReps}):
+  \item Acumular $q_{\text{frame}}$ em \texttt{currentRepFrames}.
+  \item Quando \texttt{validReps} aumentar:
     \[
     q_{\text{rep}} = \text{media}\bigl( q_{\text{frame}} \text{ da repeticao} \bigr)
     \]
-  \item Armazenar $q_{\text{rep}}$ em \texttt{repScores[index]} (max 30).
-  \item Limpar buffer da repeticao corrente.
+    se nao houver frames, usar o ultimo $q_{\text{frame}}$ conhecido.
+  \item Armazenar em \texttt{repScores[repIndex]} com limite de slots.
+  \item Limpar o buffer da repeticao corrente.
 \end{enumerate}
 
+\subsection{Slots e limite}
+O numero de slots e dinamico:
+\[
+\text{maxSlots} =
+\begin{cases}
+\min(\texttt{MAX\_REP\_SLOTS\_CAP}, \max(1, \text{target})), & \text{se houver target}\\
+\texttt{DEFAULT\_REP\_SLOTS}, & \text{caso contrario}
+\end{cases}
+\]
+com \texttt{DEFAULT\_REP\_SLOTS} = 30 e \texttt{MAX\_REP\_SLOTS\_CAP} = 60.
+Se o usuario ultrapassar \texttt{maxSlots}, o ultimo slot e sobrescrito.
+
 \section{Mapeamento de Cores}
-Faixas para slider e barras:
+Slider e barras usam interpolacao linear entre estes pontos:
 \[
 \begin{aligned}
-0\text{--}49 &\rightarrow \text{vermelho } (\#\text{ef4444})\\
-50\text{--}69 &\rightarrow \text{laranja } (\#\text{f97316})\\
-70\text{--}84 &\rightarrow \text{ambar } (\#\text{fbbf24})\\
-85\text{--}100 &\rightarrow \text{verde } (\#\text{22c55e})
+0 &\rightarrow \#\text{ef4444}\\
+50 &\rightarrow \#\text{f97316}\\
+70 &\rightarrow \#\text{fbbf24}\\
+85 &\rightarrow \#\text{22c55e}\\
+100 &\rightarrow \#\text{22c55e}
 \end{aligned}
 \]
+O gradiente e derivado de ``bands'' (min 85/70/50/0) com mistura de 65\% da cor vizinha.
+Slots sem score usam cor neutra \texttt{rgba(255,255,255,0.15)}.
 
 \section{Estados Neutros}
-Se ML e heuristica indisponiveis ou veredito for \texttt{unknown}, manter cor neutra e pausar evolucao do slider.
+Quando $q_{\text{frame}}$ e nulo, a EMA do slider permanece no valor anterior.
+Barras sem score permanecem na cor neutra.
 
 \section{Parametros Ajustaveis}
 \begin{itemize}
   \item Pesos $w_{\text{ml}}, w_{\text{heur}}$.
   \item Penalidades $p(s)$ por severidade.
   \item Suavizacao $\alpha$ (EMA).
-  \item Faixas e cores.
+  \item Pontos de cor e misturas de gradiente.
+  \item Limites \texttt{DEFAULT\_REP\_SLOTS} e \texttt{MAX\_REP\_SLOTS\_CAP}.
 \end{itemize}
 
 \end{document}

@@ -149,8 +149,8 @@
   let currentRepFrames = $state<number[]>([]);
   let elapsedTime = $state(0);
   let timerInterval: number | null = null;
-  let feedbackMode = $state<FeedbackMode>("ml_only");
-  let modeIndicator = $state("ML Only (Autoencoder)");
+  let feedbackMode = $state<FeedbackMode>("hybrid");
+  let modeIndicator = $state("Híbrido (ML + Heurística)");
   let showBiometricConsent = $state(false);
   let hasBiometricConsent = $state(false);
   let hasSyncedCanvas = $state(false);
@@ -3401,7 +3401,7 @@
     width: 200px;
     height: auto;
     aspect-ratio: 16/9;
-    z-index: 50;
+    z-index: 150;
     border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     max-height: none;
@@ -3419,7 +3419,7 @@
     width: 200px;
     height: auto;
     aspect-ratio: 16/9;
-    z-index: 50;
+    z-index: 150;
     border-radius: var(--radius-sm);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     max-height: none;
