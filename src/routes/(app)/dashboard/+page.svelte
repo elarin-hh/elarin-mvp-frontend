@@ -32,7 +32,7 @@
   <title>Dashboard - Elarin</title>
 </svelte:head>
 
-<main class="dashboard-page">
+<div class="page-background">
   <AppHeader
     bind:isScrolled
     bind:showAvatarMenu
@@ -43,46 +43,42 @@
     onClickOutside={handleClickOutside}
   />
 
-  <section class="dashboard-hero">
-    <div class="card">
-      <div class="pill">
-        <span class="dot"></span>
-        Em breve
+  <main class="min-h-screen w-full px-4 pt-8 pb-10">
+    <section class="dashboard-hero">
+      <div class="card-secondary dashboard-card p-6 sm:p-8 rounded-standard">
+        <div class="pill">
+          <span class="dot"></span>
+          Em breve
+        </div>
+        <div class="headline">
+          <h1>Dashboard em desenvolvimento</h1>
+          <p>Assim que o time da Elarin finalizar esta tela, seus insights e mActricas aparecerao aqui.</p>
+        </div>
       </div>
-      <div class="headline">
-        <h1>Dashboard em desenvolvimento</h1>
-        <p>Assim que o time da Elarin finalizar esta tela, seus insights e métricas aparecerão aqui.</p>
-      </div>
-    </div>
-  </section>
-</main>
+    </section>
+  </main>
+</div>
 
 <style>
-  .dashboard-page {
-    min-height: 100vh;
-    background: var(--color-bg-dark);
-    color: var(--color-text-primary);
-    padding: 5rem 1rem 6rem;
-  }
-
   .dashboard-hero {
-    max-width: 1100px;
+    max-width: 960px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
   }
 
-  .card {
+  .dashboard-card {
     width: 100%;
-    max-width: 720px;
-    padding: clamp(1.5rem, 4vw, 2rem);
-    background: var(--color-bg-dark-secondary);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-light);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     text-align: center;
+  }
+
+  .card-secondary {
+    background: var(--color-bg-dark-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: none;
+    box-shadow: none;
   }
 
   .pill {
@@ -115,23 +111,16 @@
     text-align: center;
   }
 
-  .card h1 {
-    font-size: 1.5rem;
-    margin-bottom: 0.75rem;
-    color: var(--color-primary-400);
+  .dashboard-card h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary);
   }
 
-  .card p {
+  .dashboard-card p {
     color: var(--color-text-secondary);
     font-size: 1.05rem;
     margin: 0;
     line-height: 1.6;
-  }
-
-  @media (max-width: 768px) {
-    .dashboard-page {
-      padding-top: 4.5rem;
-      padding-bottom: 7rem;
-    }
   }
 </style>
