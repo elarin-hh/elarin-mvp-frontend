@@ -75,7 +75,39 @@ export class GenericExerciseClassifier {
 
   async loadModel(modelPath: string = './models/autoencoder.onnx'): Promise<void> {
     try {
-      this.session = await ort.InferenceSession.create(modelPath);
+      // Fetch the main model file
+      const modelResponse = await fetch(modelPath);
+      if (!modelResponse.ok) {
+        throw new Error(`Failed to fetch model: ${modelResponse.status} ${modelResponse.statusText}`);
+      }
+      const modelBuffer = await modelResponse.arrayBuffer();
+
+      // Try to fetch the external data file (.onnx.data)
+      const dataPath = modelPath + '.data';
+      let externalDataBuffer: ArrayBuffer | null = null;
+
+      try {
+        const dataResponse = await fetch(dataPath);
+        if (dataResponse.ok) {
+          externalDataBuffer = await dataResponse.arrayBuffer();
+        }
+      } catch (dataError) {
+        // No external data file - this is OK for small models
+      }
+
+      // Create session with external data if available
+      if (externalDataBuffer) {
+        this.session = await ort.InferenceSession.create(modelBuffer, {
+          externalData: [
+            {
+              data: externalDataBuffer,
+              path: modelPath.split(/[/\\]/).pop() + '.data'
+            }
+          ]
+        });
+      } else {
+        this.session = await ort.InferenceSession.create(modelBuffer);
+      }
 
       if (typeof this.config.threshold === 'number' && !isNaN(this.config.threshold)) {
         this.threshold = this.config.threshold;
@@ -83,7 +115,7 @@ export class GenericExerciseClassifier {
 
       this.isLoaded = true;
     } catch (error) {
-      console.error('ONNX model load failed', error);
+      console.error('Failed to load ONNX model:', error instanceof Error ? error.message : String(error));
       throw error instanceof Error ? error : new Error('Falha ao carregar modelo ML');
     }
   }
@@ -91,9 +123,15 @@ export class GenericExerciseClassifier {
   private prepareLandmarks(landmarks: PoseLandmarks): number[] {
     const features: number[] = [];
     for (const landmark of landmarks) {
-      const x = Math.max(0, Math.min(1, landmark.x || 0));
-      const y = Math.max(0, Math.min(1, landmark.y || 0));
-      const z = Math.max(0, Math.min(1, landmark.z || 0));
+      // IMPORTANT: Use raw MediaPipe values without clamping to match training data
+      // Model was trained with raw landmark values (no preprocessing applied)
+      // - x, y: Normalized to [0,1] by MediaPipe (can slightly exceed for off-screen)
+      // - z: Depth from camera plane (NEGATIVE = behind plane, POSITIVE = in front)
+      // DO NOT reintroduce clamping without retraining the model
+      // Training reference: eskeleton-training/src/infrastructure/ml/datasets/skeleton_dataset.py:82-83
+      const x = landmark.x || 0;
+      const y = landmark.y || 0;
+      const z = landmark.z || 0;
 
       features.push(x, y, z);
     }
@@ -198,7 +236,13 @@ export class GenericExerciseClassifier {
 
       const feeds = { input: inputTensor };
       const results = await this.session!.run(feeds);
-      const reconstruction = results.reconstruction;
+
+      // Support both "output" and "reconstruction" as output names
+      const reconstruction = results.output || results.reconstruction;
+
+      if (!reconstruction) {
+        throw new Error(`ONNX output not found. Available keys: ${Object.keys(results).join(', ')}`);
+      }
 
       const reconstructionError = this.calculateReconstructionError(
         inputFlat,
@@ -271,10 +315,11 @@ export class GenericExerciseClassifier {
   async analyzeFrame(landmarks: PoseLandmarks): Promise<MLResult> {
     this.addFrame(landmarks);
 
-    if (
+    const shouldPredict =
       this.frameBuffer.length % this.config.predictionInterval === 0 &&
-      this.frameBuffer.length >= this.config.minFrames
-    ) {
+      this.frameBuffer.length >= this.config.minFrames;
+
+    if (shouldPredict) {
       return await this.predict();
     }
 
