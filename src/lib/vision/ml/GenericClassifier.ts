@@ -109,6 +109,8 @@ export class GenericExerciseClassifier {
         this.session = await ort.InferenceSession.create(modelBuffer);
       }
 
+      this.alignConfigWithModel();
+
       if (typeof this.config.threshold === 'number' && !isNaN(this.config.threshold)) {
         this.threshold = this.config.threshold;
       }
@@ -203,6 +205,53 @@ export class GenericExerciseClassifier {
           : '-',
       avgInferenceTime: avgInferenceTime > 0 ? avgInferenceTime.toFixed(2) + ' ms' : '-'
     };
+  }
+
+  private alignConfigWithModel(): void {
+    const defaultMaxFrames = 60;
+    const session = this.session as unknown as {
+      inputNames?: string[];
+      inputMetadata?: Record<string, { dimensions?: Array<number | string> }>;
+    } | null;
+    const inputName = session?.inputNames?.[0];
+    const inputMeta = inputName ? session?.inputMetadata?.[inputName] : null;
+    const dims = inputMeta?.dimensions ?? [];
+    const seqDim = dims.length > 1 ? dims[1] : null;
+    const modelSeqLen =
+      typeof seqDim === 'number' && Number.isFinite(seqDim) ? seqDim : null;
+
+    if (modelSeqLen) {
+      if (!Number.isFinite(this.config.maxFrames) || this.config.maxFrames !== modelSeqLen) {
+        if (Number.isFinite(this.config.maxFrames) && this.config.maxFrames !== modelSeqLen) {
+          console.warn(
+            `[ML] maxFrames (${this.config.maxFrames}) != model seq_len (${modelSeqLen}). Using model value.`
+          );
+        }
+        this.config.maxFrames = modelSeqLen;
+      }
+    } else if (!Number.isFinite(this.config.maxFrames) || this.config.maxFrames <= 0) {
+      this.config.maxFrames = defaultMaxFrames;
+    }
+
+    if (!Number.isFinite(this.config.minFrames) || this.config.minFrames <= 0) {
+      this.config.minFrames = this.config.maxFrames;
+    }
+
+    if (this.config.minFrames > this.config.maxFrames) {
+      this.config.minFrames = this.config.maxFrames;
+    }
+
+    if (!Number.isFinite(this.config.predictionInterval) || this.config.predictionInterval <= 0) {
+      this.config.predictionInterval = 1;
+    }
+
+    if (this.config.predictionInterval > this.config.maxFrames) {
+      this.config.predictionInterval = this.config.maxFrames;
+    }
+
+    if (!Number.isFinite(this.config.maxHistorySize) || this.config.maxHistorySize <= 0) {
+      this.config.maxHistorySize = 200;
+    }
   }
 
   private async predict(): Promise<MLResult> {
