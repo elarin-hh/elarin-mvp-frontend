@@ -4455,7 +4455,7 @@
       transform 0.3s ease,
       opacity 0.3s ease;
     pointer-events: none;
-    z-index: 50;
+    z-index: 20000;
   }
 
   .quick-controls.visible {
