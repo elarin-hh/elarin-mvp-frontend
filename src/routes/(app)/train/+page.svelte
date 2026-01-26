@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { trainingStore, trainingActions } from "$lib/stores/training.store";
+  import {
+    trainingStore,
+    trainingActions,
+    type ExerciseType,
+  } from "$lib/stores/training.store";
   import {
     trainingPlanActions,
     trainingPlanStore,
@@ -20,6 +24,14 @@
     Microscope,
     ScanFace,
     CheckCircle2,
+    Maximize2,
+    Minimize2,
+    Pause,
+    Play,
+    Volume2,
+    VolumeX,
+    RotateCcw,
+    LogOut,
   } from "lucide-svelte";
   import {
     ExerciseAnalyzer,
@@ -55,6 +67,7 @@
   import PhaseOverlay from "$lib/components/training/PhaseOverlay.svelte";
   import NextExerciseInfo from "$lib/components/training/NextExerciseInfo.svelte";
   import ExerciseSummaryOverlay from "$lib/components/training/ExerciseSummaryOverlay.svelte";
+  import ConfirmDialog from "$lib/components/common/ConfirmDialog.svelte";
   import type {
     TrainingPhase,
     LayoutMode,
@@ -452,6 +465,21 @@
   let planPositionLabel = $state("");
   let planExerciseLabel = $state("");
   let planRemainingLabel = $state("--:--");
+  let quickControlsVisible = $state(false);
+  let quickControlsTimeout: ReturnType<typeof setTimeout> | null = null;
+  let dialogOpen = $state(false);
+  let dialogConfig = $state({
+    title: "",
+    message: "",
+    confirmLabel: "Confirmar",
+    variant: "default" as "default" | "danger" | "warning",
+    onConfirm: () => {},
+  });
+
+  const QUICK_CONTROLS_HIDE_MS = 2200;
+  const shouldShowQuickControls = $derived(
+    isFullscreen && !isLoading,
+  );
 
   const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
   const formatRemainingLabel = (seconds: number | null): string =>
@@ -479,6 +507,48 @@
   ) =>
     getCompletedSetsBefore(items, itemIndex) +
     getSafeSetIndex(items[itemIndex] ?? null, setIndex);
+
+  function clearQuickControlsTimeout() {
+    if (quickControlsTimeout) {
+      clearTimeout(quickControlsTimeout);
+      quickControlsTimeout = null;
+    }
+  }
+
+  function revealQuickControls() {
+    if (!shouldShowQuickControls) return;
+    if (!quickControlsVisible) {
+      quickControlsVisible = true;
+    }
+    clearQuickControlsTimeout();
+    quickControlsTimeout = setTimeout(() => {
+      quickControlsVisible = false;
+    }, QUICK_CONTROLS_HIDE_MS);
+  }
+
+  function closeDialog() {
+    dialogOpen = false;
+  }
+
+  function openDialog(
+    config: Partial<typeof dialogConfig> & { onConfirm: () => void },
+  ) {
+    dialogConfig = {
+      title: config.title || "Confirmar ação",
+      message: config.message || "Tem certeza?",
+      confirmLabel: config.confirmLabel || "Confirmar",
+      variant: config.variant || "default",
+      onConfirm: config.onConfirm,
+    };
+    dialogOpen = true;
+  }
+
+  $effect(() => {
+    if (!shouldShowQuickControls) {
+      quickControlsVisible = false;
+      clearQuickControlsTimeout();
+    }
+  });
 
   $effect(() => {
     if (!planProgressActive) {
@@ -2175,6 +2245,71 @@
     }
   }
 
+  async function restartTraining() {
+    const exerciseType = $trainingStore.exerciseType;
+    if (!exerciseType || isLoading) return;
+
+    resetForNextPlanItem();
+    trainingActions.prepareForNextExercise(
+      exerciseType as ExerciseType,
+      currentExerciseName || $trainingStore.exerciseName || null,
+    );
+    await startCamera(true);
+    await requestStartOrResume();
+  }
+
+  async function exitTraining() {
+    try {
+      if (isFullscreen) {
+        await exitFullscreenExplicit();
+      }
+    } catch {}
+    stopCameraSession();
+    trainingActions.reset();
+    trainingPlanActions.reset();
+    trainingPlanSummaryActions.reset();
+    await goto(`${base}/exercises`);
+  }
+
+  function confirmExitTraining() {
+    openDialog({
+      title: "Sair do treino",
+      message: "Tem certeza que deseja sair do treino agora?",
+      confirmLabel: "Sair",
+      variant: "warning",
+      onConfirm: async () => {
+        closeDialog();
+        await exitTraining();
+      },
+    });
+  }
+
+  function confirmRestartTraining() {
+    openDialog({
+      title: "Recomeçar treino",
+      message: "Tem certeza que deseja recomeçar? O progresso será perdido.",
+      confirmLabel: "Recomeçar",
+      variant: "warning",
+      onConfirm: async () => {
+        closeDialog();
+        await restartTraining();
+      },
+    });
+  }
+
+  function confirmFinishTraining() {
+    openDialog({
+      title: "Finalizar treino",
+      message: "Tem certeza que deseja finalizar o treino agora?",
+      confirmLabel: "Finalizar",
+      variant: "default",
+      onConfirm: async () => {
+        closeDialog();
+        await finishTraining();
+      },
+    });
+  }
+
   function changeFeedbackMode(mode: FeedbackMode) {
     feedbackMode = mode;
 
@@ -2649,52 +2784,11 @@
     clearConfirmationTimeout();
     clearDescriptionTimeout();
     clearPlanTransitionTimeout();
+    clearQuickControlsTimeout();
     hasCompletedCountdown = false;
     unsubscribeCurrentUser();
   });
 </script>
-
-{#snippet fullscreenButton()}
-  <button
-    class="fullscreen-btn-floating"
-    onclick={toggleFullscreen}
-    aria-label="Tela cheia"
-  >
-    {#if isFullscreen}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path
-          d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"
-        />
-      </svg>
-    {:else}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path
-          d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
-        />
-      </svg>
-    {/if}
-  </button>
-{/snippet}
 
 {#snippet feedbackMessagesBlock()}
   {@const displayFeedbackMessages = getDisplayFeedbackMessages()}
@@ -2721,12 +2815,16 @@
   onmousemove={(e) => {
     handlePipMouseMove(e);
     handleResizeMouseMove(e);
+    revealQuickControls();
   }}
+  onmousedown={revealQuickControls}
   onmouseup={handlePipMouseUp}
   ontouchmove={(e) => {
     handlePipMouseMove(e);
     handleResizeMouseMove(e);
+    revealQuickControls();
   }}
+  ontouchstart={revealQuickControls}
   ontouchend={handlePipMouseUp}
   ontouchcancel={handlePipMouseUp}
 >
@@ -2920,9 +3018,6 @@
             {/if}
           {/if}
 
-          {#if layoutMode !== "coach-centered"}
-            {@render fullscreenButton()}
-          {/if}
         {/if}
       </div>
 
@@ -3026,7 +3121,6 @@
           {#if showQualitySlider}
             <QualitySlider className="left-aligned" score={emaScore} />
           {/if}
-          {@render fullscreenButton()}
         {/if}
       </div>
 
@@ -3100,6 +3194,103 @@
           badge={userName}
         />
       {/if}
+
+      <div
+        class="quick-controls"
+        class:visible={quickControlsVisible && shouldShowQuickControls}
+        onmouseenter={revealQuickControls}
+        onmousemove={revealQuickControls}
+      >
+        <div class="quick-controls-bar">
+          <button
+            class="quick-control-btn"
+            class:active={$audioFeedbackStore.isEnabled}
+            aria-pressed={$audioFeedbackStore.isEnabled}
+            onclick={toggleAudio}
+          >
+            {#if $audioFeedbackStore.isEnabled}
+              <Volume2 />
+            {:else}
+              <VolumeX />
+            {/if}
+            <span>Audio</span>
+          </button>
+
+          <button
+            class="quick-control-btn"
+            class:active={isPaused}
+            aria-pressed={isPaused}
+            disabled={!isCameraRunning || isLoading}
+            onclick={() => {
+              if (isPaused) {
+                void resumeTraining();
+              } else {
+                pauseTraining();
+              }
+            }}
+          >
+            {#if isPaused}
+              <Play />
+            {:else}
+              <Pause />
+            {/if}
+            <span>{isPaused ? "Retomar" : "Pausar"}</span>
+          </button>
+
+          <button
+            class="quick-control-btn"
+            class:active={isFullscreen}
+            aria-pressed={isFullscreen}
+            disabled={isLoading}
+            onclick={toggleFullscreen}
+          >
+            {#if isFullscreen}
+              <Minimize2 />
+              <span>Sair tela cheia</span>
+            {:else}
+              <Maximize2 />
+              <span>Tela cheia</span>
+            {/if}
+          </button>
+
+          <button
+            class="quick-control-btn"
+            disabled={isLoading}
+            onclick={confirmExitTraining}
+          >
+            <LogOut />
+            <span>Sair</span>
+          </button>
+
+          <button
+            class="quick-control-btn"
+            disabled={!$trainingStore.exerciseType || isLoading}
+            onclick={confirmRestartTraining}
+          >
+            <RotateCcw />
+            <span>Recomeçar</span>
+          </button>
+
+          <button
+            class="quick-control-btn"
+            disabled={!analyzer || isLoading}
+            onclick={confirmFinishTraining}
+          >
+            <CheckCircle2 />
+            <span>Finalizar</span>
+          </button>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={dialogOpen}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        confirmLabel={dialogConfig.confirmLabel}
+        variant={dialogConfig.variant}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={closeDialog}
+      />
     </div>
 
     {#if isCameraRunning || isPaused || showSummaryOverlay}
@@ -3427,6 +3618,7 @@
       on:accepted={handleBiometricConsentAccepted}
       on:denied={handleBiometricConsentDenied}
     />
+
   </div>
 </main>
 
@@ -3630,41 +3822,6 @@
     height: 8px;
     border-right: 2px solid rgba(255, 255, 255, 0.8);
     border-bottom: 2px solid rgba(255, 255, 255, 0.8);
-  }
-
-  .fullscreen-btn-floating {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    width: 48px;
-    height: 48px;
-    background: var(--glass-bg, rgba(0, 0, 0, 0.7));
-    backdrop-filter: var(--glass-backdrop, blur(10px));
-    -webkit-backdrop-filter: var(--glass-backdrop, blur(10px));
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--color-text-primary, #fff);
-    transition: all 0.3s ease;
-    z-index: 15;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .fullscreen-btn-floating:hover {
-    background: var(--glass-bg, rgba(0, 0, 0, 0.85));
-    border-color: var(--glass-border, rgba(255, 255, 255, 0.4));
-    transform: scale(1.05);
-  }
-
-  .fullscreen-btn-floating:active {
-    transform: scale(0.95);
-  }
-
-  .fullscreen-btn-floating svg {
-    flex-shrink: 0;
   }
 
   .bottom-overlay-stack {
@@ -4284,6 +4441,91 @@
     width: auto;
   }
 
+  .quick-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0 1.4rem 1.4rem;
+    opacity: 0;
+    transform: translateY(120%);
+    transition:
+      transform 0.3s ease,
+      opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .quick-controls.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .quick-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: clamp(14px, 3.2vw, 24px);
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.55),
+      rgba(0, 0, 0, 0.35)
+    );
+    border-radius: var(--radius-standard);
+    padding: clamp(10px, 2vh, 14px) clamp(14px, 4vw, 22px);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    box-shadow:
+      0 -10px 30px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .quick-control-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    min-width: 64px;
+    padding: 0.25rem 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    transition:
+      transform 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .quick-control-btn :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .quick-control-btn:hover {
+    transform: translateY(-2px);
+    color: #fff;
+  }
+
+  .quick-control-btn.active {
+    color: var(--color-primary-500, #22c55e);
+  }
+
+  .quick-control-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .quick-control-btn:disabled:hover {
+    transform: none;
+  }
+
   .feedback-message::before,
   .mode-indicator::before {
     content: "";
@@ -4447,6 +4689,25 @@
 
     .feedback-overlay {
       max-width: clamp(180px, 60vw, 400px);
+    }
+
+    .quick-controls {
+      padding: 0 0.9rem 1rem;
+    }
+
+    .quick-controls-bar {
+      gap: clamp(10px, 4vw, 16px);
+      padding: clamp(8px, 2vh, 12px) clamp(12px, 4vw, 18px);
+    }
+
+    .quick-control-btn {
+      min-width: 52px;
+      font-size: 0.65rem;
+    }
+
+    .quick-control-btn :global(svg) {
+      width: 18px;
+      height: 18px;
     }
   }
 
