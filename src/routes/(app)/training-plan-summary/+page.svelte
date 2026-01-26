@@ -253,7 +253,7 @@
               />
             </div>
             <p class="text-white/60 text-sm text-center mt-4">
-              Media entre todos os exercicios concluidos.
+              Media entre todos os sets concluidos.
             </p>
           </div>
 
@@ -279,7 +279,7 @@
               <div>
                 <h2 class="text-white font-semibold mb-1">Metricas do treino</h2>
                 <p class="text-white/70 text-sm">
-                  Tempo total e quantidade de exercicios.
+                  Tempo total e quantidade de sets.
                 </p>
               </div>
             </div>

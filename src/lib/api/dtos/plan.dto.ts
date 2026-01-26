@@ -29,6 +29,7 @@ export interface TrainingPlanItemDto {
     exercise_type?: string | null;
     position: number;
     target_reps?: number | null;
+    target_sets?: number | null;
     target_duration_sec?: number | null;
     // Joined fields for display
     exercise_name?: string | null;

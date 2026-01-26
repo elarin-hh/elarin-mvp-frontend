@@ -4,6 +4,7 @@
   import {
     trainingPlanActions,
     trainingPlanStore,
+    getPlanItemTargetSets,
   } from "$lib/stores/training-plan.store";
   import { trainingPlanSummaryActions } from "$lib/stores/training-plan-summary.store";
   import { currentUser } from "$lib/stores/auth.store";
@@ -457,6 +458,27 @@
     typeof seconds === "number" && Number.isFinite(seconds)
       ? formatTime(seconds)
       : "--:--";
+  const getPlanTotalSets = (items: TrainingPlanItem[]) =>
+    items.reduce((total, item) => total + getPlanItemTargetSets(item), 0);
+  const getCompletedSetsBefore = (items: TrainingPlanItem[], index: number) =>
+    items
+      .slice(0, Math.max(0, index))
+      .reduce((total, item) => total + getPlanItemTargetSets(item), 0);
+  const getSafeSetIndex = (
+    item: TrainingPlanItem | null,
+    setIndex: number,
+  ) => {
+    const targetSets = getPlanItemTargetSets(item);
+    const safeIndex = Number.isFinite(setIndex) ? Math.floor(setIndex) : 1;
+    return Math.min(Math.max(safeIndex, 1), targetSets);
+  };
+  const getPlanSequenceIndex = (
+    items: TrainingPlanItem[],
+    itemIndex: number,
+    setIndex: number,
+  ) =>
+    getCompletedSetsBefore(items, itemIndex) +
+    getSafeSetIndex(items[itemIndex] ?? null, setIndex);
 
   $effect(() => {
     if (!planProgressActive) {
@@ -469,7 +491,8 @@
 
     const planItems = $trainingPlanStore.items ?? [];
     const totalItems = planItems.length;
-    if (totalItems === 0) {
+    const totalSets = getPlanTotalSets(planItems);
+    if (totalItems === 0 || totalSets === 0) {
       planProgressPercent = 0;
       planPositionLabel = "";
       planExerciseLabel = "";
@@ -482,6 +505,11 @@
       totalItems - 1,
     );
     const currentItem = planItems[currentIndex] ?? null;
+    const currentSetIndex = getSafeSetIndex(
+      currentItem,
+      $trainingPlanStore.currentSetIndex,
+    );
+    const currentTargetSets = getPlanItemTargetSets(currentItem);
 
     const durationTarget =
       typeof durationTargetSec === "number" &&
@@ -500,14 +528,23 @@
       itemProgress = Math.min($trainingStore.reps / repsTargetValue, 1);
     }
 
-    const overallProgress = (currentIndex + itemProgress) / totalItems;
+    const completedSetsBefore = getCompletedSetsBefore(planItems, currentIndex);
+    const overallProgress =
+      (completedSetsBefore + (currentSetIndex - 1) + itemProgress) / totalSets;
     planProgressPercent = clampPercent(Math.round(overallProgress * 100));
-    planPositionLabel = `${currentIndex + 1}/${totalItems}`;
-    planExerciseLabel =
+    planPositionLabel = `${completedSetsBefore + currentSetIndex}/${totalSets}`;
+    const baseExerciseLabel =
       currentExerciseName ||
       currentItem?.exercise_name ||
       currentItem?.exercise_type ||
       "";
+    const setLabel =
+      currentTargetSets > 1
+        ? `Set ${currentSetIndex}/${currentTargetSets}`
+        : "";
+    planExerciseLabel = [baseExerciseLabel, setLabel]
+      .filter(Boolean)
+      .join(" · ");
 
     const remainingSeconds =
       durationTarget && durationTarget > 0
@@ -581,7 +618,7 @@
     planSummaryTotalDuration = 0;
     planSummaryScoreSum = 0;
     planSummaryScoreCount = 0;
-    planSummaryExerciseCount = $trainingPlanStore.items.length;
+    planSummaryExerciseCount = getPlanTotalSets($trainingPlanStore.items);
     trainingPlanSummaryActions.reset();
   });
 
@@ -636,9 +673,21 @@
   function buildPlanContext(planItem: TrainingPlanItem | null) {
     if (!planItem || $trainingPlanStore.status !== "running") return null;
     if (!$trainingPlanStore.planSessionId) return null;
-    const sequenceIndex = Number.isFinite(planItem.position)
-      ? planItem.position
-      : $trainingPlanStore.currentIndex + 1;
+    const planItems = $trainingPlanStore.items ?? [];
+    const safeIndex = Math.min(
+      Math.max($trainingPlanStore.currentIndex, 0),
+      Math.max(planItems.length - 1, 0),
+    );
+    const sequenceIndex =
+      planItems.length > 0
+        ? getPlanSequenceIndex(
+            planItems,
+            safeIndex,
+            $trainingPlanStore.currentSetIndex,
+          )
+        : Number.isFinite(planItem.position)
+          ? planItem.position
+          : $trainingPlanStore.currentIndex + 1;
     return {
       plan_session_id: $trainingPlanStore.planSessionId,
       plan_item_id: planItem.id,
@@ -1995,10 +2044,13 @@
       const exerciseScore = calculateFinalQualityScore();
       trainingActions.setScore(exerciseScore);
       const planItem = getActivePlanItem();
+      const currentTargetSets = getPlanItemTargetSets(planItem);
       const hasNextPlanItem =
         planItem &&
         $trainingPlanStore.status === "running" &&
-        $trainingPlanStore.currentIndex < $trainingPlanStore.items.length - 1;
+        ($trainingPlanStore.currentIndex <
+          $trainingPlanStore.items.length - 1 ||
+          $trainingPlanStore.currentSetIndex < currentTargetSets);
       const shouldShowExerciseSummary = true;
       summaryOverlayEffectiveness = exerciseScore;
       showSummaryOverlay = shouldShowExerciseSummary;
@@ -2020,7 +2072,7 @@
           planSummaryScoreCount += 1;
         }
         if (!planSummaryExerciseCount) {
-          planSummaryExerciseCount = $trainingPlanStore.items.length;
+          planSummaryExerciseCount = getPlanTotalSets($trainingPlanStore.items);
         }
       }
       const planContext = buildPlanContext(planItem);
@@ -2032,7 +2084,7 @@
         if (planItem) {
           const totalDuration = planSummaryTotalDuration;
           const exerciseCount =
-            planSummaryExerciseCount || $trainingPlanStore.items.length;
+            planSummaryExerciseCount || getPlanTotalSets($trainingPlanStore.items);
           const averageScore =
             planSummaryScoreCount > 0
               ? Math.round(
@@ -2055,7 +2107,7 @@
               },
               {
                 id: "exercise_count",
-                label: "Exercícios",
+                label: "Sets",
                 value: String(exerciseCount),
                 target: null,
               },
@@ -4208,7 +4260,7 @@
 
   .feedback-message.feedback-message-large {
     width: min(100%, 720px);
-    font-size: clamp(21px, 3.6vw, 30px);
+    font-size: clamp(24px, 4vw, 34px);
     text-align: center;
     align-self: center;
     padding: clamp(18px, 3.2vh, 22px) clamp(22px, 5.6vw, 40px);
@@ -4224,7 +4276,7 @@
     overflow: hidden;
     padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2.5vw, 20px);
     border-radius: var(--radius-standard);
-    font-size: clamp(12px, 2vw, 16px);
+    font-size: clamp(14px, 2.2vw, 18px);
     font-weight: 500;
     animation: slideIn var(--transition-slow) ease;
     color: var(--color-text-primary);
@@ -4373,7 +4425,7 @@
     }
 
     .feedback-message.feedback-message-large {
-      font-size: clamp(18px, 5vw, 23px);
+      font-size: clamp(20px, 5.6vw, 26px);
       padding: clamp(16px, 2.6vh, 20px) clamp(18px, 5.6vw, 26px);
     }
 

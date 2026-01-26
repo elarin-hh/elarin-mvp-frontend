@@ -11,6 +11,7 @@ export interface TrainingPlanState {
   planSessionId: number | null;
   items: TrainingPlanItem[];
   currentIndex: number;
+  currentSetIndex: number;
   status: TrainingPlanStatus;
   error: string | null;
 }
@@ -23,9 +24,18 @@ const initialState: TrainingPlanState = {
   planSessionId: null,
   items: [],
   currentIndex: 0,
+  currentSetIndex: 1,
   status: 'idle',
   error: null
 };
+
+const normalizeTargetSets = (value?: number | null): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+  return value >= 1 ? Math.floor(value) : 1;
+};
+
+export const getPlanItemTargetSets = (item?: TrainingPlanItem | null): number =>
+  normalizeTargetSets(item?.target_sets ?? null);
 
 export const trainingPlanStore = writable<TrainingPlanState>(initialState);
 
@@ -57,6 +67,7 @@ export const trainingPlanActions = {
       planSessionId: params.planSessionId,
       items: params.items || [],
       currentIndex: 0,
+      currentSetIndex: 1,
       status: 'running',
       error: null
     });
@@ -65,6 +76,16 @@ export const trainingPlanActions = {
   advance(): TrainingPlanItem | null {
     const state = get(trainingPlanStore);
     if (state.status !== 'running') return null;
+    const currentItem = state.items[state.currentIndex] ?? null;
+    const targetSets = getPlanItemTargetSets(currentItem);
+    if (state.currentSetIndex < targetSets) {
+      const nextSetIndex = state.currentSetIndex + 1;
+      trainingPlanStore.update((current) => ({
+        ...current,
+        currentSetIndex: nextSetIndex
+      }));
+      return currentItem;
+    }
     const nextIndex = state.currentIndex + 1;
     if (nextIndex >= state.items.length) {
       trainingPlanStore.update((current) => ({
@@ -75,7 +96,8 @@ export const trainingPlanActions = {
     }
     trainingPlanStore.update((current) => ({
       ...current,
-      currentIndex: nextIndex
+      currentIndex: nextIndex,
+      currentSetIndex: 1
     }));
     return state.items[nextIndex] ?? null;
   },
