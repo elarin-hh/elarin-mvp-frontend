@@ -26,6 +26,9 @@ export type LandmarkPair = [number, number];
 /** Comparison operators for numeric conditions */
 export type ComparisonOperator = '<' | '>' | '<=' | '>=' | 'between';
 
+/** Unit for distance comparisons */
+export type DistanceUnit = 'norm' | 'cm';
+
 /** Angle condition - validates angle between 3 landmarks */
 export interface AngleCondition {
     type: 'angle';
@@ -40,6 +43,7 @@ export interface DistanceCondition {
     landmarks: LandmarkPair;
     operator: ComparisonOperator;
     value: number | [number, number];
+    unit?: DistanceUnit; // Defaults to 'norm'
 }
 
 /** Alignment condition - validates vertical or horizontal alignment */
@@ -139,6 +143,14 @@ export interface HeuristicConfigDB {
     // Validation checks
     checks?: CheckDefinition[];
 
+    // Optional calibration settings (runtime only)
+    calibration?: {
+        mode?: 'height';
+        heightCm?: number;
+        minHeightRatio?: number;
+        smoothing?: number;
+    };
+
     // Global settings
     feedbackCooldownMs?: number;
     minConfidence?: number;
@@ -196,4 +208,3 @@ export interface ValidatorState {
         primaryAngle: number;
     }>;
 }
-

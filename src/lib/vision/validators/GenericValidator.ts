@@ -32,6 +32,7 @@ const DEFAULT_CONFIG = {
 export class GenericValidator extends BaseValidator {
     private validatorConfig: GenericValidatorConfig;
     private state: ValidatorState;
+    private distanceScaleCmPerUnit: number | null;
 
     constructor(config: GenericValidatorConfig) {
         super({ minConfidence: config.minConfidence ?? DEFAULT_CONFIG.minConfidence });
@@ -44,6 +45,7 @@ export class GenericValidator extends BaseValidator {
         };
 
         this.state = this.createInitialState();
+        this.distanceScaleCmPerUnit = null;
     }
 
     private createInitialState(): ValidatorState {
@@ -72,6 +74,14 @@ export class GenericValidator extends BaseValidator {
 
     public get isPositionValid(): boolean {
         return this.state.isPositionValid;
+    }
+
+    public setDistanceScaleCmPerUnit(value: number | null): void {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+            this.distanceScaleCmPerUnit = value;
+        } else {
+            this.distanceScaleCmPerUnit = null;
+        }
     }
 
     validate(landmarks: PoseLandmarks, _frameCount: number = 0): ValidationResult {
@@ -220,6 +230,17 @@ export class GenericValidator extends BaseValidator {
         }
 
         const distance = this.calculateDistance(p1, p2);
+        const unit = condition.unit ?? 'norm';
+
+        if (unit === 'cm') {
+            const scale = this.distanceScaleCmPerUnit;
+            if (!scale) {
+                return false;
+            }
+            const distanceCm = distance * scale;
+            return this.compareValue(distanceCm, condition.operator, condition.value);
+        }
+
         return this.compareValue(distance, condition.operator, condition.value);
     }
 
@@ -356,6 +377,7 @@ export class GenericValidator extends BaseValidator {
                     issueDetails.landmarks = [...check.condition.landmarks];
                     issueDetails.operator = check.condition.operator;
                     issueDetails.value = check.condition.value;
+                    issueDetails.unit = check.condition.unit ?? 'norm';
                 }
 
                 const issue = this.createValidationResult(

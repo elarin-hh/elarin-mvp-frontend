@@ -10,7 +10,7 @@ export interface MLConfig {
 }
 
 export interface HeuristicConfig {
-  [key: string]: number | string | boolean;
+  [key: string]: unknown;
 }
 
 export interface ExerciseConfig {

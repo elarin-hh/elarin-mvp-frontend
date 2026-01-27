@@ -668,8 +668,13 @@
   let planSummaryExerciseCount = $state(0);
   let planSummarySessionId = $state<number | null>(null);
   let userName = $state(formatSummaryBadge(null));
+  let userHeightCm = $state<number | null>(null);
   const unsubscribeCurrentUser = currentUser.subscribe((user) => {
     userName = formatSummaryBadge(user);
+    userHeightCm =
+      typeof user?.height_cm === "number" && Number.isFinite(user.height_cm)
+        ? user.height_cm
+        : null;
   });
 
   $effect(() => {
@@ -1343,6 +1348,28 @@
 
       if (!exerciseConfig.exerciseType) {
         exerciseConfig.exerciseType = selectedExercise;
+      }
+
+      if (userHeightCm && exerciseConfig.heuristicConfig) {
+        const heuristicConfig = exerciseConfig.heuristicConfig as Record<
+          string,
+          any
+        >;
+        const calibration = (heuristicConfig.calibration ||
+          {}) as Record<string, any>;
+        if (
+          calibration.heightCm === undefined ||
+          calibration.heightCm === null
+        ) {
+          exerciseConfig.heuristicConfig = {
+            ...heuristicConfig,
+            calibration: {
+              ...calibration,
+              mode: calibration.mode ?? "height",
+              heightCm: userHeightCm,
+            },
+          };
+        }
       }
 
       analyzer = new ExerciseAnalyzer(exerciseConfig);

@@ -5,7 +5,9 @@ const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   full_name: z.string().optional().nullable(),
-  is_dev: z.boolean().optional().nullable()
+  is_dev: z.boolean().optional().nullable(),
+  height_cm: z.number().optional().nullable(),
+  weight_kg: z.number().optional().nullable()
 });
 
 const sessionSchema = z

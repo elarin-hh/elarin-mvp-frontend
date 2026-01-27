@@ -64,6 +64,7 @@ export class ExerciseAnalyzer {
   private onFeedback: ((feedback: FeedbackRecord) => void) | null;
   private onMetricsUpdate: ((metrics: ExtendedMetrics) => void) | null;
   private onError: ((error: Error) => void) | null;
+  private distanceScaleCmPerUnit: number | null;
 
   constructor(exerciseConfig: ExerciseConfig & { analysisInterval?: number }) {
     this.config = exerciseConfig;
@@ -92,6 +93,7 @@ export class ExerciseAnalyzer {
     this.onError = null;
 
     this.scoreHistory = [];
+    this.distanceScaleCmPerUnit = null;
   }
 
   private scoreHistory: number[];
@@ -166,6 +168,8 @@ export class ExerciseAnalyzer {
       return null;
     }
 
+    this.updateDistanceScaleFromCalibration(landmarks);
+
     const now = performance.now();
     if (now - this.lastAnalysisTime < this.analysisInterval) {
       return null;
@@ -213,6 +217,84 @@ export class ExerciseAnalyzer {
 
     const result = this.heuristicValidator.validate(landmarks, this.frameCount);
     return result;
+  }
+
+  private updateDistanceScaleFromCalibration(landmarks: PoseLandmarks): void {
+    const heuristicConfig = this.config.heuristicConfig as Record<string, any> | undefined;
+    const calibration = heuristicConfig?.calibration as
+      | { mode?: string; heightCm?: number; minHeightRatio?: number; smoothing?: number }
+      | undefined;
+
+    if (!calibration || calibration.mode !== 'height') {
+      return;
+    }
+
+    const heightCm = calibration.heightCm;
+    if (typeof heightCm !== 'number' || !Number.isFinite(heightCm) || heightCm <= 0) {
+      return;
+    }
+
+    const minHeightRatio =
+      typeof calibration.minHeightRatio === 'number' && calibration.minHeightRatio > 0
+        ? calibration.minHeightRatio
+        : 0.6;
+    const smoothing =
+      typeof calibration.smoothing === 'number' && calibration.smoothing >= 0 && calibration.smoothing <= 1
+        ? calibration.smoothing
+        : 0.2;
+
+    const minConfidence =
+      typeof heuristicConfig?.minConfidence === 'number' && heuristicConfig.minConfidence > 0
+        ? heuristicConfig.minConfidence
+        : 0.7;
+
+    const heightNorm = this.calculateHeightNorm(landmarks, minConfidence);
+    if (!heightNorm || heightNorm < minHeightRatio) {
+      return;
+    }
+
+    const cmPerUnit = heightCm / heightNorm;
+    if (!Number.isFinite(cmPerUnit) || cmPerUnit <= 0) {
+      return;
+    }
+
+    if (this.distanceScaleCmPerUnit === null) {
+      this.distanceScaleCmPerUnit = cmPerUnit;
+    } else {
+      this.distanceScaleCmPerUnit =
+        this.distanceScaleCmPerUnit * (1 - smoothing) + cmPerUnit * smoothing;
+    }
+
+    const validator = this.heuristicValidator as {
+      setDistanceScaleCmPerUnit?: (value: number | null) => void;
+    };
+    if (validator?.setDistanceScaleCmPerUnit) {
+      validator.setDistanceScaleCmPerUnit(this.distanceScaleCmPerUnit);
+    }
+  }
+
+  private calculateHeightNorm(landmarks: PoseLandmarks, minConfidence: number): number | null {
+    const headIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    const footIndices = [27, 28, 29, 30, 31, 32];
+
+    let topY: number | null = null;
+    for (const idx of headIndices) {
+      const lm = landmarks[idx];
+      if (!lm || lm.visibility === undefined || lm.visibility <= minConfidence) continue;
+      if (topY === null || lm.y < topY) topY = lm.y;
+    }
+
+    let bottomY: number | null = null;
+    for (const idx of footIndices) {
+      const lm = landmarks[idx];
+      if (!lm || lm.visibility === undefined || lm.visibility <= minConfidence) continue;
+      if (bottomY === null || lm.y > bottomY) bottomY = lm.y;
+    }
+
+    if (topY === null || bottomY === null) return null;
+    const heightNorm = bottomY - topY;
+    if (heightNorm <= 0) return null;
+    return heightNorm;
   }
 
   private updateMetrics(feedback: FeedbackRecord): void {

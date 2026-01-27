@@ -5,6 +5,8 @@ export interface User {
   email: string;
   full_name?: string;
   is_dev?: boolean;
+  height_cm?: number | null;
+  weight_kg?: number | null;
 }
 
 export interface AuthSession {

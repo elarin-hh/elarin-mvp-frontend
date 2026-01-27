@@ -48,6 +48,7 @@ flowchart TB
   "repRule": {...},
   "primaryAngle": {...},
   "checks": [...],
+  "calibration": {...},
   "minConfidence": 0.7,
   "feedbackCooldownMs": 350
 }
@@ -61,6 +62,7 @@ flowchart TB
 | `repRule` | `RepRule` | Para `reps` | Regra de contagem de repetições |
 | `primaryAngle` | `PrimaryAngle` | Não | Ângulo principal para tracking visual |
 | `checks` | `CheckDefinition[]` | Sim | Lista de validações de postura |
+| `calibration` | `CalibrationConfig` | Não | Calibração opcional (ex.: usar cm com altura do usuário) |
 | `minConfidence` | `number` | Não | Confiança mínima dos landmarks (0.0-1.0). Default: 0.7 |
 | `feedbackCooldownMs` | `number` | Não | Cooldown global entre alertas de áudio em ms. Default: 350 |
 
@@ -216,7 +218,8 @@ Calcula a distância normalizada (0.0 a 1.0) entre 2 landmarks.
   "type": "distance",
   "landmarks": [27, 28],
   "operator": "between",
-  "value": [0.1, 0.4]
+  "value": [0.1, 0.4],
+  "unit": "norm"
 }
 ```
 
@@ -226,10 +229,16 @@ Calcula a distância normalizada (0.0 a 1.0) entre 2 landmarks.
 | `landmarks` | `[number, number]` | Sim | 2 pontos para medir distância |
 | `operator` | `"<"` \| `">"` \| `"<="` \| `">="` \| `"between"` | Sim | Operador de comparação |
 | `value` | `number` \| `[number, number]` | Sim | Distância normalizada (0.0-1.0) |
+| `unit` | `"norm"` \| `"cm"` | Não | Unidade usada na comparação. Default: `"norm"` |
 
 **Nota:** A distância é relativa ao tamanho da imagem.
 - `0.1` = 10% da largura/altura da tela
 - `0.5` = 50% da largura/altura da tela
+
+**Usar centímetros (`unit: "cm"`):**
+- Requer **calibração** para converter cm → unidades normalizadas.
+- Sem calibração, a comparação em cm **não é confiável**.
+- Se `heightCm` não for informado, o app tenta usar a altura do usuário do cadastro (quando disponível).
 
 ---
 
@@ -398,10 +407,46 @@ Compara valores calculados entre lado esquerdo e direito do corpo.
   "repRule": {"trigger": "on_complete", "sequence": ["UP", "DOWN", "UP"]},
   "initialState": "UP",
   "primaryAngle": {"name": "left_knee", "landmarks": [23, 25, 27], "smoothingFrames": 3},
+  "calibration": {"mode": "height", "heightCm": 175, "minHeightRatio": 0.6, "smoothing": 0.2},
   "minConfidence": 0.7,
   "feedbackCooldownMs": 350
 }
 ```
+
+---
+
+## Calibração (`calibration`)
+
+Permite usar **cm** em checks de distância. O sistema calcula a escala (cm por unidade normalizada)
+usando a **altura do usuário**.
+
+```json
+{
+  "calibration": {
+    "mode": "height",
+    "heightCm": 175,
+    "minHeightRatio": 0.6,
+    "smoothing": 0.2
+  }
+}
+```
+
+| Propriedade | Tipo | Obrigatório | Descrição |
+|-------------|------|-------------|-----------|
+| `mode` | `"height"` | Não | Método de calibração (por altura) |
+| `heightCm` | `number` | Não | Altura do usuário (em cm) |
+| `minHeightRatio` | `number` | Não | Altura mínima visível (0.0-1.0) para calibrar. Default: 0.6 |
+| `smoothing` | `number` | Não | Suavização (0-1) da escala. Default: 0.2 |
+
+**Boas práticas:**
+- Calibrar com o corpo inteiro visível em pé por alguns segundos.
+- Se a pessoa se aproximar/afastar muito, recalibrar.
+
+---
+
+## Notas de Implementação (Atual)
+- `unit: "cm"` depende da escala calibrada por altura; sem escala válida, a condição falha.
+- `calibration.mode: "height"` usa a altura do usuário e precisa de corpo inteiro visível no início.
 
 ---
 
