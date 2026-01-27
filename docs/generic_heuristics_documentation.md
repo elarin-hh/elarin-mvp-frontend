@@ -12,6 +12,147 @@ O **GenericValidator** é um sistema de validação de exercícios baseado em co
 
 ---
 
+## Configuração Completa do Exercício (ExerciseConfig)
+
+O sistema usa um **config completo** por exercício (ML + heurística + UI).  
+Este objeto é carregado do backend e mesclado com overrides do usuário.
+
+```json
+{
+  "exerciseType": "standing_hip_abduction",
+  "exerciseName": "Abdução de Quadril em Pé",
+  "modelPath": "./exercises/standing_hip_abduction/model.onnx",
+  "analysisInterval": 100,
+  "mlConfig": { ... },
+  "heuristicConfig": { ... },
+  "feedbackConfig": { ... },
+  "components": ["timer", "quality_slider", "rep_bars"],
+  "metrics": [ ... ],
+  "completion": { "mode": "any", "metrics": ["reps", "duration"] },
+  "referenceVideoUrl": "./exercises/standing_hip_abduction/demo.mp4"
+}
+```
+
+| Campo | Tipo | Obrigatório | Observação |
+|------|------|-------------|-----------|
+| `exerciseType` | `string` | Não | Se ausente, o app usa o slug selecionado |
+| `exerciseName` | `string` | Sim | Nome exibido na UI |
+| `modelPath` | `string` | **Sim** | Necessário hoje (ML sempre inicializa) |
+| `analysisInterval` | `number` | Não | Intervalo em ms entre análises. Default: 100 |
+| `mlConfig` | `MLConfig` | **Sim** | Config do autoencoder (ver seção ML) |
+| `heuristicConfig` | `HeuristicConfig` | Não | Regras biomecânicas |
+| `feedbackConfig` | `FeedbackConfig` | **Sim** | Modo e pesos de feedback |
+| `components` | `string[]` | Não | UI: `timer`, `quality_slider`, `rep_bars` |
+| `metrics` | `MetricDefinition[]` | Não | Metas/medidas (reps/duration) |
+| `completion` | `CompletionConfig` | Não | Critério de conclusão do exercício |
+| `referenceVideoUrl` | `string` | Não | Vídeo de referência |
+
+**Nota:** mesmo com `feedbackMode: "heuristic_only"`, o ML é carregado hoje.
+Se `modelPath` faltar, o treino falha na inicialização.
+
+**Nota:** se `components` for omitido, o default atual é **lista vazia** (nenhum componente extra).
+
+**Performance:** `analysisInterval` controla o mínimo de tempo entre análises (ms). Valores menores aumentam CPU/GPU.
+
+---
+
+## ML (Autoencoder)
+
+### Como funciona
+O modelo recebe **33 landmarks x (x,y,z) = 99 features** por frame, em valores
+**normalizados do MediaPipe** (sem clamping). O autoencoder calcula o **erro de
+reconstrução**:
+
+- **Erro <= threshold** → movimento correto  
+- **Erro > threshold** → movimento anômalo
+
+### MLConfig
+
+```json
+{
+  "maxFrames": 60,
+  "minFrames": 3,
+  "predictionInterval": 1,
+  "threshold": 0.041,
+  "maxHistorySize": 200
+}
+```
+
+| Campo | Obrigatório | Descrição |
+|------|-------------|-----------|
+| `maxFrames` | Não | Tamanho da sequência. **Se o modelo tiver seq_len fixo, ele sobrescreve** |
+| `minFrames` | Não | Frames mínimos antes de inferir. Default = `maxFrames` |
+| `predictionInterval` | Não | Inferência a cada N frames. Default: 1 |
+| `threshold` | **Sim** | Limite do erro de reconstrução |
+| `maxHistorySize` | Não | Histórico para métricas (default: 200) |
+
+**Notas importantes:**
+- Se `threshold` não for passado, o ML tende a classificar como **incorreto**.
+- Se `maxFrames` não bater com o modelo, o sistema usa o `seq_len` do modelo.
+- `predictionInterval` é limitado ao `maxFrames`.
+
+### Status ML
+O ML pode retornar:
+`waiting` (frames insuficientes), `processing`, `correct`, `incorrect`, `error`, `unavailable`.
+
+---
+
+## Feedback (ML + Heurística)
+
+### FeedbackConfig
+```json
+{
+  "feedbackMode": "hybrid",
+  "mlWeight": 0.6,
+  "heuristicWeight": 0.4,
+  "maxFeedbackItems": 3
+}
+```
+
+| Campo | Obrigatório | Descrição |
+|------|-------------|-----------|
+| `feedbackMode` | **Sim** | `ml_only` \| `heuristic_only` \| `hybrid` |
+| `mlWeight` | Sim (hybrid) | Peso do ML no score combinado |
+| `heuristicWeight` | Sim (hybrid) | Peso das heurísticas |
+| `maxFeedbackItems` | Não | Máximo de mensagens exibidas (default 3) |
+
+**Recomendações:**
+- Em `hybrid`, `mlWeight + heuristicWeight ≈ 1.0`.
+
+---
+
+## Métricas e Conclusão
+
+### metrics
+```json
+[
+  { "id": "duration", "type": "duration", "target": 60, "label": "Tempo", "unit": "s", "display": "remaining", "showIn": ["next","training","summary"] },
+  { "id": "reps", "type": "reps", "target": 10, "label": "Repetições", "unit": "reps", "showIn": ["next","training","summary"] }
+]
+```
+
+**Tipos comuns:**
+- `duration` (tempo em segundos)
+- `reps` (repetições)
+
+**Campos úteis:**
+- `label`: texto exibido no UI
+- `unit`: unidade exibida (ex.: `s`, `reps`)
+- `display`: apenas para `duration` (`elapsed` ou `remaining`)
+- `showIn`: onde mostrar (`next`, `training`, `summary`)
+
+### completion
+```json
+{ "mode": "any", "metrics": ["reps", "duration"] }
+```
+
+| Campo | Descrição |
+|------|-----------|
+| `mode` | `any` (qualquer meta atingida), `all` (todas), `manual` |
+| `metrics` | IDs de métricas usadas no cálculo |
+
+---
+
 ## Arquitetura
 
 ```mermaid
@@ -68,6 +209,23 @@ flowchart TB
 
 ---
 
+## Obrigatoriedade Real (comportamento do código)
+
+Esta seção reflete **o que o runtime realmente exige hoje**:
+
+| Campo | É obrigatório? | Observação prática |
+|-------|-----------------|--------------------|
+| `mode` | Não | Default é `"reps"` quando ausente |
+| `checks` | Não | Default `[]` (nenhuma validação) |
+| `states` | Só se quiser contar reps | Sem `states`, o exercício roda, mas não há máquina de estados |
+| `repRule` | Só se quiser contar reps | Sem `repRule`, não há contagem de repetição |
+| `initialState` | Não | Default = primeiro estado em `states` |
+| `primaryAngle` | Não | Só para tracking visual/debug |
+| `minConfidence` | Não | Default 0.7 |
+| `feedbackCooldownMs` | Não | Valor armazenado, mas não aplicado no GenericValidator |
+
+---
+
 ### Modos de Exercício (`mode`)
 
 | Valor | Descrição | Exemplo |
@@ -114,6 +272,8 @@ flowchart TB
 - `"on_complete"` - Conta quando toda a sequência é completada
 - `"on_transition"` - Conta a cada transição de estado
 
+**Nota importante:** no código atual, `trigger` **não é usado**. A contagem ocorre apenas quando a sequência completa e houve transição de estado.
+
 ---
 
 ### Ângulo Principal (`primaryAngle`)
@@ -131,6 +291,8 @@ flowchart TB
 | `name` | `string` | Sim | Nome identificador do ângulo |
 | `landmarks` | `[number, number, number]` | Sim | 3 landmarks que formam o ângulo |
 | `smoothingFrames` | `number` | Não | Frames para suavização. Default: 1 |
+
+**Nota importante:** o `smoothingFrames` **não é aplicado** no valor retornado hoje (o cálculo existe, mas não altera o resultado final).
 
 ---
 
@@ -159,7 +321,7 @@ flowchart TB
 | `cooldownMs` | `number` | Não | Cooldown específico deste check. Default: usa global |
 | `activeInStates` | `string[]` | Não | Só ativa nesses estados. Default: sempre ativo |
 | `messages.fail` | `string` | Sim | Mensagem exibida quando a condição falha |
-| `messages.pass` | `string` | Sim | Mensagem quando passa (usada internamente) |
+| `messages.pass` | `string` | Sim | Mensagem quando passa (não exibida na UI hoje) |
 | `condition` | `Condition` | Sim | A condição a ser avaliada |
 
 **Valores de `severity`:**
@@ -169,6 +331,10 @@ flowchart TB
 | `"medium"` | Laranja | Correções importantes |
 | `"high"` | Vermelho | Erros que afetam a execução |
 | `"critical"` | Vermelho escuro | Risco de lesão |
+
+**Notas importantes:**
+- `activeInStates` é ignorado em `mode: "hold"` (não há estado atual).
+- `cooldownMs` e `feedbackCooldownMs` **não são aplicados** no GenericValidator hoje.
 
 ---
 
@@ -234,6 +400,8 @@ Calcula a distância normalizada (0.0 a 1.0) entre 2 landmarks.
 **Nota:** A distância é relativa ao tamanho da imagem.
 - `0.1` = 10% da largura/altura da tela
 - `0.5` = 50% da largura/altura da tela
+
+**Nota técnica:** o cálculo usa distância **3D** (x, y, z normalizados).
 
 **Usar centímetros (`unit: "cm"`):**
 - Requer **calibração** para converter cm → unidades normalizadas.
@@ -445,6 +613,14 @@ usando a **altura do usuário**.
 ---
 
 ## Notas de Implementação (Atual)
+- `activeInStates` só funciona se existe `currentState` (modos com máquina de estados).
+- `minFrames` sem valor significa **nenhum mínimo** (0), não “1”.
+- `mode: "hybrid"` hoje se comporta como `"reps"` no GenericValidator.
+- `feedbackCooldownMs` e `checks[].cooldownMs` não são aplicados pelo GenericValidator.
+
+---
+
+## Notas de Implementação (Atual)
 - `unit: "cm"` depende da escala calibrada por altura; sem escala válida, a condição falha.
 - `calibration.mode: "height"` usa a altura do usuário e precisa de corpo inteiro visível no início.
 
@@ -529,4 +705,6 @@ Cole o JSON no campo `config.heuristicConfig`.
 | `validators/BaseValidator.ts` | Utilitários (ângulos, distâncias) |
 | `validators/index.ts` | Factory |
 | `core/FeedbackSystem.ts` | Processa resultados |
+| `ml/GenericClassifier.ts` | ML autoencoder (reconstruction error) |
+| `config/exerciseConfigs.ts` | Carregamento de config do backend |
 | `routes/(app)/train/+page.svelte` | UI |
