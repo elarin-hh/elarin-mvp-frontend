@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { restClient, type ApiResponse } from '$lib/api/rest.client';
+import { createRestClient, restClient, type ApiResponse } from '$lib/api/rest.client';
 
 const userSchema = z.object({
   id: z.string(),
@@ -33,9 +33,16 @@ const meResponseSchema = z.object({
 export type AuthPayload = z.infer<typeof authPayloadSchema>;
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
+const getClient = (fetchFn?: typeof fetch) =>
+  fetchFn ? createRestClient(fetchFn) : restClient;
+
 export const authService = {
-  login(email: string, password: string): Promise<ApiResponse<AuthPayload>> {
-    return restClient.post('/auth/login', { email, password }, authPayloadSchema);
+  login(
+    email: string,
+    password: string,
+    fetchFn?: typeof fetch
+  ): Promise<ApiResponse<AuthPayload>> {
+    return getClient(fetchFn).post('/auth/login', { email, password }, authPayloadSchema);
   },
 
   register(
@@ -43,9 +50,10 @@ export const authService = {
     password: string,
     fullName: string,
     birthDate: string,
-    marketingConsent = false
+    marketingConsent = false,
+    fetchFn?: typeof fetch
   ): Promise<ApiResponse<AuthPayload>> {
-    return restClient.post(
+    return getClient(fetchFn).post(
       '/auth/register',
       {
         email,
@@ -66,7 +74,8 @@ export const authService = {
     organizationId: number,
     heightCm: number,
     weightKg: number,
-    marketingConsent = false
+    marketingConsent = false,
+    fetchFn?: typeof fetch
   ): Promise<ApiResponse<AuthPayload>> {
     const payload: Record<string, any> = {
       email,
@@ -79,18 +88,18 @@ export const authService = {
       marketing_consent: marketingConsent
     };
 
-    return restClient.post(
+    return getClient(fetchFn).post(
       '/auth/register-with-organization',
       payload,
       authPayloadSchema
     );
   },
 
-  logout(): Promise<ApiResponse<unknown>> {
-    return restClient.post('/auth/logout');
+  logout(fetchFn?: typeof fetch): Promise<ApiResponse<unknown>> {
+    return getClient(fetchFn).post('/auth/logout');
   },
 
-  me(): Promise<ApiResponse<MeResponse>> {
-    return restClient.get('/auth/me', meResponseSchema);
+  me(fetchFn?: typeof fetch): Promise<ApiResponse<MeResponse>> {
+    return getClient(fetchFn).get('/auth/me', meResponseSchema);
   }
 };

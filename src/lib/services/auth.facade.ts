@@ -133,9 +133,9 @@ export const authActions = {
     setAuthLoading(false);
   },
 
-  async checkSession() {
+  async checkSession(fetchFn?: typeof fetch) {
     setAuthLoading(true);
-    const response = await authService.me();
+    const response = await authService.me(fetchFn);
     setAuthLoading(false);
 
     if (response.success && response.data?.user) {

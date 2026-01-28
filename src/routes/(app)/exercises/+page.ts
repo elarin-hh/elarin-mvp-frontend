@@ -5,10 +5,10 @@ import { trainingPlansApi } from '$lib/api/training-plans.api';
 export const ssr = false;
 export const prerender = false;
 
-export const load: PageLoad = async () => {
+export const load: PageLoad = async ({ fetch }) => {
   const [exercisesResponse, planResponse] = await Promise.all([
-    exercisesApi.getAll(),
-    trainingPlansApi.getAssigned()
+    exercisesApi.getAll(fetch),
+    trainingPlansApi.getAssigned(fetch)
   ]);
 
   let assignedPlans: import('$lib/api/training-plans.api').AssignedTrainingPlan[] = [];

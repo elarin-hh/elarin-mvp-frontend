@@ -90,6 +90,7 @@ reconstrução**:
 - Se `threshold` não for passado, o ML tende a classificar como **incorreto**.
 - Se `maxFrames` não bater com o modelo, o sistema usa o `seq_len` do modelo.
 - `predictionInterval` é limitado ao `maxFrames`.
+- O runtime **não usa** `externalDataPath`: modelos devem ser **single-file** (apenas `.onnx`).
 
 ### Status ML
 O ML pode retornar:

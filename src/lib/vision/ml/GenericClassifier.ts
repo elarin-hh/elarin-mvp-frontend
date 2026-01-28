@@ -81,33 +81,7 @@ export class GenericExerciseClassifier {
         throw new Error(`Failed to fetch model: ${modelResponse.status} ${modelResponse.statusText}`);
       }
       const modelBuffer = await modelResponse.arrayBuffer();
-
-      // Try to fetch the external data file (.onnx.data)
-      const dataPath = modelPath + '.data';
-      let externalDataBuffer: ArrayBuffer | null = null;
-
-      try {
-        const dataResponse = await fetch(dataPath);
-        if (dataResponse.ok) {
-          externalDataBuffer = await dataResponse.arrayBuffer();
-        }
-      } catch (dataError) {
-        // No external data file - this is OK for small models
-      }
-
-      // Create session with external data if available
-      if (externalDataBuffer) {
-        this.session = await ort.InferenceSession.create(modelBuffer, {
-          externalData: [
-            {
-              data: externalDataBuffer,
-              path: modelPath.split(/[/\\]/).pop() + '.data'
-            }
-          ]
-        });
-      } else {
-        this.session = await ort.InferenceSession.create(modelBuffer);
-      }
+      this.session = await ort.InferenceSession.create(modelBuffer);
 
       this.alignConfigWithModel();
 
