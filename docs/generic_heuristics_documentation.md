@@ -41,7 +41,7 @@ Este objeto é carregado do backend e mesclado com overrides do usuário.
 | `analysisInterval` | `number` | Não | Intervalo em ms entre análises. Default: 100 |
 | `mlConfig` | `MLConfig` | **Sim** | Config do autoencoder (ver seção ML) |
 | `heuristicConfig` | `HeuristicConfig` | Não | Regras biomecânicas |
-| `feedbackConfig` | `FeedbackConfig` | **Sim** | Modo e pesos de feedback |
+| `feedbackConfig` | N?o | Modo e pesos de feedback (defaults aplicados se omitido) |
 | `components` | `string[]` | Não | UI: `timer`, `quality_slider`, `rep_bars` |
 | `metrics` | `MetricDefinition[]` | Não | Metas/medidas (reps/duration) |
 | `completion` | `CompletionConfig` | Não | Critério de conclusão do exercício |
@@ -111,13 +111,16 @@ O ML pode retornar:
 
 | Campo | Obrigatório | Descrição |
 |------|-------------|-----------|
-| `feedbackMode` | **Sim** | `ml_only` \| `heuristic_only` \| `hybrid` |
-| `mlWeight` | Sim (hybrid) | Peso do ML no score combinado |
-| `heuristicWeight` | Sim (hybrid) | Peso das heurísticas |
-| `maxFeedbackItems` | Não | Máximo de mensagens exibidas (default 3) |
+| `feedbackMode` | N?o | `ml_only` \| `heuristic_only` \| `hybrid` (default: `hybrid`) |
+| `mlWeight` | N?o | Peso do ML no score combinado (default: 0.6, normalizado) |
+| `heuristicWeight` | N?o | Peso das heur?sticas (default: 0.4, normalizado) |
+| `maxFeedbackItems` | N?o | M?ximo de mensagens exibidas (default 3) |
 
 **Recomendações:**
 - Em `hybrid`, `mlWeight + heuristicWeight ≈ 1.0`.
+
+**Defaults aplicados no runtime:** `feedbackMode: "hybrid"`, `mlWeight: 0.6`, `heuristicWeight: 0.4`, `maxFeedbackItems: 3`. Pesos s?o normalizados quando a soma difere de 1.
+
 
 ---
 
@@ -136,7 +139,7 @@ O ML pode retornar:
 - `reps` (repetições)
 
 **Campos úteis:**
-- `label`: texto exibido no UI
+- `label`/`name`: texto exibido na UI (se ambos vierem, `label` tem prioridade)
 - `unit`: unidade exibida (ex.: `s`, `reps`)
 - `display`: apenas para `duration` (`elapsed` ou `remaining`)
 - `showIn`: onde mostrar (`next`, `training`, `summary`)
@@ -249,7 +252,7 @@ Esta seção reflete **o que o runtime realmente exige hoje**:
 | Propriedade | Tipo | Obrigatório | Descrição |
 |-------------|------|-------------|-----------|
 | `name` | `string` | Sim | Identificador único do estado (ex: "UP", "DOWN") |
-| `minFrames` | `number` | Não | Frames mínimos que deve permanecer antes de sair. Default: 1 |
+| `minFrames` | `number` | Não | Frames mínimos que deve permanecer antes de sair. Default: 0 (sem mínimo) |
 | `entryConditions` | `Condition[]` | Sim | Condições para entrar neste estado (todas devem ser verdadeiras) |
 
 ---
@@ -290,7 +293,7 @@ Esta seção reflete **o que o runtime realmente exige hoje**:
 |-------------|------|-------------|-----------|
 | `name` | `string` | Sim | Nome identificador do ângulo |
 | `landmarks` | `[number, number, number]` | Sim | 3 landmarks que formam o ângulo |
-| `smoothingFrames` | `number` | Não | Frames para suavização. Default: 1 |
+| `smoothingFrames` | `number` | Não | Frames para suavização. Default: 3 |
 
 **Nota importante:** o `smoothingFrames` **não é aplicado** no valor retornado hoje (o cálculo existe, mas não altera o resultado final).
 
@@ -324,13 +327,13 @@ Esta seção reflete **o que o runtime realmente exige hoje**:
 | `messages.pass` | `string` | Sim | Mensagem quando passa (não exibida na UI hoje) |
 | `condition` | `Condition` | Sim | A condição a ser avaliada |
 
-**Valores de `severity`:**
-| Valor | Cor | Uso |
-|-------|-----|-----|
-| `"low"` | Amarelo | Avisos menores |
-| `"medium"` | Laranja | Correções importantes |
-| `"high"` | Vermelho | Erros que afetam a execução |
-| `"critical"` | Vermelho escuro | Risco de lesão |
+**Valores de `severity` (UI atual):**
+| Valor | Cor | Observação |
+|-------|-----|------------|
+| `"low"` | Amarelo | Mesma cor das mensagens warning |
+| `"medium"` | Amarelo | Mesma cor das mensagens warning |
+| `"high"` | Amarelo | Mesma cor das mensagens warning |
+| `"critical"` | Vermelho escuro | Classe especial com animação |
 
 **Notas importantes:**
 - `activeInStates` é ignorado em `mode: "hold"` (não há estado atual).
@@ -406,7 +409,7 @@ Calcula a distância normalizada (0.0 a 1.0) entre 2 landmarks.
 **Usar centímetros (`unit: "cm"`):**
 - Requer **calibração** para converter cm → unidades normalizadas.
 - Sem calibração, a comparação em cm **não é confiável**.
-- Se `heightCm` não for informado, o app tenta usar a altura do usuário do cadastro (quando disponível).
+- Se `heightCm` não for informado, **a tela de treino** tenta usar a altura do usuário do cadastro (quando disponível). Essa injeção ocorre no `train/+page.svelte`, não dentro do `ExerciseAnalyzer`.
 
 ---
 
@@ -623,6 +626,7 @@ usando a **altura do usuário**.
 ## Notas de Implementação (Atual)
 - `unit: "cm"` depende da escala calibrada por altura; sem escala válida, a condição falha.
 - `calibration.mode: "height"` usa a altura do usuário e precisa de corpo inteiro visível no início.
+- A injeção de `heightCm` a partir do cadastro acontece apenas na UI de treino (`train/+page.svelte`).
 
 ---
 
@@ -700,11 +704,11 @@ Cole o JSON no campo `config.heuristicConfig`.
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `validators/GenericValidator.ts` | Implementação principal |
-| `types/validator-config.types.ts` | Definições TypeScript |
-| `validators/BaseValidator.ts` | Utilitários (ângulos, distâncias) |
-| `validators/index.ts` | Factory |
-| `core/FeedbackSystem.ts` | Processa resultados |
-| `ml/GenericClassifier.ts` | ML autoencoder (reconstruction error) |
-| `config/exerciseConfigs.ts` | Carregamento de config do backend |
-| `routes/(app)/train/+page.svelte` | UI |
+| `src/lib/vision/validators/GenericValidator.ts` | Implementação principal |
+| `src/lib/vision/types/validator-config.types.ts` | Definições TypeScript |
+| `src/lib/vision/validators/BaseValidator.ts` | Utilitários (ângulos, distâncias) |
+| `src/lib/vision/validators/index.ts` | Factory |
+| `src/lib/vision/core/FeedbackSystem.ts` | Processa resultados |
+| `src/lib/vision/ml/GenericClassifier.ts` | ML autoencoder (reconstruction error) |
+| `src/lib/vision/config/exerciseConfigs.ts` | Carregamento de config do backend |
+| `src/routes/(app)/train/+page.svelte` | UI |

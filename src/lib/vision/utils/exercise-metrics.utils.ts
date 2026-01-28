@@ -60,7 +60,12 @@ export function normalizeExerciseMetrics(
     seenIds.add(id);
 
     const defaults = defaultsForType(type);
-    const label = typeof def.label === 'string' && def.label.trim() ? def.label.trim() : defaults.label;
+    const label =
+      typeof def.label === 'string' && def.label.trim()
+        ? def.label.trim()
+        : typeof def.name === 'string' && def.name.trim()
+          ? def.name.trim()
+          : defaults.label;
     const unit = typeof def.unit === 'string' && def.unit.trim() ? def.unit.trim() : defaults.unit;
     const target = isFiniteNumber(def.target) ? def.target : null;
 
@@ -90,4 +95,3 @@ export function getMetricByType(
 ): NormalizedExerciseMetric | undefined {
   return metrics.find((m) => m.type === type);
 }
-

@@ -10,6 +10,7 @@ export interface ExerciseMetricDefinition {
   id: string;
   type: ExerciseMetricType;
   target?: number | null;
+  label?: string;
   name?: string;
   unit?: string;
   display?: DurationDisplayMode;

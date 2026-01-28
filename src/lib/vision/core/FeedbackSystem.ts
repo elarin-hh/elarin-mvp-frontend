@@ -91,12 +91,47 @@ export class FeedbackSystem {
   private currentFeedback: FeedbackRecord | null;
 
   constructor(config: FeedbackSystemConfig = {}) {
+    const fallbackMode: FeedbackMode = 'hybrid';
+    const fallbackMlWeight = 0.6;
+    const fallbackHeuristicWeight = 0.4;
+    const fallbackMaxFeedbackItems = 3;
+
+    const feedbackMode: FeedbackMode =
+      config.feedbackMode === 'ml_only' ||
+      config.feedbackMode === 'heuristic_only' ||
+      config.feedbackMode === 'hybrid'
+        ? config.feedbackMode
+        : fallbackMode;
+
+    const rawMlWeight =
+      typeof config.mlWeight === 'number' && Number.isFinite(config.mlWeight)
+        ? config.mlWeight
+        : fallbackMlWeight;
+    const rawHeuristicWeight =
+      typeof config.heuristicWeight === 'number' &&
+      Number.isFinite(config.heuristicWeight)
+        ? config.heuristicWeight
+        : fallbackHeuristicWeight;
+
+    const weightTotal = rawMlWeight + rawHeuristicWeight;
+    const normalizedMlWeight =
+      weightTotal > 0 ? rawMlWeight / weightTotal : fallbackMlWeight;
+    const normalizedHeuristicWeight =
+      weightTotal > 0 ? rawHeuristicWeight / weightTotal : fallbackHeuristicWeight;
+
+    const maxFeedbackItems =
+      typeof config.maxFeedbackItems === 'number' &&
+      Number.isFinite(config.maxFeedbackItems) &&
+      config.maxFeedbackItems >= 0
+        ? config.maxFeedbackItems
+        : fallbackMaxFeedbackItems;
+
     this.config = {
-      feedbackMode: config.feedbackMode!,
-      mlWeight: config.mlWeight!,
-      heuristicWeight: config.heuristicWeight!,
-      maxFeedbackItems: config.maxFeedbackItems!,
-      ...config
+      ...config,
+      feedbackMode,
+      mlWeight: normalizedMlWeight,
+      heuristicWeight: normalizedHeuristicWeight,
+      maxFeedbackItems
     };
 
     this.feedbackHistory = [];
